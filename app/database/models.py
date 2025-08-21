@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, Float, BigInteger, ForeignKey, Index, func
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref 
 from app.database.session import Base
 
 class User(Base):
@@ -9,39 +9,45 @@ class User(Base):
     telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
     username = Column(String)
     
+    # ✅ ДОБАВЬТЕ ForeignKey для реферера
+    referrer_id = Column(Integer, ForeignKey('users.id'), nullable=True, index=True)
+    
     # Основные балансы
-    ton_balance = Column(Float, default=0.0)  # кол-во TON-крипто
-    stars_balance = Column(Float, default=0.0)  # кол-во звезд
+    ton_balance = Column(Float, default=0.0)
+    stars_balance = Column(Float, default=0.0)
     
     # Крипто кошелек
-    wallet_token = Column(String, nullable=True)  # токен крипто кошелька
+    wallet_token = Column(String, nullable=True)
     
     # Язык и настройки
     language = Column(String, default="ru")
     
     # Реферальная система
-    referrals_count = Column(Integer, default=0)  # кол-во рефералов
-    active_referrals = Column(Integer, default=0)  # активность рефералов
-    referral_earnings_usd = Column(Float, default=0.0)  # заработано с реф. в долларах
+    referrals_count = Column(Integer, default=0)
+    active_referrals = Column(Integer, default=0)
+    referral_earnings_usd = Column(Float, default=0.0)
     
     # Статистика по подаркам
-    gifts_uploaded = Column(Integer, default=0)  # кол-во подарков
-    gift_name_number = Column(String, nullable=True)  # название-номер подарка
+    gifts_uploaded = Column(Integer, default=0)
+    gift_name_number = Column(String, nullable=True)
     
     # Детальная статистика по рефералам
-    stars_earned_from_refs = Column(Float, default=0.0)  # звезд получено с рефералов
-    stars_spent_by_refs = Column(Float, default=0.0)  # звезд потрачено рефералами
-    total_refs_balance = Column(Float, default=0.0)  # баланс всех рефералов
+    stars_earned_from_refs = Column(Float, default=0.0)
+    stars_spent_by_refs = Column(Float, default=0.0)
+    total_refs_balance = Column(Float, default=0.0)
     
     # Временные метки
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     
-    # Связи с другими таблицами
-    deposits = relationship("DepositHistory", back_populates="user")
-    crash_bets = relationship("CrashBetHistory", back_populates="user")
+    # ✅ ПРАВИЛЬНО настроенные связи
+    referrer = relationship(
+        "User", 
+        remote_side=[id],
+        backref=backref("referrals", lazy="dynamic"),
+        foreign_keys=[referrer_id]
+    )
     
-    referrer = relationship("User", remote_side=[id], backref="referrals")
     deposits = relationship("DepositHistory", back_populates="user")
     crash_bets = relationship("CrashBetHistory", back_populates="user")
 
