@@ -3,11 +3,12 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.types import WebAppInfo
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-import os
-
+from aiogram.fsm.storage.memory import MemoryStorage
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 from app.database.session import SessionLocal
+import os
+
 
 
 def webapp_builder():
@@ -32,11 +33,17 @@ async def get_db_session():
     finally:
         db.close()
 
+
+# Правильная реализация middleware для aiogram
 class DBSessionMiddleware:
     async def __call__(self, handler, event, data):
         async with get_db_session() as db:
             data["db"] = db
             return await handler(event, data)
 
-dp = Dispatcher()
-dp.update.middleware(DBSessionMiddleware())  # Добавляем middleware
+# Создаем хранилище для FSM
+storage = MemoryStorage()
+dp = Dispatcher(storage=storage)
+
+# Правильное добавление middleware
+dp.update.outer_middleware(DBSessionMiddleware())  # ← ИСПРАВЛЕНО
