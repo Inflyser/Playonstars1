@@ -60,10 +60,11 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
         else:
             user_id = None
         
-        # Сохраняем в сессию
+        # Сохраняем в сессию (ИСПРАВЛЕННАЯ СТРОКА)
         if user_id:
             request.session["user_id"] = user_id
-            request.session["telegram_data"] = update.to_python()
+            # Используем model_dump() вместо to_python()
+            request.session["telegram_data"] = update.model_dump()
         
         await dp.feed_update(bot, update)
         return {"status": "ok"}
