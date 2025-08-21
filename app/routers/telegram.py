@@ -67,9 +67,9 @@ async def process_language_callback(callback: CallbackQuery, db: Session):
     }[lang]
     
     duck_message = {
-        'ru': 'Фарми уток!',
-        'en': 'Farm ducks!',
-        'zh': '养鸭子!'
+        'ru': 'Приложение работает!',
+        'en': 'The application is working!',
+        'zh': '應用程式正在運行！'
     }[lang]
     
     try:
