@@ -20,13 +20,16 @@ from aiogram.exceptions import TelegramBadRequest
 
 router = Router()
 
-# Создаем клавиатуру с инлайн-кнопками
+# Создаем клавиатуру с инлайн-кнопками для трех языков
 def get_language_inline_keyboard():
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang_ru"),
                 InlineKeyboardButton(text="🇬🇧 English", callback_data="lang_en")
+            ],
+            [
+                InlineKeyboardButton(text="🇨🇳 中文", callback_data="lang_zh")
             ]
         ]
     )
@@ -42,23 +45,31 @@ async def cmd_start(message: Message, db: Session):
     lang = user.language if user and user.language else 'ru'
     greeting = {
         'ru': f"Привет, {user.username or 'друг'}! 👋",
-        'en': f"Hello, {user.username or 'friend'}! 👋"
+        'en': f"Hello, {user.username or 'friend'}! 👋",
+        'zh': f"你好, {user.username or '朋友'}! 👋"
     }[lang]
     
     await message.answer(greeting)
     await message.answer(
-        "Выберите язык / Choose language:",
+        "Выберите язык / Choose language / 选择语言:",
         reply_markup=get_language_inline_keyboard()
     )
 
 @router.callback_query(lambda c: c.data.startswith('lang_'))
 async def process_language_callback(callback: CallbackQuery, db: Session):
-    lang = callback.data.split('_')[1]  # 'ru' или 'en'
+    lang = callback.data.split('_')[1]  # 'ru', 'en' или 'zh'
     user = update_user_language(db, callback.from_user.id, lang)
     
     response = {
         'ru': 'Язык изменен на Русский ✅',
-        'en': 'Language changed to English ✅'
+        'en': 'Language changed to English ✅',
+        'zh': '语言已更改为中文 ✅'
+    }[lang]
+    
+    duck_message = {
+        'ru': 'Фарми уток!',
+        'en': 'Farm ducks!',
+        'zh': '养鸭子!'
     }[lang]
     
     try:
@@ -70,7 +81,7 @@ async def process_language_callback(callback: CallbackQuery, db: Session):
         
         # 3. Отправляем новое сообщение с кнопкой WebApp
         await callback.message.answer(
-            "Фарми уток!" if lang == 'ru' else "Farm ducks!",
+            duck_message,
             reply_markup=webapp_builder()
         )
         
@@ -81,6 +92,4 @@ async def process_language_callback(callback: CallbackQuery, db: Session):
             print(f"Telegram API error: {e}")
     except Exception as e:
         print(f"Unexpected error: {e}")
-        await callback.answer("Произошла ошибка")
-        
-        
+        await callback.answer("Произошла ошибка / An error occurred / 发生错误")

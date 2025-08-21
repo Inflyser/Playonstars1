@@ -48,3 +48,17 @@ async def login_from_webapp(request: Request, data: dict):
     tg_user = data.get("user")  # Данные из Telegram.WebApp
     request.session["user_id"] = tg_user["id"]
     return {"status": "ok"}
+
+@app.get("/api/user/language")
+async def get_user_language_api(
+    request: Request,  # Добавляем для доступа к сессии
+    db: Session = Depends(get_db)
+):
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return {"error": "Not authenticated"}
+    
+    return {"language": get_user_language(db, user_id)}
+
+
+dp.include_router(telegram_router) 
