@@ -130,7 +130,7 @@ async def get_user_data(
 
 @app.get("/")
 async def root():
-    return {"message": "DuckTMA Bot is running"}
+    return {"message": "Bot is running"}
 
 # Подключаем роутеры
-app.include_router(telegram_router)
+dp.include_router(telegram_router)
