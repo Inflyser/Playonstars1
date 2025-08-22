@@ -66,16 +66,16 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 <style scoped>
 .home {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding-bottom: 80px; /* Для плавающей навигации */
+  background: var(--tg-theme-bg-color, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+  color: var(--tg-theme-text-color, #222222);
+  padding-bottom: 80px;
 }
 
 /* Первый хедер */
 .header-primary {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--tg-theme-secondary-bg-color, rgba(255, 255, 255, 0.1));
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 16px;
+  border-bottom: 1px solid var(--tg-theme-hint-color, rgba(255, 255, 255, 0.2));
 }
 
 .header-content {
@@ -120,7 +120,7 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 
 /* Второй хедер */
 .header-secondary {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--tg-theme-secondary-bg-color, rgba(255, 255, 255, 0.15));
   padding: 20px 16px;
   margin-bottom: 24px;
 }
@@ -155,8 +155,8 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 }
 
 .action-button {
-  background: linear-gradient(45deg, #ff6b6b, #ee5a52);
-  color: white;
+  background: var(--tg-theme-button-color, linear-gradient(45deg, #ff6b6b, #ee5a52));
+  color: var(--tg-theme-button-text-color, white);
   border: none;
   padding: 12px 20px;
   border-radius: 25px;
@@ -186,15 +186,15 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 }
 
 .action-card {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--tg-theme-secondary-bg-color, rgba(255, 255, 255, 0.1));
+  color: var(--tg-theme-text-color, white);
+  border: 1px solid var(--tg-theme-hint-color, rgba(255, 255, 255, 0.2));
   backdrop-filter: blur(10px);
   border-radius: 20px;
   padding: 30px;
   text-align: center;
-  color: white;
   cursor: pointer;
   transition: all 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .action-card:hover {
