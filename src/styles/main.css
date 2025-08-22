@@ -1,27 +1,21 @@
-/* ЭКСТРЕННЫЕ СТИЛИ ДЛЯ TELEGRAM */
-.tg-theme {
-  background: #ffffff !important;
-  color: #222222 !important;
+/* Базовые сбросы */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* Гарантируем видимость */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #ffffff;
+  color: #000000;
+  line-height: 1.6;
+}
+
+/* Гарантия видимости */
 #app {
-  opacity: 1 !important;
-  visibility: visible !important;
+  min-height: 100vh;
   display: block !important;
-}
-
-.home {
   opacity: 1 !important;
   visibility: visible !important;
-}
-
-/* Принудительно показываем все элементы */
-.header-primary,
-.header-secondary,
-.main-content,
-.bottom-navigation {
-  opacity: 1 !important;
-  visibility: visible !important;
-  display: block !important;
 }
