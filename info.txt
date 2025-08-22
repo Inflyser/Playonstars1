@@ -1,0 +1,65 @@
+src/
+├── main.ts                       # Точка входа
+├── App.vue                       # Корневой компонент
+├── types/
+│   ├── telegram.d.ts             # Типы Telegram WebApp
+│   ├── api.d.ts                  # Типы API ответов
+│   └── index.ts                  # Главный файл типов
+├── styles/
+│   ├── main.css                  # Глобальные стили
+│   ├── variables.css             # CSS переменные
+│   └── components/               # Стили компонентов
+├── components/
+│   ├── layout/
+│   │   ├── AppLayout.vue         # Основной layout
+│   │   ├── TelegramHeader.vue    # Хедер Telegram
+│   │   └── BottomNavigation.vue  # Нижняя навигация
+│   ├── ui/
+│   │   ├── TGButton.vue          # Кнопка в стиле TG
+│   │   ├── TGCard.vue            # Карточка
+│   │   ├── TGInput.vue           # Поле ввода
+│   │   ├── TGModal.vue           # Модальное окно
+│   │   ├── TGLoader.vue          # Лоадер
+│   │   └── TGTabs.vue            # Табы
+│   └── games/
+│       ├── CrashGame/
+│       │   ├── CrashGame.vue     # Компонент игры
+│       │   ├── CrashGraph.vue    # График
+│       │   └── CrashHistory.vue  # История игр
+│       └── Cases/
+│           ├── CaseItem.vue      # Элемент кейса
+│           ├── CaseOpen.vue      # Анимация открытия
+│           └── CaseInventory.vue # Инвентарь
+├── views/
+│   ├── HomeView.vue              # Главная
+│   ├── CrashGameView.vue         # Страница краш-игры
+│   ├── CasesView.vue             # Страница кейсов
+│   ├── TopView.vue               # Топ игроков
+│   └── ProfileView.vue           # Профиль
+├── composables/
+│   ├── useTelegram.ts            # Работа с Telegram API
+│   ├── useApi.ts                 # Базовые методы API
+│   ├── useAuth.ts                # Авторизация
+│   ├── useCrashGame.ts           # Логика краш-игры
+│   ├── useCases.ts               # Логика кейсов
+│   ├── useWebSocket.ts           # WebSocket соединение
+│   └── useToast.ts               # Уведомления
+├── services/
+│   ├── api.ts                    # HTTP клиент
+│   ├── websocket.ts              # WebSocket клиент
+│   └── telegram.service.ts       # Сервис Telegram
+├── stores/
+│   ├── useUserStore.ts           # Данные пользователя
+│   ├── useGameStore.ts           # Состояние игр
+│   └── useAppStore.ts            # Общее состояние
+├── utils/
+│   ├── formatters.ts             # Форматирование чисел/дат
+│   ├── constants.ts              # Константы приложения
+│   ├── validators.ts             # Валидация данных
+│   └── helpers.ts                # Вспомогательные функции
+├── router/
+│   └── index.ts                  # Конфигурация маршрутизации
+└── assets/
+    ├── icons/                    # Иконки
+    ├── images/                   # Изображения
+    └── sounds/                   # Звуковые эффекты
