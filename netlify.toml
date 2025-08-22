@@ -1,0 +1,11 @@
+[build]
+  publish = "dist"                 # Папка с собранным проектом
+  command = "npm run build"        # Команда сборки
+
+[build.environment]
+  NODE_VERSION = "18"              # Версия Node.js
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
