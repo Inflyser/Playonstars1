@@ -8,5 +8,25 @@
 <body>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
+    <script>
+        console.log('📄 index.html loaded')
+
+        // Экстренная проверка каждые 500ms
+        setInterval(() => {
+          const app = document.getElementById('app')
+          console.log('🔍 App element:', app)
+          console.log('🔍 App children:', app?.children.length)
+        
+          // Принудительное восстановление
+          if (app && app.children.length === 0) {
+            console.log('⚠️ App is empty, creating test element')
+            const testDiv = document.createElement('div')
+            testDiv.innerHTML = '<h1 style="color: red;">EMERGENCY TEST</h1>'
+            testDiv.style.cssText = 'padding: 20px; background: yellow;'
+            app.appendChild(testDiv)
+          }
+        }, 500)
+    </script>
 </body>
+
 </html>

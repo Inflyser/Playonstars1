@@ -3,20 +3,20 @@ import App from './App.vue'
 import router from './router'
 import './styles/main.css'
 
-// Создаем приложение
-const app = createApp(App)
-app.use(router)
+console.log('🚀 Starting app...')
 
-// Инициализация Telegram ДО монтирования
+// Простая инициализация Telegram
 if (window.Telegram?.WebApp) {
-  const webApp = window.Telegram.WebApp
-  webApp.expand()
-  webApp.ready()
-  console.log('✅ Telegram WebApp initialized')
+  console.log('📱 Telegram detected')
+  window.Telegram.WebApp.expand()
+  window.Telegram.WebApp.ready()
 }
 
-// Монтируем приложение
-app.mount('#app')
+const app = createApp(App)
 
-// Простая проверка после монтирования
-console.log('🚀 App mounted successfully')
+// Проверка роутера
+console.log('🛣️ Router:', router)
+app.use(router)
+
+app.mount('#app')
+console.log('✅ App mounted')

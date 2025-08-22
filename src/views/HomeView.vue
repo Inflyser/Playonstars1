@@ -1,84 +1,38 @@
 <template>
-  <div class="home">
-    <!-- Простой заголовок -->
-    <header class="header">
-      <h1>🎮 Play on Stars</h1>
-      <p>Баланс: 1 000 ₽</p>
-    </header>
-
-    <!-- Контент -->
-    <main class="content">
-      <div class="card" @click="$router.push('/crash')">
-        <h3>🎰 Crash Game</h3>
-        <p>Испытай удачу!</p>
-      </div>
-
-      <div class="card" @click="$router.push('/cases')">
-        <h3>🎁 Кейсы</h3>
-        <p>Открой и выиграй!</p>
-      </div>
-    </main>
-
-    <!-- Навигация -->
-    <BottomNavigation />
+  <div class="home" style="background: red; color: white; padding: 20px;">
+    <h1>🎮 TEST - Play on Stars</h1>
+    <p>Если это видно - значит компонент работает!</p>
+    <button @click="testClick" style="padding: 10px; background: blue; color: white;">
+      Test Button
+    </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import BottomNavigation from '@/components/layout/BottomNavigation.vue'
+import { onMounted } from 'vue'
+
+const testClick = () => {
+  console.log('✅ Button clicked!')
+  alert('Кнопка работает!')
+}
+
+onMounted(() => {
+  console.log('🏠 HomeView mounted')
+  // Принудительно показываем элемент
+  const homeEl = document.querySelector('.home')
+  if (homeEl) {
+    (homeEl as HTMLElement).style.display = 'block',
+    (homeEl as HTMLElement).style.opacity = '1',
+    (homeEl as HTMLElement).style.visibility = 'visible'
+  }
+})
 </script>
 
 <style scoped>
 .home {
   min-height: 100vh;
-  background: #ffffff;
-  color: #000000;
-  padding-bottom: 60px;
-}
-
-.header {
-  padding: 20px;
-  text-align: center;
-  background: #f5f5f5;
-}
-
-.header h1 {
-  margin: 0 0 10px 0;
-  font-size: 24px;
-}
-
-.header p {
-  margin: 0;
-  font-size: 16px;
-  color: #666;
-}
-
-.content {
-  padding: 20px;
-}
-
-.card {
-  background: #ffffff;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 16px;
-  cursor: pointer;
-  text-align: center;
-}
-
-.card:hover {
-  border-color: #007bff;
-}
-
-.card h3 {
-  margin: 0 0 8px 0;
-  font-size: 18px;
-}
-
-.card p {
-  margin: 0;
-  color: #666;
-  font-size: 14px;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 </style>
