@@ -38,7 +38,7 @@ button:disabled {
   display: none;
 }
 
-body {
+/* body {
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
@@ -46,4 +46,4 @@ body {
   color: var(--tg-theme-text-color, #222222);
   min-height: 100vh;
 }
-
+ */

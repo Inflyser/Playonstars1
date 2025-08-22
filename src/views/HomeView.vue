@@ -5,7 +5,6 @@
       <div class="header-content">
         <div class="logo">
           <img src="@/assets/logo.png" alt="Play on Stars" />
-          <span>Play on Stars</span>
         </div>
         <div class="balance">
           <span class="balance-label">Баланс:</span>
@@ -97,7 +96,7 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 }
 
 .logo img {
-  width: 32px;
+  width: 64px;
   height: 32px;
   border-radius: 8px;
 }
