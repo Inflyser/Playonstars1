@@ -1,9 +1,9 @@
 [build]
-  publish = "dist"                 # Папка с собранным проектом
-  command = "npm run build"        # Команда сборки
+  publish = "dist"
+  command = "npm run build"
 
 [build.environment]
-  NODE_VERSION = "18"              # Версия Node.js
+  NODE_VERSION = "20"  # Измените на 20+
 
 [[redirects]]
   from = "/*"
