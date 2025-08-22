@@ -1,19 +1,6 @@
 <template>
-  <div>
-    <div>Баланс: {{ balance }}</div>
-    <button @click="refreshBalance">Обновить</button>
+  <div class="profile-view">
+    <h1>Профиль</h1>
+    <p>Страница в разработке</p>
   </div>
 </template>
-
-<script setup>
-import { ref } from 'vue';
-import { useApi } from '@/composables/useApi';
-
-const { getProfile } = useApi();
-const balance = ref(0);
-
-const refreshBalance = async () => {
-  const profile = await getProfile();
-  balance.value = profile.balance; // Напрямую из API!
-};
-</script>

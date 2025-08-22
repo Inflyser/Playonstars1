@@ -1,20 +1,11 @@
 <template>
-  <div class="app">
-    <h1>🎮 Play on Stars</h1>
-    <p>Приложение запущено и готово к разработке!</p>
-  </div>
+  <RouterView />
 </template>
 
-<script>
-export default {
-  name: 'App'
-}
+<script setup lang="ts">
+import { RouterView } from 'vue-router'
 </script>
 
 <style>
-.app {
-  text-align: center;
-  padding: 20px;
-  font-family: Arial, sans-serif;
-}
+/* Глобальные стили */
 </style>
