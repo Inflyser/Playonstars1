@@ -42,15 +42,8 @@ body {
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--tg-theme-bg-color, #ffffff);
+  background: var(--tg-theme-bg-color, #180A24);
   color: var(--tg-theme-text-color, #222222);
   min-height: 100vh;
 }
 
-/* На случай если Telegram переменные не загрузятся */
-:root {
-  --tg-theme-bg-color: #ffffff;
-  --tg-theme-text-color: #222222;
-  --tg-theme-button-color: #40a7e3;
-  --tg-theme-button-text-color: #ffffff;
-}
