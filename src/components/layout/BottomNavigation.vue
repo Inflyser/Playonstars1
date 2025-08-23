@@ -28,22 +28,22 @@ const navItems = [
   { 
     name: 'Краш', 
     route: '/crash', 
-    image: '../../assets/icons/nav-crash.png' 
+    image: '../assets/icons/nav-crash.png' 
   },
   { 
     name: 'Кейсы', 
     route: '/cases', 
-    image: '../../assets/icons/nav-cases.png' 
+    image: '../assets/icons/nav-cases.png' 
   },
   { 
     name: 'Топ', 
     route: '/top', 
-    image: '../../assets/icons/nav-top.png' 
+    image: '../assets/icons/nav-top.png' 
   },
   { 
     name: 'Профиль', 
     route: '/profile', 
-    image: '../../assets/icons/nav-profile.png' 
+    image: '../assets/icons/nav-profile.png' 
   }
 ]
 
