@@ -68,15 +68,12 @@ const navigateTo = (route: string) => {
   transform: translateX(-50%);
   display: flex;
   background: rgba(4, 6, 18, 0.95);
-  backdrop-filter: blur(20px);
   border-radius: 25px;
+  border: none;
   padding: 12px 16px;
   height: 70px;
   min-width: 320px;
   max-width: 500px;
-  box-shadow: 
-    0 10px 30px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(255, 255, 255, 0.1);
   z-index: 1000;
 }
 
@@ -88,7 +85,7 @@ const navigateTo = (route: string) => {
   justify-content: center;
   background: none;
   border: none;
-  padding: 8px 4px;
+  padding: 8px 20px;
   cursor: pointer;
   transition: all 0.3s ease;
   border-radius: 15px;
@@ -97,23 +94,6 @@ const navigateTo = (route: string) => {
 
 .nav-item:hover {
   background: rgba(255, 255, 255, 0.1);
-}
-
-.nav-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.nav-item.active::before {
-  content: '';
-  position: absolute;
-  top: -5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 6px;
-  height: 6px;
-  background: #00ff88;
-  border-radius: 50%;
-  box-shadow: 0 0 10px #00ff88;
 }
 
 .nav-image {
@@ -141,10 +121,6 @@ const navigateTo = (route: string) => {
   font-weight: 600;
 }
 
-/* Анимация при наведении */
-.nav-item:hover .nav-image {
-  transform: translateY(-2px);
-}
 
 .nav-item:hover .nav-label {
   color: #ffffff;
