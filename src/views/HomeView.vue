@@ -4,18 +4,18 @@
     <header class="header-primary">
       <div class="header-content">
         <div class="logo">
-          <img src="@/assets/logo.png" alt="Play on Stars" />
+          <img src="@/assets/images/logo.png" alt="Play on Stars" />
         </div>
         <div class="currency-panel">
           <div class="currency-item">
-            <img src="@/assets/flag.png" alt="Флаг" class="flag-icon" />
+            <img src="@/assets/images/flag.png" alt="Флаг" class="flag-icon" />
           </div>
           <div class="currency-item">
-            <img src="@/assets/wallet.png" alt="Кошелек" class="wallet-icon" />
+            <img src="@/assets/images/wallet.png" alt="Кошелек" class="wallet-icon" />
             <span class="balance-amount">1 000</span>
           </div>
           <div class="currency-item">
-            <img src="@/assets/coin.png" alt="Валюта" class="coin-icon" />
+            <img src="@/assets/images/coin.png" alt="Валюта" class="coin-icon" />
           </div>
         </div>
       </div>
@@ -30,11 +30,11 @@
         </button>
         <div class="user-info">
           <div class="avatar">
-            <img src="@/assets/avatar.png" alt="Аватар" />
+            <img src="@/assets/images/avatar.png" alt="Аватар" />
           </div>
           <div class="user-details">
             <span class="username">@username</span>
-            <span class="balance-secondary">500 ₽</span>
+            <span class="balance-secondary">500</span>
           </div>
         </div>
       </div>
