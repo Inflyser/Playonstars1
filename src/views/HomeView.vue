@@ -46,7 +46,7 @@
         <!-- Space Monkey карточка -->
         <div class="action-card space-monkey-card">
           <!-- Слой 3: Фон -->
-          <img src="@/assets/images/space-monkey-bg.jpg" alt="Фон" class="card-bg-image" />
+          <img src="@/assets/images/space-monkey-bg.png" alt="Фон" class="card-bg-image" />
 
           <!-- Слой 2: Основная картинка -->
           <img src="@/assets/images/space-monkey-character.png" alt="Space Monkey" class="card-main-image" />
@@ -61,7 +61,7 @@
         <!-- PvP арена карточка -->
         <div class="action-card pvp-arena-card">
           <!-- Слой 3: Фон -->
-          <img src="@/assets/images/pvp-arena-bg.jpg" alt="Фон" class="card-bg-image" />
+          <img src="@/assets/images/pvp-arena-bg.png" alt="Фон" class="card-bg-image" />
 
           <!-- Слой 2: Основная картинка -->
           <img src="@/assets/images/pvp-arena-character.png" alt="PvP Арена" class="card-main-image" />
