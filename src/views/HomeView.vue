@@ -1,22 +1,33 @@
 <template>
   <div class="home">
-    <!-- Первый хедер (логотип и баланс) -->
+    <!-- Первый хедер (логотип и панель с валютой) -->
     <header class="header-primary">
       <div class="header-content">
         <div class="logo">
           <img src="@/assets/logo.png" alt="Play on Stars" />
-          <span>Play on Stars</span>
         </div>
-        <div class="balance">
-          <span class="balance-label">Баланс:</span>
-          <span class="balance-amount">1 000 ₽</span>
+        <div class="currency-panel">
+          <div class="currency-item">
+            <img src="@/assets/flag.png" alt="Флаг" class="flag-icon" />
+          </div>
+          <div class="currency-item">
+            <img src="@/assets/wallet.png" alt="Кошелек" class="wallet-icon" />
+            <span class="balance-amount">1 000</span>
+          </div>
+          <div class="currency-item">
+            <img src="@/assets/coin.png" alt="Валюта" class="coin-icon" />
+          </div>
         </div>
       </div>
     </header>
 
-    <!-- Второй хедер (аватар, никнейм, кнопка) -->
+    <!-- Второй хедер (кнопка, аватар, баланс) -->
     <header class="header-secondary">
       <div class="header-content">
+        <button class="action-button">
+          <i class="icon-plus"></i>
+          Пополнить
+        </button>
         <div class="user-info">
           <div class="avatar">
             <img src="@/assets/avatar.png" alt="Аватар" />
@@ -26,10 +37,6 @@
             <span class="balance-secondary">500 ₽</span>
           </div>
         </div>
-        <button class="action-button">
-          <i class="icon-plus"></i>
-          Пополнить
-        </button>
       </div>
     </header>
 
@@ -66,8 +73,8 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 <style scoped>
 .home {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding-bottom: 80px; /* Для плавающей навигации */
+  background: #180A24;
+  padding-bottom: 80px;
 }
 
 /* Первый хедер */
@@ -86,36 +93,37 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
   margin: 0 auto;
 }
 
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: white;
-  font-weight: bold;
-  font-size: 18px;
-}
-
 .logo img {
-  width: 32px;
-  height: 32px;
+  width: 136px;
+  height: 28px;
   border-radius: 8px;
 }
 
-.balance {
+.currency-panel {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
+  gap: 16px;
+}
+
+.currency-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: white;
 }
 
-.balance-label {
-  font-size: 12px;
-  opacity: 0.8;
+.flag-icon,
+.wallet-icon,
+.coin-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
 }
 
 .balance-amount {
   font-size: 16px;
   font-weight: bold;
+  color: white;
 }
 
 /* Второй хедер */
@@ -123,6 +131,30 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
   background: rgba(255, 255, 255, 0.15);
   padding: 20px 16px;
   margin-bottom: 24px;
+}
+
+.header-secondary .header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.action-button {
+  background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.2s;
+}
+
+.action-button:hover {
+  transform: translateY(-2px);
 }
 
 .user-info {
@@ -152,24 +184,6 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 .balance-secondary {
   font-size: 14px;
   opacity: 0.9;
-}
-
-.action-button {
-  background: linear-gradient(45deg, #ff6b6b, #ee5a52);
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 25px;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: transform 0.2s;
-}
-
-.action-button:hover {
-  transform: translateY(-2px);
 }
 
 /* Основной контент */
