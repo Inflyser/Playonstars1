@@ -15,7 +15,7 @@ def webapp_builder():
     builder = InlineKeyboardBuilder()
     builder.button(
         text="Click",
-        web_app=WebAppInfo(url=f"{os.getenv('FRONTEND_URL')}/index.html")
+        web_app=WebAppInfo(url=f"{os.getenv('FRONTEND_URL')}")
     )
     return builder.as_markup()
 
