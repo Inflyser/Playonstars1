@@ -23,27 +23,27 @@ const navItems = [
   { 
     name: 'Главная', 
     route: '/', 
-    image: '/src/assets/icons/nav-home.png' 
+    image: '../../assets/icons/nav-home.png' 
   },
   { 
     name: 'Краш', 
     route: '/crash', 
-    image: '/src/assets/icons/nav-crash.png' 
+    image: '../../assets/icons/nav-crash.png' 
   },
   { 
     name: 'Кейсы', 
     route: '/cases', 
-    image: '/src/assets/icons/nav-cases.png' 
+    image: '../../assets/icons/nav-cases.png' 
   },
   { 
     name: 'Топ', 
     route: '/top', 
-    image: '/src/assets/icons/nav-top.png' 
+    image: '../../assets/icons/nav-top.png' 
   },
   { 
     name: 'Профиль', 
     route: '/profile', 
-    image: '/src/assets/icons/nav-profile.png' 
+    image: '../../assets/icons/nav-profile.png' 
   }
 ]
 
