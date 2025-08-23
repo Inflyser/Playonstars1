@@ -43,17 +43,31 @@
     <!-- Основной контент - две большие кнопки -->
     <main class="main-content">
       <div class="action-cards">
-        <div class="action-card crash-card">
+        <!-- Space Monkey карточка -->
+        <div class="action-card space-monkey-card">
+          <!-- Слой 3: Фон -->
+          <img src="@/assets/images/space-monkey-bg.jpg" alt="Фон" class="card-bg-image" />
+
+          <!-- Слой 2: Основная картинка -->
+          <img src="@/assets/images/space-monkey-character.png" alt="Space Monkey" class="card-main-image" />
+
+          <!-- Слой 1: Текст -->
           <div class="card-content">
-            <i class="card-icon">🎰</i>
             <h3>Space Monkey</h3>
-            <p>Ставь ставку и сражайся с другими игрокам</p>
+            <p>Ставь ставку и сражайся с другими игроками</p>
           </div>
         </div>
+      
+        <!-- PvP арена карточка -->
+        <div class="action-card pvp-arena-card">
+          <!-- Слой 3: Фон -->
+          <img src="@/assets/images/pvp-arena-bg.jpg" alt="Фон" class="card-bg-image" />
 
-        <div class="action-card cases-card">
+          <!-- Слой 2: Основная картинка -->
+          <img src="@/assets/images/pvp-arena-character.png" alt="PvP Арена" class="card-main-image" />
+
+          <!-- Слой 1: Текст -->
           <div class="card-content">
-            <i class="card-icon">🎁</i>
             <h3>PvP-арена</h3>
             <p>Сражайся с игроками и побеждай!</p>
           </div>
@@ -200,51 +214,142 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 }
 
 .action-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  position: relative;
   border-radius: 20px;
-  padding: 30px;
-  text-align: center;
-  color: white;
+  overflow: hidden;
   cursor: pointer;
+  height: 200px;
   transition: all 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 .action-card:hover {
   transform: translateY(-5px);
-  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
 }
 
-.crash-card {
-  background: #00A051;
+/* Слой 3: Фоновая картинка */
+.card-bg-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  filter: brightness(0.7) blur(2px);
 }
 
-.cases-card {
-  background: #FDB423;
+/* Слой 2: Основная картинка */
+.card-main-image {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  height: 80%;
+  object-fit: contain;
+  z-index: 2;
+  transition: transform 0.3s ease;
 }
 
+.action-card:hover .card-main-image {
+  transform: scale(1.05) translateY(-5px);
+}
+
+/* Слой 1: Текст */
 .card-content {
+  position: relative;
+  z-index: 3;
+  padding: 30px;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 16px;
+  justify-content: center;
+  text-align: left;
 }
 
-.card-icon {
-  font-size: 48px;
-}
-
-.action-card h3 {
-  margin: 0;
-  font-size: 24px;
+.card-content h3 {
+  margin: 0 0 12px 0;
+  font-size: 28px;
   font-weight: bold;
+  color: #ffffff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
-.action-card p {
+.card-content p {
   margin: 0;
-  opacity: 0.9;
   font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  max-width: 60%;
+  line-height: 1.5;
+}
+
+/* Градиент overlay для лучшей читаемости текста */
+.action-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 0, 0, 0.4) 50%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
+  z-index: 2;
+}
+
+/* Адаптивность */
+@media (min-width: 768px) {
+  .action-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .action-card {
+    height: 240px;
+  }
+  
+  .card-content h3 {
+    font-size: 32px;
+  }
+  
+  .card-content p {
+    font-size: 18px;
+  }
+  
+  .card-main-image {
+    right: 30px;
+    bottom: 30px;
+    height: 85%;
+  }
+}
+
+@media (max-width: 480px) {
+  .action-card {
+    height: 180px;
+  }
+  
+  .card-content {
+    padding: 20px;
+  }
+  
+  .card-content h3 {
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+  
+  .card-content p {
+    font-size: 14px;
+    max-width: 70%;
+  }
+  
+  .card-main-image {
+    right: 15px;
+    bottom: 15px;
+    height: 70%;
+  }
 }
 
 /* Адаптивность */
