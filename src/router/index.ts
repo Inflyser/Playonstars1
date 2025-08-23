@@ -15,17 +15,17 @@ const routes = [
   {
     path: '/cases',
     name: 'Cases',
-    component: () => import('../views/CrashGameView.vue')
+    component: () => import('../views/CasesView.vue')
   },
   {
     path: '/top',
     name: 'Top',
-    component: () => import('../views/CrashGameView.vue')
+    component: () => import('../views/TopView.vue')
   },
   {
     path: '/profile',
     name: 'Profile',
-    component: () => import('../views/CrashGameView.vue')
+    component: () => import('../views/ProfileView.vue')
   }
 ]
 

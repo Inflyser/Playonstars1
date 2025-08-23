@@ -1,6 +1,21 @@
+/* src/styles/variables.css */
 :root {
+  /* Цвета */
   --tg-theme-bg-color: #ffffff;
-  --tg-theme-text-color: #000000;
-  --tg-theme-button-color: #007bff;
+  --tg-theme-text-color: #222222;
+  --tg-theme-button-color: #40a7e3;
   --tg-theme-button-text-color: #ffffff;
+  
+  /* Размеры */
+  --header-height: 60px;
+  --bottom-nav-height: 70px;
+  --border-radius: 12px;
+  
+  /* Тени */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.2);
+  
+  /* Анимации */
+  --transition: all 0.3s ease;
 }

@@ -1,4 +1,3 @@
-/* Базовые сбросы */
 * {
   margin: 0;
   padding: 0;
@@ -6,16 +5,35 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #ffffff;
-  color: #000000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
   line-height: 1.6;
 }
 
-/* Гарантия видимости */
 #app {
   min-height: 100vh;
-  display: block !important;
-  opacity: 1 !important;
-  visibility: visible !important;
+}
+
+/* Общие стили для кнопок */
+button {
+  border: none;
+  outline: none;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Скрыть скроллбар но оставить возможность скролла */
+.scroll-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scroll-hidden::-webkit-scrollbar {
+  display: none;
 }

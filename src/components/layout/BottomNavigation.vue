@@ -1,10 +1,10 @@
 <template>
-  <nav class="bottom-nav">
+  <nav class="bottom-navigation">
     <button 
       v-for="item in navItems" 
       :key="item.name"
+      :class="['nav-item', { active: currentRoute === item.route }]"
       @click="navigateTo(item.route)"
-      class="nav-item"
     >
       <span class="nav-icon">{{ item.icon }}</span>
       <span class="nav-label">{{ item.name }}</span>
@@ -13,9 +13,12 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const currentRoute = ref(router.currentRoute.value.path)
+
 const navItems = [
   { name: 'Главная', route: '/', icon: '🏠' },
   { name: 'Краш', route: '/crash', icon: '🎰' },
@@ -26,20 +29,22 @@ const navItems = [
 
 const navigateTo = (route: string) => {
   router.push(route)
+  currentRoute.value = route
 }
 </script>
 
 <style scoped>
-.bottom-nav {
+.bottom-navigation {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   display: flex;
-  background: #ffffff;
-  border-top: 1px solid #e0e0e0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
   padding: 8px 0;
-  height: 60px;
+  height: 70px;
 }
 
 .nav-item {
@@ -47,18 +52,25 @@ const navigateTo = (route: string) => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   background: none;
   border: none;
-  padding: 4px;
+  padding: 8px;
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-item.active {
+  color: #667eea;
 }
 
 .nav-icon {
   font-size: 20px;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .nav-label {
   font-size: 12px;
+  font-weight: 500;
 }
 </style>
