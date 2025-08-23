@@ -26,7 +26,7 @@
       <div class="header-content">
         <button class="action-button">
           <i class="icon-plus"></i>
-          Пополнить
+          Подключить кошелёк
         </button>
         <div class="user-info">
           <div class="avatar">
@@ -46,16 +46,16 @@
         <div class="action-card crash-card">
           <div class="card-content">
             <i class="card-icon">🎰</i>
-            <h3>Crash Game</h3>
-            <p>Испытай удачу!</p>
+            <h3>Space Monkey</h3>
+            <p>Ставь ставку и сражайся с другими игрокам</p>
           </div>
         </div>
 
         <div class="action-card cases-card">
           <div class="card-content">
             <i class="card-icon">🎁</i>
-            <h3>Кейсы</h3>
-            <p>Открой и выиграй!</p>
+            <h3>PvP-арена</h3>
+            <p>Сражайся с игроками и побеждай!</p>
           </div>
         </div>
       </div>
@@ -79,7 +79,7 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 
 /* Первый хедер */
 .header-primary {
-  background: rgba(255, 255, 255, 0.1);
+  background: #180A24;
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   padding: 16px;
@@ -128,7 +128,7 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 
 /* Второй хедер */
 .header-secondary {
-  background: rgba(255, 255, 255, 0.15);
+  background: #180A24;
   padding: 20px 16px;
   margin-bottom: 24px;
 }
@@ -140,7 +140,7 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 }
 
 .action-button {
-  background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+  background: #00A6FC;
   color: white;
   border: none;
   padding: 12px 20px;
@@ -217,11 +217,11 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 }
 
 .crash-card {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
+  background: #00A051;
 }
 
 .cases-card {
-  background: linear-gradient(135deg, rgba(255, 107, 107, 0.3), rgba(238, 90, 82, 0.3));
+  background: #FDB423;
 }
 
 .card-content {
