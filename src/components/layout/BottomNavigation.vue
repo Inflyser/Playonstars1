@@ -16,6 +16,13 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+// Импортируем изображения ПРАВИЛЬНО
+import homeIcon from '@/assets/images/nav-home.png'
+import crashIcon from '@/assets/images/nav-crash.png'
+import casesIcon from '@/assets/images/nav-cases.png'
+import topIcon from '@/assets/images/nav-top.png'
+import profileIcon from '@/assets/images/nav-profile.png'
+
 const router = useRouter()
 const currentRoute = ref(router.currentRoute.value.path)
 
@@ -23,27 +30,27 @@ const navItems = [
   { 
     name: 'Главная', 
     route: '/', 
-    image: require('@/assets/images/nav-home.png')
+    image: homeIcon  // Используем импортированное изображение
   },
   { 
     name: 'Краш', 
     route: '/crash', 
-    image: require('@/assets/images/nav-crash.png')
+    image: crashIcon
   },
   { 
     name: 'Кейсы', 
     route: '/cases', 
-    image: require('@/assets/images/nav-cases.png')
+    image: casesIcon
   },
   { 
     name: 'Топ', 
     route: '/top', 
-    image: require('@/assets/images/nav-top.png')
+    image: topIcon
   },
   { 
     name: 'Профиль', 
     route: '/profile', 
-    image: require('@/assets/images/nav-profile.png')
+    image: profileIcon
   }
 ]
 
