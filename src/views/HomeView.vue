@@ -24,17 +24,35 @@
     <!-- Второй хедер (кнопка, аватар, баланс) -->
     <header class="header-secondary">
       <div class="header-content">
+        <!-- Кнопка слева с иконкой -->
         <button class="action-button">
-          <i class="icon-plus"></i>
+          <img src="@/assets/images/wallet-icon.png" alt="Кошелек" class="button-icon" />
           Подключить кошелёк
         </button>
-        <div class="user-info">
+      
+        <!-- Правая часть: юзернейм + баланс + аватар -->
+        <div class="user-section">
+          <!-- Текстовый блок -->
+          <div class="user-text-info">
+            <div class="username-line">
+              <span class="username">@username</span>
+            </div>
+            <div class="balance-line">
+              <span class="balance-secondary">0.001</span>
+              <div class="balance-buttons">
+                <button class="mini-button">
+                  <img src="@/assets/images/plus-small.png" alt="Добавить" />
+                </button>
+                <button class="mini-button">
+                  <img src="@/assets/images/refresh-small.png" alt="Обновить" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Аватар -->
           <div class="avatar">
             <img src="@/assets/images/avatar.png" alt="Аватар" />
-          </div>
-          <div class="user-details">
-            <span class="username">@username</span>
-            <span class="balance-secondary">500</span>
           </div>
         </div>
       </div>
@@ -45,7 +63,10 @@
       <div class="action-cards">
         <!-- Space Monkey карточка -->
         <div class="action-card space-monkey-card">
-          <!-- Слой 3: Фон -->
+          <!-- Слой 4: Цветной фон -->
+          <div class="card-color-bg"></div>
+
+          <!-- Слой 3: Фоновая картинка -->
           <img src="@/assets/images/space-monkey-bg.png" alt="Фон" class="card-bg-image" />
 
           <!-- Слой 2: Основная картинка -->
@@ -60,7 +81,10 @@
       
         <!-- PvP арена карточка -->
         <div class="action-card pvp-arena-card">
-          <!-- Слой 3: Фон -->
+          <!-- Слой 4: Цветной фон -->
+          <div class="card-color-bg"></div>
+
+          <!-- Слой 3: Фоновая картинка -->
           <img src="@/assets/images/pvp-arena-bg.png" alt="Фон" class="card-bg-image" />
 
           <!-- Слой 2: Основная картинка -->
@@ -95,8 +119,8 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 .header-primary {
   background: #180A24;
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 16px;
+  border-bottom: 1px solid #25213C;
+  padding: 16px 16px 10px 16px;
 }
 
 .header-content {
@@ -117,6 +141,9 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
   display: flex;
   align-items: center;
   gap: 16px;
+  background-color: #100D1F;
+  padding: 5px;
+  border-radius: 10px;
 }
 
 .currency-item {
@@ -126,81 +153,137 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
   color: white;
 }
 
-.flag-icon,
-.wallet-icon,
-.coin-icon {
-  width: 24px;
-  height: 24px;
+.flag-icon {
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
 }
 
+.wallet-icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.coin-icon {
+  width: 12px;
+  height: 12px;
+}
+
 .balance-amount {
-  font-size: 16px;
+  font-size: 12px;
   font-weight: bold;
   color: white;
 }
 
+
 /* Второй хедер */
 .header-secondary {
   background: #180A24;
-  padding: 20px 16px;
-  margin-bottom: 24px;
+  padding: 5px 16px 14px 16px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid #25213C;
 }
 
 .header-secondary .header-content {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: center; /* ← ВАЖНО: выравнивание по центру вертикально */
+  gap: 20px;
 }
 
+/* Кнопка слева с иконкой */
 .action-button {
+  margin: 10px 0px 0px 0px;
   background: #00A6FC;
   color: white;
   border: none;
-  padding: 12px 20px;
+  padding: 0px 20px;
   border-radius: 25px;
   font-weight: bold;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
-  transition: transform 0.2s;
+  gap: 10px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  height: 38px; /* ← Фиксированная высота для выравнивания */
+  box-sizing: border-box;
 }
 
-.action-button:hover {
-  transform: translateY(-2px);
-}
-
-.user-info {
+/* Правая секция - выравнивание по центру */
+.user-section {
   display: flex;
-  align-items: center;
+  align-items: center; /* ← Выравнивание по центру */
   gap: 12px;
+  height: 100%;
 }
 
-.avatar img {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: 2px solid white;
-}
-
-.user-details {
+/* Остальные стили остаются без изменений */
+.user-text-info {
   display: flex;
   flex-direction: column;
-  color: white;
+  align-items: flex-end;
+}
+
+.username-line {
+  margin-bottom: 0px;
 }
 
 .username {
   font-weight: bold;
-  font-size: 16px;
+  font-size: 12px;
+  color: #A2A2A2;
+}
+
+.balance-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .balance-secondary {
-  font-size: 14px;
-  opacity: 0.9;
+  font-size: 12px;
+  font-weight: bold;
+  color: #ffffff;
 }
 
-/* Основной контент */
+.balance-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.mini-button {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 6px;
+  width: 16px;
+  height: 0px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mini-button:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.1);
+}
+
+.mini-button img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.avatar img {
+  margin: 0px 0px -10px 0px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
 .main-content {
   padding: 0 16px;
 }
@@ -216,7 +299,7 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 .action-card {
   position: relative;
   border-radius: 20px;
-  overflow: hidden;
+  overflow: hidden; /* ← ВАЖНО! Это обрезает выступающие части */
   cursor: pointer;
   height: 200px;
   transition: all 0.3s ease;
@@ -228,6 +311,24 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
 }
 
+/* Слой 4: Цветной фон */
+.card-color-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.space-monkey-card .card-color-bg {
+  background: #00A051; /* Синий градиент */
+}
+
+.pvp-arena-card .card-color-bg {
+  background: #F8A820 /* Красный градиент */
+}
+
 /* Слой 3: Фоновая картинка */
 .card-bg-image {
   position: absolute;
@@ -236,30 +337,29 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
   width: 100%;
   height: 100%;
   object-fit: cover;
-  z-index: 1;
-  filter: brightness(0.7) blur(2px);
+  z-index: 2;
 }
 
 /* Слой 2: Основная картинка */
 .card-main-image {
   position: absolute;
-  right: 20px;
-  bottom: 20px;
-  height: 80%;
+  right: -10px; /* Выступает за правый край */
+  bottom: -10px; /* Выступает за нижний край */
+  height: 120%; /* Значительно больше кнопки */
+  width: auto;
   object-fit: contain;
-  z-index: 2;
-  transition: transform 0.3s ease;
+  z-index: 3;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 5px 20px rgba(0, 0, 0, 0.6));
+  transform-origin: right bottom; /* Точка трансформации */
 }
 
-.action-card:hover .card-main-image {
-  transform: scale(1.05) translateY(-5px);
-}
 
 /* Слой 1: Текст */
 .card-content {
   position: relative;
-  z-index: 3;
-  padding: 30px;
+  z-index: 4;
+  padding: 15px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -268,38 +368,22 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 }
 
 .card-content h3 {
-  margin: 0 0 12px 0;
-  font-size: 28px;
+  margin: 40px 0 12px 0;
+  font-size: 30px;
   font-weight: bold;
   color: #ffffff;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .card-content p {
   margin: 0;
   font-size: 16px;
   color: rgba(255, 255, 255, 0.9);
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
   max-width: 60%;
   line-height: 1.5;
 }
 
 /* Градиент overlay для лучшей читаемости текста */
-.action-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.6) 0%,
-    rgba(0, 0, 0, 0.4) 50%,
-    rgba(0, 0, 0, 0.2) 100%
-  );
-  z-index: 2;
-}
+
 
 /* Адаптивность */
 @media (min-width: 768px) {
@@ -352,18 +436,11 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
   }
 }
 
-/* Адаптивность */
-@media (min-width: 768px) {
-  .action-cards {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .header-content {
-    padding: 0 32px;
-  }
-  
-  .main-content {
-    padding: 0 32px;
+@media (max-width: 480px) {
+  .card-main-image {
+    height: 120%;
+    right: 0px;
+    bottom: -32px;
   }
 }
 </style>

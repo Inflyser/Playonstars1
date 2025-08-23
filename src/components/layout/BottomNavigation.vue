@@ -85,7 +85,7 @@ const navigateTo = (route: string) => {
   justify-content: center;
   background: none;
   border: none;
-  padding: 8px 24px;
+  padding: 8px 18px;
   cursor: pointer;
   transition: all 0.3s ease;
   border-radius: 15px;
