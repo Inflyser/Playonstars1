@@ -23,27 +23,27 @@ const navItems = [
   { 
     name: 'Главная', 
     route: '/', 
-    image: '../../assets/icons/nav-home.png' 
+    image: require('@/assets/images/nav-home.png')
   },
   { 
     name: 'Краш', 
     route: '/crash', 
-    image: '../assets/icons/nav-crash.png' 
+    image: require('@/assets/images/nav-crash.png')
   },
   { 
     name: 'Кейсы', 
     route: '/cases', 
-    image: '../assets/icons/nav-cases.png' 
+    image: require('@/assets/images/nav-cases.png')
   },
   { 
     name: 'Топ', 
     route: '/top', 
-    image: '../assets/icons/nav-top.png' 
+    image: require('@/assets/images/nav-top.png')
   },
   { 
     name: 'Профиль', 
     route: '/profile', 
-    image: '../assets/icons/nav-profile.png' 
+    image: require('@/assets/images/nav-profile.png')
   }
 ]
 
