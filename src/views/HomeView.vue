@@ -89,7 +89,7 @@ const PagePvp = () => {
 .action-card {
   position: relative;
   border-radius: 20px;
-  overflow: hidden; /* ← ВАЖНО! Это обрезает выступающие части */
+  overflow: hidden; 
   cursor: pointer;
   height: 150px;
   transition: all 0.3s ease;
@@ -171,9 +171,6 @@ const PagePvp = () => {
   max-width: 60%;
   line-height: 1;
 }
-
-/* Градиент overlay для лучшей читаемости текста */
-
 
 @media (max-width: 480px) {
   .action-card {
