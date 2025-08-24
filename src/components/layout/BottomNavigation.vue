@@ -17,11 +17,11 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 // Импортируем изображения ПРАВИЛЬНО
-import homeIcon from '@/assets/icons/nav-home.png'
-import crashIcon from '@/assets/icons/nav-crash.png'
-import casesIcon from '@/assets/icons/nav-cases.png'
-import topIcon from '@/assets/icons/nav-top.png'
-import profileIcon from '@/assets/icons/nav-profile.png'
+import homeIcon from '@/assets/icons/nav-home.svg'
+import crashIcon from '@/assets/icons/nav-crash.svg'
+import casesIcon from '@/assets/icons/nav-cases.svg'
+import topIcon from '@/assets/icons/nav-top.svg'
+import profileIcon from '@/assets/icons/nav-profile.svg'
 
 const router = useRouter()
 const currentRoute = ref(router.currentRoute.value.path)

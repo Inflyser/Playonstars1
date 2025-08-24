@@ -1,7 +1,7 @@
 /* src/styles/variables.css */
 :root {
   /* Цвета */
-  --tg-theme-bg-color: #ffffff;
+  --tg-theme-bg-color: linear-gradient(135deg, #1B152F 0%, #180A24 100%);
   --tg-theme-text-color: #222222;
   --tg-theme-button-color: #40a7e3;
   --tg-theme-button-text-color: #ffffff;

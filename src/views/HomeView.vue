@@ -4,18 +4,18 @@
     <header class="header-primary">
       <div class="header-content">
         <div class="logo">
-          <img src="@/assets/images/logo.png" alt="Play on Stars" />
+          <img src="@/assets/images/logo.svg" alt="Play on Stars" />
         </div>
         <div class="currency-panel">
           <div class="currency-item">
-            <img src="@/assets/images/flag.png" alt="Флаг" class="flag-icon" />
+            <img src="@/assets/images/flag.svg" alt="Флаг" class="flag-icon" />
           </div>
           <div class="currency-item">
-            <img src="@/assets/images/wallet.png" alt="Кошелек" class="wallet-icon" />
+            <img src="@/assets/images/wallet.svg" alt="Кошелек" class="wallet-icon" />
             <span class="balance-amount">1 000</span>
           </div>
           <div class="currency-item">
-            <img src="@/assets/images/coin.png" alt="Валюта" class="coin-icon" />
+            <img src="@/assets/images/coin.svg" alt="Валюта" class="coin-icon" />
           </div>
         </div>
       </div>
@@ -26,7 +26,7 @@
       <div class="header-content">
         <!-- Кнопка слева с иконкой -->
         <button class="action-button">
-          <img src="@/assets/images/wallet-icon.png" alt="Кошелек" class="button-icon" />
+          <img src="@/assets/images/wallet-icon.svg" alt="Кошелек" class="button-icon" />
           Подключить кошелёк
         </button>
       
@@ -41,10 +41,10 @@
               <span class="balance-secondary">0.001</span>
               <div class="balance-buttons">
                 <button class="mini-button">
-                  <img src="@/assets/images/plus-small.png" alt="Добавить" />
+                  <img src="@/assets/images/plus-small.svg" alt="Добавить" />
                 </button>
                 <button class="mini-button">
-                  <img src="@/assets/images/refresh-small.png" alt="Обновить" />
+                  <img src="@/assets/images/refresh-small.svg" alt="Обновить" />
                 </button>
               </div>
             </div>
@@ -67,10 +67,10 @@
           <div class="card-color-bg"></div>
 
           <!-- Слой 3: Фоновая картинка -->
-          <img src="@/assets/images/space-monkey-bg.png" alt="Фон" class="card-bg-image" />
+          <img src="@/assets/images/space-monkey-bg.svg" alt="Фон" class="card-bg-image" />
 
           <!-- Слой 2: Основная картинка -->
-          <img src="@/assets/images/space-monkey-character.png" alt="Space Monkey" class="card-main-image" />
+          <img src="@/assets/images/space-monkey-character.svg" alt="Space Monkey" class="card-main-image" />
 
           <!-- Слой 1: Текст -->
           <div class="card-content">
@@ -85,10 +85,10 @@
           <div class="card-color-bg"></div>
 
           <!-- Слой 3: Фоновая картинка -->
-          <img src="@/assets/images/pvp-arena-bg.png" alt="Фон" class="card-bg-image" />
+          <img src="@/assets/images/pvp-arena-bg.svg" alt="Фон" class="card-bg-image" />
 
           <!-- Слой 2: Основная картинка -->
-          <img src="@/assets/images/pvp-arena-character.png" alt="PvP Арена" class="card-main-image" />
+          <img src="@/assets/images/pvp-arena-character.svg" alt="PvP Арена" class="card-main-image" />
 
           <!-- Слой 1: Текст -->
           <div class="card-content">
@@ -162,7 +162,6 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 .wallet-icon {
   width: 14px;
   height: 14px;
-  border-radius: 50%;
 }
 
 .coin-icon {
@@ -301,7 +300,7 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
   border-radius: 20px;
   overflow: hidden; /* ← ВАЖНО! Это обрезает выступающие части */
   cursor: pointer;
-  height: 200px;
+  height: 150px;
   transition: all 0.3s ease;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
@@ -385,34 +384,9 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 /* Градиент overlay для лучшей читаемости текста */
 
 
-/* Адаптивность */
-@media (min-width: 768px) {
-  .action-cards {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .action-card {
-    height: 240px;
-  }
-  
-  .card-content h3 {
-    font-size: 32px;
-  }
-  
-  .card-content p {
-    font-size: 18px;
-  }
-  
-  .card-main-image {
-    right: 30px;
-    bottom: 30px;
-    height: 85%;
-  }
-}
-
 @media (max-width: 480px) {
   .action-card {
-    height: 180px;
+    height: 150px;
   }
   
   .card-content {
