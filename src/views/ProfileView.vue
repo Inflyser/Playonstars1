@@ -85,34 +85,59 @@
         <div class="text-icon-row">
           <div class="texts">
             <div class="main-text">Доступный баланс</div>
-            <div class="sub-text">0</div>
+            <div class="value-with-icon">
+              <span class="icon-title">0</span>
+              <img src="@/assets/images/coin.svg" alt="Иконка 1" class="icon1">
+            </div>
           </div>
-          <img src="@/assets/images/coin.svg" alt="Иконка 1" class="icon1">
         </div>
       </div>
+
       <div class="column">
         <div class="text-icon-row">
           <div class="texts">
             <div class="main-text">Всего потрачено</div>
-            <div class="sub-text">0</div>
+            <div class="value-with-icon">
+              <span class="icon-title">0</span>
+              <img src="@/assets/images/coin.svg" alt="Иконка 2" class="icon1">
+            </div>
           </div>
-          <img src="@/assets/images/coin.svg" alt="Иконка 2" class="icon1">
         </div>
       </div>
+
       <div class="column">
         <div class="text-icon-row">
           <div class="texts">
             <div class="main-text">Всего заработано</div>
-            <div class="sub-text">0</div>
+            <div class="value-with-icon">
+              <span class="icon-title">0</span>
+              <img src="@/assets/images/coin.svg" alt="Иконка 3" class="icon1">
+            </div>
           </div>
-          <img src="@/assets/images/coin.svg" alt="Иконка 3" class="icon1">
         </div>
       </div>
     </div>
 
+    <div class="icon-text-row">
+      <img src="@/assets/images/depicon.svg" alt="Иконка" class="icon-before" />
+      <span class="text-after-icon">Нет доступного баланса</span>
+    </div>
+
+    <p style="color: #A2A2A2; text-align: center; font-size: 14px;">Зарабатывай, приглашая друзей!</p>
+
 
 
     <h2 style="color: white; margin: 30px 15px 15px 15px;">История транзакций</h2>
+
+    <div class="icon-wrapper">
+      <div class="circle-icon-container">
+        <img src="@/assets/images/smallicon.svg" alt="Иконка" class="circle-icon" />
+      </div>
+    </div>
+
+    <div class="icon-text-row"><span class="text-after-icon">Нет транзакций</span></div>
+    <p style="color: #A2A2A2; text-align: center; font-size: 14px; margin: 0 0 40px 0;">Ваши транзакции появятся здесь</p>
+    
 
 
     <!-- Плавающая панель навигации -->
@@ -346,7 +371,6 @@ import InfoPanel from '@/components/layout/InfoPanel.vue'
 }
 
 
-
 .container {
   display: flex;
   justify-content: space-between;
@@ -355,39 +379,99 @@ import InfoPanel from '@/components/layout/InfoPanel.vue'
 }
 
 .column {
-  flex: 1;        /* равная ширина колонок */
-  max-width: 30%; /* чтобы не растягивались слишком */
+  flex: 1;
+  max-width: 30%;
 }
 
 .text-icon-row {
   display: flex;
-  align-items: center;   /* выравнивание по вертикали */
+  align-items: center;
   justify-content: flex-start;
 }
 
 .texts {
   display: flex;
   flex-direction: column;
+  align-items: center; /* Центрируем содержимое */
+  text-align: center;
 }
 
 .main-text {
   font-size: 0.9em;
-  margin: -2px;
+  margin-bottom: 5px; /* Отступ между текстом и значением */
   color: #777;
-  text-align: center;
 }
 
-.sub-text {
-  font-size: 0.9em;
+.value-with-icon {
+  display: flex;
+  align-items: center; /* Выравниваем цифру и иконку по центру */
+  gap: 4px; /* Расстояние между цифрой и иконкой */
+}
+
+.icon-title {
+  font-size: 1.1em;
   color: white;
-  text-align: center;
   font-weight: 600;
   margin: 0;
 }
 
 .icon1 {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
+}
 
+
+
+
+.icon-text-row {
+  display: flex;
+  align-items: center;     /* Выравнивание по вертикали */
+  justify-content: center; /* ← ЦЕНТРИРОВАНИЕ ПО ГОРИЗОНТАЛИ */
+  gap: 8px;
+  padding: 5px;
+  text-align: center;      /* Дополнительное выравнивание текста */
+}
+
+.icon-before {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;         /* Чтобы иконка не сжималась */
+}
+
+.text-after-icon {
+  color: white;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+
+
+
+.icon-wrapper {
+  margin: 40px 0px 0px 0px;
+  display: flex;
+  justify-content: center; /* Центрирование по горизонтали */
+  align-items: center;     /* Центрирование по вертикали */
+  width: 100%;
+  height: 100%;            /* Занимает всю высоту родителя */
+}
+
+.circle-icon-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 70px;
+  height: 70px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  backdrop-filter: blur(5px);
+  /* margin: 0 auto; ← альтернативный способ центрирования */
+}
+
+.circle-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  filter: brightness(1.2);
 }
 </style>
