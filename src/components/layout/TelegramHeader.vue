@@ -28,7 +28,6 @@
 <style scoped>
 /* Первый хедер */
 .header-primary {
-  background: #180A24;
   backdrop-filter: blur(10px);
   border-bottom: 1px solid #25213C;
   padding: 16px 16px 10px 16px;

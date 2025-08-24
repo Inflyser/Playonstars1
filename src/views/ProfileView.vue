@@ -42,6 +42,25 @@
       rightText="15%"
       :progress="15"
     />
+
+    <h3 style="color: white; margin: 15px; text-align: center; font-weight: 400;">Уровни реферальной системы</h3>
+
+    <div widthet></div>
+
+    <p style="color: #6A717B; font-size: 14px; margin: 15px;">
+      Приглашайте друзей и получайте процент с чистого дохода от их игры! Чем больше
+      активных рефералов, тем выше ваш уровень и процент.
+    </p>
+
+    <h2 style="color: white; margin: 30px 15px 15px 15px;">Реферальная ссылка</h2>
+
+    <div pole></div>
+
+    <div widthet2></div>
+
+    <h2 style="color: white; margin: 30px 15px 15px 15px;">История транзакций</h2>
+
+
     <!-- Плавающая панель навигации -->
     <BottomNavigation />
   </div>
@@ -59,18 +78,16 @@ import InfoPanel from '@/components/layout/InfoPanel.vue'
 <style scoped>
 .home {
   min-height: 100vh;
-  background: #180A24;
+  background: linear-gradient(to right, #1B152F, #180A24);
   padding-bottom: 80px;
 }
 
 .user-panel {
+  margin: 0px 0px 0px 2.5%;
   position: relative;
-  width: 90%;
-  height: 300px;
-  margin: 10px;
-  background: linear-gradient(135deg, #1B152F, #180A24);
+  width: 95%;
   border-radius: 20px;
-  border: 1px solid #2A2642;
+  border: 1px solid #5440814f;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -81,7 +98,6 @@ import InfoPanel from '@/components/layout/InfoPanel.vue'
 .corner-button {
   position: absolute;
   background: rgba(255, 255, 255, 0.1);
-  border: 1px solid #2A2642;
   border-radius: 8px;
   width: 32px;
   height: 32px;
@@ -174,38 +190,11 @@ import InfoPanel from '@/components/layout/InfoPanel.vue'
 }
 
 /* Адаптивность */
-@media (max-width: 768px) {
-  .user-panel {
-    width: 90%;
-    max-width: 320px;
-    min-height: 240px;
-  }
-  
-  .user-avatar {
-    width: 72px;
-    height: 72px;
-  }
-  
-  .username {
-    font-size: 13px;
-  }
-  
-  .name {
-    font-size: 16px;
-  }
-  
-  .bottom-button {
-    padding: 14px;
-    font-size: 14px;
-  }
-}
+
 
 @media (max-width: 480px) {
   .user-panel {
     width: 95%;
-    max-width: 500px;
-    min-height: 220px;
-    min-height: 50%;
     padding: 15px;
   }
   

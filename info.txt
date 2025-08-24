@@ -70,3 +70,6 @@
         ├── icons/                    # Иконки
         ├── images/                   # Изображения
         └── sounds/                   # Звуковые эффекты
+
+
+npm run dev - localhost

@@ -58,12 +58,11 @@ defineProps({
 
 <style scoped>
 .info-panel {
-  margin: 10px;
+  margin: 0px 0px 0px 2.5%;
   background: #009AFE;
   border-radius: 16px;
   padding: 20px;
   width: 95%;
-  max-width: 400px;
 }
 
 /* 1. Текст названия */

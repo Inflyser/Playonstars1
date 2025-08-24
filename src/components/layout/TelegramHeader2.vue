@@ -39,7 +39,6 @@
 <style scoped>
 /* Второй хедер */
 .header-secondary {
-  background: #180A24;
   padding: 5px 16px 14px 16px;
   margin-bottom: 22px;
   border-bottom: 1px solid #25213C;

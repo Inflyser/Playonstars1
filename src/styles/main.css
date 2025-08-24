@@ -37,3 +37,15 @@ button:disabled {
 .scroll-hidden::-webkit-scrollbar {
   display: none;
 }
+
+.element::-webkit-scrollbar {
+  display: none;
+}
+
+/* Скрыть scrollbar в Edge и IE */
+.element {
+  -ms-overflow-style: none;
+  
+  /* Скрыть scrollbar в Firefox */
+  scrollbar-width: none;
+}

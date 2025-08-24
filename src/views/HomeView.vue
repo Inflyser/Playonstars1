@@ -58,7 +58,7 @@ import TelegramHeader2 from '@/components/layout/TelegramHeader2.vue'
 <style scoped>
 .home {
   min-height: 100vh;
-  background: #180A24;
+  background: linear-gradient(to right, #1B152F, #180A24);
   padding-bottom: 80px;
 }
 
