@@ -29,7 +29,7 @@
 
           <!-- Аватар -->
           <div class="avatar">
-            <img src="@/assets/images/avatar.png" alt="Аватар" />
+            <img src="@/assets/images/avatar.jpg" alt="Аватар" />
           </div>
         </div>
       </div>
