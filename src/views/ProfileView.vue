@@ -27,7 +27,7 @@
       </div>
 
       <!-- Нижняя кнопка на всю ширину -->
-      <button class="bottom-button">
+      <button class="bottom-button" @click="navigateToBalance">
         <img src="@/assets/images/depicon.svg" alt="Кошелек" class="button-icon" />
         <span>Пополнить</span>
       </button>
@@ -151,6 +151,16 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 import TelegramHeader from '@/components/layout/TelegramHeader.vue'
 import TelegramHeader2 from '@/components/layout/TelegramHeader2.vue'
 import InfoPanel from '@/components/layout/InfoPanel.vue'
+</script>
+
+<script setup lang="ts">
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const navigateToBalance = () => {
+  router.push('/balance') // Переход на страницу баланса
+}
 </script>
 
 
