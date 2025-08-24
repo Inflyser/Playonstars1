@@ -45,7 +45,26 @@
 
     <h3 style="color: white; margin: 15px; text-align: center; font-weight: 400;">Уровни реферальной системы</h3>
 
-    <div widthet></div>
+    <div class="icons-row">
+      <div class="icon-block">
+        <img src="@/assets/images/icon1.svg" alt="Icon 1" class="icon">
+        <p class="icon-title">0</p>
+        <p class="icon-subtext">Всего</p>
+        <p class="icon-subtext">рефералов</p>
+      </div>
+      <div class="icon-block">
+        <img src="@/assets/images/icon2.svg" alt="Icon 2" class="icon">
+        <p class="icon-title">0</p>
+        <p class="icon-subtext">Активность</p>
+      </div>
+      <div class="icon-block">
+        <img src="@/assets/images/icon3.svg" alt="Icon 3" class="icon">
+        <p class="icon-title">0</p>
+        <p class="icon-subtext">Всего</p>
+        <p class="icon-subtext">заработано</p>
+      </div>
+    </div>
+
 
     <p style="color: #6A717B; font-size: 14px; margin: 15px;">
       Приглашайте друзей и получайте процент с чистого дохода от их игры! Чем больше
@@ -54,9 +73,44 @@
 
     <h2 style="color: white; margin: 30px 15px 15px 15px;">Реферальная ссылка</h2>
 
-    <div pole></div>
+    <div class="panel">
+      <span class="panel-text">t.me/234233424389348934893</span>
+      <button class="copy-button" aria-label="Копировать">
+        <img src="@/assets/images/copy-icon.svg" alt="Копировать" class="icon-img">
+      </button>
+    </div>
 
-    <div widthet2></div>
+    <div class="container">
+      <div class="column">
+        <div class="text-icon-row">
+          <div class="texts">
+            <div class="main-text">Доступный баланс</div>
+            <div class="sub-text">0</div>
+          </div>
+          <img src="@/assets/images/coin.svg" alt="Иконка 1" class="icon1">
+        </div>
+      </div>
+      <div class="column">
+        <div class="text-icon-row">
+          <div class="texts">
+            <div class="main-text">Всего потрачено</div>
+            <div class="sub-text">0</div>
+          </div>
+          <img src="@/assets/images/coin.svg" alt="Иконка 2" class="icon1">
+        </div>
+      </div>
+      <div class="column">
+        <div class="text-icon-row">
+          <div class="texts">
+            <div class="main-text">Всего заработано</div>
+            <div class="sub-text">0</div>
+          </div>
+          <img src="@/assets/images/coin.svg" alt="Иконка 3" class="icon1">
+        </div>
+      </div>
+    </div>
+
+
 
     <h2 style="color: white; margin: 30px 15px 15px 15px;">История транзакций</h2>
 
@@ -216,5 +270,124 @@ import InfoPanel from '@/components/layout/InfoPanel.vue'
   .panel-content {
     padding: 30px 0 15px 0;
   }
+}
+
+
+.icons-row {
+  display: flex;
+  justify-content: space-around; /* Равномерные отступы между иконками */
+  align-items: flex-start;       /* Выровнять блоки по верхнему краю */
+  gap: 0px;                     /* Отступы между элементами */
+  padding: 10px 30px 20px 30px;
+}
+
+.icon-block {
+  display: flex;
+  flex-direction: column; /* Содержимое внутри блока — вертикально */
+  align-items: center;    /* Центрируем по горизонтали */
+  max-width: 150px;       /* Ограничиваем ширину для блока */
+}
+
+.icon {
+  width: 26px;
+  height: 26px;
+  margin-bottom: 5px;
+}
+
+.icon-title {
+  color: white;
+  font-weight: bold;
+  margin: 5px 0 3px;
+  text-align: center;
+}
+
+.icon-subtext {
+  font-size: 0.9em;
+  margin: -2px;
+  color: #777;
+  text-align: center;
+}
+
+
+
+
+.panel {
+  margin: 0px 0px 20px 2.5%;
+  border: 2px solid #5440814f;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; 
+  padding: 5px 15px;
+  border-radius: 8px;
+  width: 95%;
+  box-sizing: border-box;
+}
+
+.panel-text {
+  user-select: text;
+  pointer-events: none;
+  color: #A2A2A2;
+  font-size: 14px;
+}
+
+.copy-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-img {
+  width: 16px;
+  height: 16px;
+}
+
+
+
+.container {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px;
+}
+
+.column {
+  flex: 1;        /* равная ширина колонок */
+  max-width: 30%; /* чтобы не растягивались слишком */
+}
+
+.text-icon-row {
+  display: flex;
+  align-items: center;   /* выравнивание по вертикали */
+  justify-content: flex-start;
+}
+
+.texts {
+  display: flex;
+  flex-direction: column;
+}
+
+.main-text {
+  font-size: 0.9em;
+  margin: -2px;
+  color: #777;
+  text-align: center;
+}
+
+.sub-text {
+  font-size: 0.9em;
+  color: white;
+  text-align: center;
+  font-weight: 600;
+  margin: 0;
+}
+
+.icon1 {
+  width: 18px;
+  height: 18px;
+
 }
 </style>
