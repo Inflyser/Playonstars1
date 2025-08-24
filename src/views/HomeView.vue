@@ -6,15 +6,20 @@
         <div class="logo">
           <img src="@/assets/images/logo.svg" alt="Play on Stars" />
         </div>
+
         <div class="currency-panel">
-          <div class="currency-item">
+          <!-- Левая часть: только флаг -->
+          <div class="currency-section flag-section">
             <img src="@/assets/images/flag.svg" alt="Флаг" class="flag-icon" />
           </div>
-          <div class="currency-item">
+
+          <!-- Разделитель -->
+          <div class="divider"></div>
+
+          <!-- Правая часть: кошелек, баланс, валюта -->
+          <div class="currency-section wallet-section">
             <img src="@/assets/images/wallet.svg" alt="Кошелек" class="wallet-icon" />
-            <span class="balance-amount">1 000</span>
-          </div>
-          <div class="currency-item">
+            <span class="balance-amount">9 999</span>
             <img src="@/assets/images/coin.svg" alt="Валюта" class="coin-icon" />
           </div>
         </div>
@@ -137,22 +142,50 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
   border-radius: 8px;
 }
 
+/* Общая панель валют */
 .currency-panel {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 0; /* Убираем gap, так как есть разделитель */
   background-color: #100D1F;
-  padding: 5px;
+  padding: 0;
   border-radius: 10px;
 }
 
-.currency-item {
+/* Общие стили для обеих секций */
+.currency-section {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: white;
+  padding: 8px 12px;
+  height: 100%;
 }
 
+/* Левая секция (только флаг) */
+.flag-section {
+  height: 3.5vh;
+  margin: 5px;
+  border-radius: 50px 50px 50px 50px;
+  background-color: #241D49;
+}
+
+/* Правая секция (кошелек + баланс + валюта) */
+.wallet-section {
+  height: 3.5vh;
+  margin: 5px;
+  border-radius: 50px 40px 40px 50px;
+  background-color: #241D49;
+}
+
+/* Вертикальный разделитель */
+.divider {
+  width: 1.5px;
+  height: 20px;
+  border-radius: 50%;
+  background: #241D49;
+}
+
+/* Иконки */
 .flag-icon {
   width: 18px;
   height: 18px;
@@ -173,6 +206,29 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
   font-size: 12px;
   font-weight: bold;
   color: white;
+  margin: 0px 0px 1px 0px;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .currency-section {
+    padding: 6px 10px;
+  }
+  
+  .flag-icon {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .wallet-icon,
+  .coin-icon {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .balance-amount {
+    font-size: 11px;
+  }
 }
 
 
@@ -367,18 +423,18 @@ import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 }
 
 .card-content h3 {
-  margin: 40px 0 12px 0;
+  margin: 35px 0 12px 0;
   font-size: 30px;
   font-weight: bold;
   color: #ffffff;
 }
 
 .card-content p {
-  margin: 0;
+  margin: 0px 0px 5px 0px;
   font-size: 16px;
   color: rgba(255, 255, 255, 0.9);
   max-width: 60%;
-  line-height: 1.5;
+  line-height: 1;
 }
 
 /* Градиент overlay для лучшей читаемости текста */
