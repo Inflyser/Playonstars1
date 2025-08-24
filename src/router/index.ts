@@ -13,7 +13,7 @@ const routes = [
     component: () => import('../views/CrashGameView.vue')
   },
   {
-    path: '/cases',
+    path: '/pvp',
     name: 'Cases',
     component: () => import('../views/CasesView.vue')
   },
@@ -30,7 +30,7 @@ const routes = [
   {
     path: '/balance',
     name: 'Balance',
-    component: () => import('../views/BalanceView.vue')
+    component: () => import('../views/BalanceViewTon.vue')
   }
 ]
 

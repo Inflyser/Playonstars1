@@ -7,7 +7,7 @@
     <main class="main-content">
       <div class="action-cards">
         <!-- Space Monkey карточка -->
-        <div class="action-card space-monkey-card">
+        <button class="action-card space-monkey-card" @click="PageCrash">
           <!-- Слой 4: Цветной фон -->
           <div class="card-color-bg"></div>
 
@@ -22,10 +22,10 @@
             <h3>Space Monkey</h3>
             <p>Ставь ставку и сражайся с другими игроками</p>
           </div>
-        </div>
+        </button>
       
         <!-- PvP арена карточка -->
-        <div class="action-card pvp-arena-card">
+        <button class="action-card pvp-arena-card" @click="PagePvp">
           <!-- Слой 4: Цветной фон -->
           <div class="card-color-bg"></div>
 
@@ -40,7 +40,7 @@
             <h3>PvP-арена</h3>
             <p>Сражайся с игроками и побеждай!</p>
           </div>
-        </div>
+        </button>
       </div>
     </main>
 
@@ -53,6 +53,18 @@
 import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 import TelegramHeader from '@/components/layout/TelegramHeader.vue'
 import TelegramHeader2 from '@/components/layout/TelegramHeader2.vue'
+
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const PageCrash = () => {
+  router.push('/crash')
+}
+
+const PagePvp = () => {
+  router.push('/pvp')
+}
 </script>
 
 <style scoped>

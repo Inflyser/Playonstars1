@@ -17,12 +17,7 @@
             <div class="balance-line">
               <span class="balance-secondary">0.001</span>
               <div class="balance-buttons">
-                <button class="mini-button">
-                  <img src="@/assets/images/plus-small.svg" alt="Добавить" />
-                </button>
-                <button class="mini-button">
-                  <img src="@/assets/images/refresh-small.svg" alt="Обновить" />
-                </button>
+                <TGButton />
               </div>
             </div>
           </div>
@@ -35,6 +30,10 @@
       </div>
     </header>
 </template>
+
+<script setup lang="ts">
+import TGButton from '@/components/ui/TGButton.vue'
+</script>
 
 <style scoped>
 /* Второй хедер */
@@ -112,29 +111,7 @@
   gap: 4px;
 }
 
-.mini-button {
-  background: rgba(255, 255, 255, 0.15);
-  border: none;
-  border-radius: 6px;
-  width: 16px;
-  height: 0px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
 
-.mini-button:hover {
-  background: rgba(255, 255, 255, 0.25);
-  transform: scale(1.1);
-}
-
-.mini-button img {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
-}
 
 .avatar img {
   margin: 0px 0px -10px 0px;

@@ -1,52 +1,50 @@
 <template>
-  <button 
-    :class="['tg-button', size, { disabled }]"
-    :disabled="disabled"
-    @click="$emit('click')"
-  >
-    <slot></slot>
-  </button>
+<button class="mini-button" @click="navigateToBalance">
+  <img src="@/assets/images/plus-small.svg" alt="Добавить" />
+</button>
+<button class="mini-button" @click="navigateToBalance">
+  <img src="@/assets/images/refresh-small.svg" alt="Обновить" />
+</button>
+          
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  size?: 'small' | 'medium' | 'large';
-  disabled?: boolean;
-}>();
 
-defineEmits<{
-  (e: 'click'): void;
-}>();
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const navigateToBalance = () => {
+  router.push('/balance')
+}
+
 </script>
 
+
+
 <style scoped>
-.tg-button {
-  background: var(--tg-theme-button-color, #40a7e3);
-  color: var(--tg-theme-button-text-color, #ffffff);
+.mini-button {
+  background: rgba(255, 255, 255, 0.15);
   border: none;
-  border-radius: 10px;
-  padding: 12px 20px;
-  font-size: 16px;
+  border-radius: 6px;
+  width: 16px;
+  height: 0px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s ease;
 }
 
-.tg-button:hover:not(.disabled) {
-  opacity: 0.9;
+.mini-button:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.1);
 }
 
-.tg-button.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.mini-button img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
 }
 
-.tg-button.small {
-  padding: 8px 16px;
-  font-size: 14px;
-}
-
-.tg-button.large {
-  padding: 16px 24px;
-  font-size: 18px;
-}
 </style>

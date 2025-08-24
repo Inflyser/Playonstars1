@@ -38,8 +38,8 @@ const navItems = [
     image: crashIcon
   },
   { 
-    name: 'Кейсы', 
-    route: '/cases', 
+    name: 'Pvp', 
+    route: '/pvp', 
     image: casesIcon
   },
   { 
