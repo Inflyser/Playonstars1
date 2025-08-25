@@ -5,15 +5,13 @@ import { useTelegram } from '@/composables/useTelegram'
 const { isWebApp, expandApp } = useTelegram()
 
 onMounted(() => {
-  if (isWebApp) {
+  if (isWebApp.value) {
     expandApp()
-    
   }
 })
 </script>
 
 <template>
-  <div v-if="isWebApp" class="telegram-init">
-    <!-- Инициализация Telegram Web App -->
-  </div>
+  <!-- Компонент-невидимка, ничего не рендерит -->
+  <div v-show="false"></div>
 </template>
