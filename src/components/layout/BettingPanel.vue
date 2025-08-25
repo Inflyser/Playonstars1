@@ -30,11 +30,11 @@
       <div class="coefficient-input">
         <input
           v-model="coefficient"
-          type="number"
-          step="0.1"
-          min="1.0"
+          type="text"
           class="coef-input"
-          placeholder="1.0"
+          placeholder="1.00"
+          @input="formatCoefficient"
+          @blur="validateCoefficient"
         />
         <span class="coef-label">x</span>
       </div>
@@ -42,6 +42,8 @@
 
     <!-- Второй блок: управление суммой ставки -->
     <div class="bet-amount-control">
+      
+      
       <!-- Левая часть: сумма и быстрые кнопки -->
       <div class="amount-section">
         <div class="amount-main">
@@ -68,10 +70,13 @@
       <!-- Правая часть: кнопка ставки -->
       
       <button class="place-bet-btn" @click="placeBet">
+        <span class="shine-effect"></span>
         СТАВКА
+        <div class="divider-bet"></div>
       </button>
     
     </div>
+    
   </div>
 </template>
 
@@ -83,6 +88,64 @@ const autoBet = ref(false)
 const quickBet = ref(false)
 const coefficient = ref('1.0')
 
+// Форматирование коэффициента
+const formatCoefficient = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  let value = target.value
+  
+  // Заменяем запятую на точку
+  value = value.replace(',', '.')
+  
+  // Удаляем все, кроме цифр и точки
+  value = value.replace(/[^\d.]/g, '')
+  
+  // Удаляем лишние точки
+  const parts = value.split('.')
+  if (parts.length > 2) {
+    value = parts[0] + '.' + parts.slice(1).join('')
+  }
+  
+  // Ограничиваем до 2 знаков после точки
+  if (parts.length === 2) {
+    value = parts[0] + '.' + parts[1].slice(0, 2)
+  }
+  
+  target.value = value
+  coefficient.value = value
+}
+
+// Валидация при потере фокуса
+const validateCoefficient = () => {
+  if (!coefficient.value) {
+    coefficient.value = '1.00'
+    return
+  }
+  
+  let value = coefficient.value
+  
+  // Добавляем точку если её нет
+  if (!value.includes('.')) {
+    value += '.00'
+  }
+  
+  // Добавляем нули если нужно
+  const parts = value.split('.')
+  if (parts.length === 1) {
+    value += '.00'
+  } else if (parts[1].length === 1) {
+    value += '0'
+  } else if (parts[1].length === 0) {
+    value += '00'
+  }
+  
+  // Убеждаемся, что значение не меньше 1.00
+  const numValue = parseFloat(value)
+  if (numValue < 1.00) {
+    value = '1.00'
+  }
+  
+  coefficient.value = value
+}
 // Состояния для второго блока
 const betAmount = ref(100)
 const quickAmounts = [50, 100, 200, 500]
@@ -181,17 +244,26 @@ const placeBet = () => {
   align-items: center;
   gap: 4px;
   margin-left: auto;
+  position: relative;
 }
 
 .coef-input {
-  width: 60px;
-  padding: 6px 8px;
+  width: 70px; /* Немного шире для двух знаков */
+  padding: 6px 20px 6px 8px; /* Правое padding для символа x */
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid #2A2642;
   border-radius: 6px;
   color: white;
   text-align: center;
   font-size: 12px;
+  /* Убираем стрелочки */
+  -moz-appearance: textfield;
+}
+
+.coef-input::-webkit-outer-spin-button,
+.coef-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .coef-input:focus {
@@ -200,12 +272,16 @@ const placeBet = () => {
 }
 
 .coef-label {
+  position: absolute;
+  right: 8px;
   color: rgba(255, 255, 255, 0.6);
   font-size: 12px;
+  pointer-events: none; /* Чтобы не мешало кликам */
 }
 
 /* Второй блок: управление суммой ставки */
 .bet-amount-control {
+  position: relative;
   background-color: #261740;
   display: flex;
   align-items: flex-start;
@@ -213,6 +289,15 @@ const placeBet = () => {
   padding: 15px;
   gap: 20px;
   margin: 15px -15px -15px -15px;
+}
+
+.divider-bet {
+  width: 50%;
+  height: 2.5px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #ADE134, #579C27);
+  position: absolute;
+  top: 99px;
 }
 
 .amount-section {
@@ -291,6 +376,7 @@ const placeBet = () => {
 }
 
 .place-bet-btn {
+  position: relative;
   padding: 10px 12px;
   background: linear-gradient(135deg, #ADE134, #579C27);
   border: none;
@@ -317,6 +403,27 @@ const placeBet = () => {
   width: 100%;
   height: 1px;
   background: #F0F0F01A;
+}
+
+.shine-effect {
+  position: absolute;
+  top: 4px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.6) 10%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  transform: translate(-30%, -30%);
+  pointer-events: none;
+  filter: blur(2px);
+  box-shadow: 
+    0 0 10px rgba(255, 255, 255, 0.5),
+    0 0 20px rgba(255, 255, 255, 0.3);
 }
 
 /* Адаптивность */
@@ -368,6 +475,7 @@ const placeBet = () => {
     padding: 26px 55px; /* ← Корректируем padding */
     min-width: 80px; /* ← Добавляем минимальную ширину */
   }
+
 }
 
 @media (max-width: 480px) {
