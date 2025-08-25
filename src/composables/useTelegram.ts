@@ -1,30 +1,40 @@
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
+
+declare global {
+  interface Window {
+    Telegram: {
+      WebApp: any
+    }
+  }
+}
 
 export const useTelegram = () => {
-  const webApp = ref<any>(null)
-  const user = ref<any>(null)
-  const isReady = ref(false)
+  const isWebApp = ref(!!window.Telegram?.WebApp)
+  const webApp = ref(window.Telegram?.WebApp || null)
 
-  const init = () => {
-    if (window.Telegram?.WebApp) {
-      webApp.value = window.Telegram.WebApp
-      user.value = webApp.value.initDataUnsafe?.user
-      webApp.value.expand()
-      webApp.value.ready()
-      isReady.value = true
-      console.log('Telegram user:', user.value)
+  const initTelegramAuth = async (): Promise<boolean> => {
+    if (!isWebApp.value) return false
+
+    try {
+      const initData = webApp.value.initData
+      const response = await fetch('/api/auth/telegram', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ initData })
+      })
+
+      return response.ok
+    } catch (error) {
+      console.error('Telegram auth error:', error)
+      return false
     }
   }
 
-  onMounted(() => {
-    // Ждем немного перед инициализацией
-    setTimeout(init, 100)
-  })
-
   return {
+    isWebApp,
     webApp,
-    user,
-    isReady,
-    init
+    initTelegramAuth
   }
 }

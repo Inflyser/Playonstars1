@@ -1,43 +1,24 @@
-import axios from 'axios';
+import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://your-api.com';
+const API_BASE_URL = 'https://playonstars.onrender.com'
 
-export const api = axios.create({
+const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  }
-});
+  withCredentials: true, // Для кук и сессий
+})
 
 // Интерцептор для ошибок
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error:', error.response?.data || error.message);
-    throw error;
+    if (error.response?.status === 401) {
+      // Перенаправляем на страницу только для Telegram
+      if (window.location.pathname !== '/telegram-only') {
+        window.location.href = '/telegram-only'
+      }
+    }
+    return Promise.reject(error)
   }
-);
+)
 
-// Базовые методы
-export const apiMethods = {
-  async get(url: string) {
-    const response = await api.get(url);
-    return response.data;
-  },
-
-  async post(url: string, data: any) {
-    const response = await api.post(url, data);
-    return response.data;
-  },
-
-  async put(url: string, data: any) {
-    const response = await api.put(url, data);
-    return response.data;
-  },
-
-  async delete(url: string) {
-    const response = await api.delete(url);
-    return response.data;
-  }
-};
+export default api

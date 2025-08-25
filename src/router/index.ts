@@ -31,12 +31,17 @@ const routes = [
     path: '/balance',
     name: 'Balance',
     component: () => import('../views/BalanceViewTon.vue')
-  }
+  },
+  {
+    path: '/telegram-only',
+    name: 'telegram-only',
+    component: () => import('@/views/LoginView.vue')
+  },
 ]
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
 })
 
 export default router
