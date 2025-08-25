@@ -137,7 +137,7 @@ const placeBet = () => {
 .setting-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .toggle-btn {
@@ -173,6 +173,7 @@ const placeBet = () => {
   color: rgba(255, 255, 255, 0.8);
   font-size: 12px;
   font-weight: 500;
+  margin: 0px 15px 0px 0px;
 }
 
 .coefficient-input {
