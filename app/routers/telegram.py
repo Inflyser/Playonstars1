@@ -4,7 +4,7 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.database.crud import get_user_by_telegram_id as get_user, create_user  # ← ИСПРАВЛЕНО
+from app.database.crud import get_user_by_telegram_id as get_user, create_user  
 from app.bot.bot import webapp_builder
 from aiogram.types import Message
 from app.database import crud
@@ -15,7 +15,7 @@ from aiogram.fsm.context import FSMContext
 from app.database.crud import update_user_language 
 
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from app.database.crud import get_user_by_telegram_id as get_user, create_user, update_user_language  # ← ИСПРАВЛЕНО
+from app.database.crud import get_user_by_telegram_id as get_user, create_user, update_user_language  
 from aiogram.exceptions import TelegramBadRequest
 router = Router()
 

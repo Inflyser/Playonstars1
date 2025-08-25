@@ -7,7 +7,7 @@ from app.bot.bot import bot, dp
 from aiogram.types import Update
 from app.routers.telegram import router as telegram_router
 import os
-from app.database.crud import get_user_language
+from app.database.crud import get_user_by_telegram_id
 from app.database.session import get_db
 from sqlalchemy.orm import Session
 from fastapi import Depends
@@ -121,7 +121,10 @@ async def get_user_language_api(
         if not user_id:
             return {"error": "Not authenticated"}
         
-        language = get_user_language(db, user_id)
+        # Получаем пользователя и его язык
+        user = get_user_by_telegram_id(db, user_id)
+        language = user.language if user else 'ru'
+        
         return {"language": language}
         
     except Exception as e:
