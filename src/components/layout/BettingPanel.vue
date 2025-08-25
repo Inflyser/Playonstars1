@@ -51,6 +51,7 @@
             <button class="amount-btn plus" @click="increaseAmount">+</button>
           </div>
         </div>
+        <div class="divider"></div>
 
         <div class="quick-buttons">
           <button 
@@ -65,9 +66,11 @@
       </div>
 
       <!-- Правая часть: кнопка ставки -->
+      
       <button class="place-bet-btn" @click="placeBet">
         СТАВКА
       </button>
+    
     </div>
   </div>
 </template>
@@ -118,9 +121,8 @@ const placeBet = () => {
   margin: 20px 0px 20px 2.5%;
   width: 95%;
   background: #1D1131;
-  border: 1px solid #25213C;
+  border: 1.5px solid #25213C;
   border-radius: 16px;
-  padding: 20px;
 }
 
 /* Первый блок: настройки ставки */
@@ -128,9 +130,8 @@ const placeBet = () => {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #2A2642;
-  margin-bottom: 20px;
+  padding-bottom: 15px;
+  margin-bottom: 15px;
 }
 
 .setting-item {
@@ -207,15 +208,15 @@ const placeBet = () => {
   background-color: #261740;
   display: flex;
   align-items: flex-start;
-  border-radius: 20px;
+  border-radius: 20px 20px 15px 15px;
   padding: 15px;
-  max-height: 210px;
   gap: 20px;
+  margin: 15px -15px -15px -15px;
 }
 
 .amount-section {
   background-color: #2C2143;
-  padding: 10px;
+  padding: 8px;
   border-radius: 15px;
   flex: 1;
   display: flex;
@@ -243,12 +244,12 @@ const placeBet = () => {
 
 .amount-btn {
   width: 28px;
-  height: 28px;
+  height: 26px;
   border: none;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  font-weight: bold;
+  border-radius: 8px;
+  font-size: 20px;
+  background: #534081B2;;
+  color: #F0F0F080;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -258,11 +259,10 @@ const placeBet = () => {
 }
 
 .amount-value {
-  padding: 6px 12px;
   border-radius: 6px;
   color: white;
   font-weight: 600;
-  min-width: 80px;
+  min-width: 75px;
   text-align: center;
 }
 
@@ -289,13 +289,13 @@ const placeBet = () => {
 }
 
 .place-bet-btn {
-  padding: 15px 12px;
+  padding: 10px 12px;
   background: linear-gradient(135deg, #ADE134, #579C27);
   border: none;
   border-radius: 10px;
   color: white;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
   transition: all 0.3s ease;
   height: 100%;
@@ -309,6 +309,14 @@ const placeBet = () => {
   background: linear-gradient(135deg, #89b32a, #44791e);
   transform: translateY(-2px);
 }
+
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background: #F0F0F01A;
+}
+
 /* Адаптивность */
 @media (max-width: 768px) {
   .bet-settings {
@@ -332,13 +340,14 @@ const placeBet = () => {
   }
   
   .quick-buttons {
+    min-width: 10px;
     justify-content: flex-start; /* ← Меняем center на flex-start */
   }
   
   .place-bet-btn {
     width: auto; /* ← Убираем width: 100% */
     height: 100%; /* ← Оставляем */
-    padding: 12px 16px; /* ← Корректируем padding */
+    padding: 26px 55px; /* ← Корректируем padding */
     min-width: 80px; /* ← Добавляем минимальную ширину */
   }
 }
@@ -379,10 +388,11 @@ const placeBet = () => {
   }
   
   .place-bet-btn {
-    padding: 26px 55px; /* ← Корректируем padding */
+    padding: 30px 75px; /* ← Корректируем padding */
     font-size: 16px; /* ← Уменьшаем шрифт */
     min-width: 70px; /* ← Минимальная ширина */
     white-space: nowrap; /* ← Запрещаем перенос текста */
+    height: 100%;
   }
 }
 

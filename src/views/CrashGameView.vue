@@ -8,6 +8,8 @@
 
     <BettingPanel />
 
+    <div class="divider"></div>
+
     <div class="balance-view">
           <!-- Панель с кнопками -->
       <ButtonTop v-model="selectedPaymentMethod" />
@@ -51,5 +53,13 @@ const selectedPaymentMethod = ref('top')
   min-height: 100vh;
   background: linear-gradient(to right, #1B152F, #180A24);
   padding-bottom: 80px;
+}
+
+.divider {
+  margin-bottom: 20px;
+  width: 100%;
+  height: 1px;
+  border-radius: 50%;
+  background: #25213C;
 }
 </style>
