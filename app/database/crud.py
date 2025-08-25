@@ -12,7 +12,8 @@ def create_user(
     username: Optional[str] = None,
     first_name: Optional[str] = None,
     last_name: Optional[str] = None,
-    referrer_id: Optional[int] = None
+    referrer_id: Optional[int] = None,
+    language: str = 'ru'  # Добавляем язык по умолчанию
 ) -> User:
     """Создаем нового пользователя с учетом реферальной системы"""
     db_user = User(
@@ -20,7 +21,8 @@ def create_user(
         username=username,
         first_name=first_name,
         last_name=last_name,
-        referrer_id=referrer_id
+        referrer_id=referrer_id,
+        language=language  # Устанавливаем язык
     )
     
     db.add(db_user)
@@ -32,6 +34,18 @@ def create_user(
         update_referrer_stats(db, referrer_id)
     
     return db_user
+
+def update_user_language(db: Session, telegram_id: int, language: str):
+    """Обновляем язык пользователя"""
+    user = get_user_by_telegram_id(db, telegram_id)
+    if not user:
+        # Если пользователя нет - создаем с выбранным языком
+        return create_user(db, telegram_id, language=language)
+    
+    user.language = language
+    db.commit()
+    db.refresh(user)
+    return user
 
 def update_referrer_stats(db: Session, referrer_id: int):
     """Обновляем статистику реферера"""
@@ -125,3 +139,5 @@ def add_crash_bet(
     db.commit()
     db.refresh(bet)
     return bet
+
+get_user = get_user_by_telegram_id
