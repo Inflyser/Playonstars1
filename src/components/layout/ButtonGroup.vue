@@ -57,7 +57,7 @@ const selectButton = (buttonId: string): void => {
   width: 95%;
   background: #100D1F;
   border-radius: 15px;
-  padding: 4px;
+  padding: 2px;
   gap: 2px;
   margin: 0px 0px 20px 2.5%;
 
@@ -83,12 +83,6 @@ const selectButton = (buttonId: string): void => {
 .group-button.active {
   background: #241D49;
   color: white;
-}
-
-.button-icon {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
 }
 
 .button-label {

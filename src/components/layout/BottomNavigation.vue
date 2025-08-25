@@ -67,7 +67,7 @@ const navigateTo = (route: string) => {
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  background: rgba(4, 6, 18, 0.95);
+  background: rgb(4, 6, 18);
   border-radius: 25px;
   border: none;
   padding: 12px 16px;

@@ -16,7 +16,7 @@
       </div>
     </div>
 
-    <button @click="$router.back()">Назад</button>
+   
 
 
 

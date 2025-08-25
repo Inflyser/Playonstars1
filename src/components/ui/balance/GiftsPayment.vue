@@ -12,6 +12,12 @@
         После отправки подарок автоматически зачислится в ваш инвентарь по текущей рыночной цене
         Вы сможете продать подарок для открытия кейсов или вывести его обратно, если цена вас не устроила
     </p>
+    
+
+    <div class="two-buttons-container">
+      <button class="btn primary" @click="$router.back()">Отмена</button>
+      <button class="btn secondary">Пополнить</button>
+    </div>
 </template>
 
 
@@ -32,6 +38,35 @@
   width: 70px;
   height: 70px;
   object-fit: contain;
+}
+
+
+
+.two-buttons-container {
+  display: flex;
+  gap: 12px;
+  padding: 0 15px 15px 15px;
+}
+
+.btn {
+  flex: 1;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.primary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.secondary {
+  background: linear-gradient(135deg, #00A6FC, #0088CC);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid #2A2642;
 }
 
 </style>
