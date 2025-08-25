@@ -22,6 +22,7 @@
   "homepage": "https://github.com/Inflyser/Playonstars#readme",
   "dependencies": {
     "axios": "^1.11.0",
+    "pinia": "^3.0.3",
     "vue": "^3.5.19",
     "vue-router": "^4.5.1"
   },
