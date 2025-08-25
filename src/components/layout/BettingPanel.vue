@@ -292,7 +292,7 @@ const placeBet = () => {
 }
 
 .divider-bet {
-  width: 50%;
+  width: 40%;
   height: 2.5px;
   border-radius: 5px;
   background: linear-gradient(135deg, #ADE134, #579C27);
