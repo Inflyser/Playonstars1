@@ -259,6 +259,7 @@ const placeBet = () => {
 }
 
 .amount-value {
+  font-weight: bold;
   border-radius: 6px;
   color: white;
   font-weight: 600;
@@ -319,9 +320,17 @@ const placeBet = () => {
 
 /* Адаптивность */
 @media (max-width: 768px) {
+  .amount-value {
+    min-width: 70%;
+    text-align: center;
+  }
+  
   .bet-settings {
     flex-wrap: wrap;
     gap: 12px;
+  }
+  .betting-container {
+    padding: 16px;
   }
   
   .coefficient-input {
@@ -334,14 +343,22 @@ const placeBet = () => {
     align-items: stretch; /* ← Добавляем */
     gap: 16px;
   }
+
   
   .amount-section {
     flex: 1;
   }
   
   .quick-buttons {
-    min-width: 10px;
-    justify-content: flex-start; /* ← Меняем center на flex-start */
+    flex-wrap: wrap;
+    gap: 4px; /* ← Уменьшаем gap между кнопками */
+  }
+  
+  .quick-btn {
+    padding: 5px 6px; /* ← Уменьшаем padding */
+    font-size: 10px;
+    flex: 1;
+ 
   }
   
   .place-bet-btn {
@@ -353,6 +370,10 @@ const placeBet = () => {
 }
 
 @media (max-width: 480px) {
+  .amount-value {
+    min-width: 70px;
+    text-align: center;
+  }
   .betting-container {
     padding: 16px;
   }
