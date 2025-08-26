@@ -437,6 +437,17 @@ async def debug_session(request: Request):
         "session": dict(request.session),
         "headers": dict(request.headers)
     }
+    
+@app.get("/api/webhook-info")
+async def webhook_info():
+    webhook_url = os.getenv("WEBHOOK_URL")
+    bot_info = await bot.get_me()
+    
+    return {
+        "bot_username": bot_info.username,
+        "webhook_url": webhook_url,
+        "webhook_set": await bot.get_webhook_info() if webhook_url else False
+    }
 
 # Подключаем роутеры
 dp.include_router(telegram_router)
