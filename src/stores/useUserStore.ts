@@ -2,16 +2,29 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import api from '@/services/api.ts'
 
+// Интерфейс пользователя
+interface User {
+  id: number;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
+  ton_balance: number;
+  stars_balance: number;
+  // добавьте другие поля по необходимости
+}
+
 export const useUserStore = defineStore('user', () => {
-  const user = ref<any>(null)
+  const user = ref<User | null>(null)
   const isAuthenticated = ref(false)
+  
 
   // Автоматическая авторизация через Telegram
   const initAuth = async (): Promise<boolean> => {
-    // Проверяем это Telegram Web App через window
+    // Проверяем это Telegram Web App
     const isWebApp = !!window.Telegram?.WebApp
     
-    if (isWebApp) {
+    
+    if (isWebApp && window.Telegram.WebApp) {
       // Telegram Web App - используем прямую авторизацию
       try {
         const initData = window.Telegram.WebApp.initData
@@ -37,10 +50,14 @@ export const useUserStore = defineStore('user', () => {
     } else {
       // Веб-версия - проверяем сессию
       try {
-        const response = await api.get('/api/auth/check')
-        user.value = response.data.user
-        isAuthenticated.value = true
-        return true
+        // Только если не на странице telegram-only
+        if (window.location.pathname !== '/telegram-only') {
+          const response = await api.get('/api/auth/check')
+          user.value = response.data.user
+          isAuthenticated.value = true
+          return true
+        }
+        return false
       } catch (error) {
         isAuthenticated.value = false
         return false

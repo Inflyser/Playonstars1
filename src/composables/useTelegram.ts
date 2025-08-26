@@ -1,42 +1,52 @@
 import { ref, onMounted } from 'vue'
 
+// Определяем интерфейсы для Telegram WebApp
 declare global {
   interface Window {
-    Telegram: {
-      WebApp: any
+    Telegram?: {
+      WebApp: {
+        initData: string;
+        initDataUnsafe: any;
+        expand: () => void;
+        ready: () => void;
+        // Добавьте другие методы по необходимости
+      }
     }
   }
 }
 
 export const useTelegram = () => {
   const isWebApp = ref(false)
-  const webApp = ref<any>(null)
+  const webApp = ref<Window['Telegram']['WebApp'] | null>(null)
   const isInitialized = ref(false)
 
-  // Ждем инициализации Telegram
-  onMounted(() => {
-    const checkTelegram = () => {
-      if (window.Telegram?.WebApp) {
-        isWebApp.value = true
-        webApp.value = window.Telegram.WebApp
-        isInitialized.value = true
-      } else {
-        // Проверяем еще раз через небольшой интервал
-        setTimeout(checkTelegram, 100)
-      }
+  const init = () => {
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+      isWebApp.value = true
+      webApp.value = window.Telegram.WebApp
+      isInitialized.value = true
+      console.log('Telegram WebApp detected and initialized')
+    } else {
+      isWebApp.value = false
+      isInitialized.value = true
+      console.log('Regular browser environment')
     }
-    
-    checkTelegram()
+  }
+
+  onMounted(() => {
+    // Даем время для загрузки Telegram скрипта
+    setTimeout(init, 300)
   })
 
   const expandApp = () => {
     if (webApp.value) {
       webApp.value.expand()
+      console.log('Telegram WebApp expanded')
     }
   }
 
   const initTelegramAuth = async (): Promise<boolean> => {
-    if (!isWebApp.value) return false
+    if (!isWebApp.value || !webApp.value) return false
     try {
       const initData = webApp.value.initData
       const response = await fetch('/api/auth/telegram', {
@@ -56,8 +66,9 @@ export const useTelegram = () => {
   return {
     isWebApp,
     webApp,
-    isInitialized, // ← Добавляем флаг инициализации
+    isInitialized,
     expandApp,
-    initTelegramAuth
+    initTelegramAuth,
+    init
   }
 }

@@ -1,26 +1,17 @@
 declare global {
   interface Window {
-    Telegram?: {
+    Telegram: {
       WebApp: {
         initData: string;
-        initDataUnsafe: {
-          user?: {
-            id: number;
-            first_name?: string;
-            last_name?: string;
-            username?: string;
-            language_code?: string;
-          };
-          query_id?: string;
-          auth_date?: string;
-          hash?: string;
-        };
+        initDataUnsafe: any;
         expand: () => void;
         ready: () => void;
         close: () => void;
         showPopup: (params: any) => void;
         showAlert: (message: string) => void;
         showConfirm: (message: string, callback: (confirmed: boolean) => void) => void;
+        MainButton: any;
+        BackButton: any;
         // Добавьте другие методы по необходимости
       }
     }
