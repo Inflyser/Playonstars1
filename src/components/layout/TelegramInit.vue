@@ -13,10 +13,12 @@ import { onMounted, ref } from 'vue';
 import { useTelegram } from '@/composables/useTelegram';
 import { initTelegramWebApp, getTelegramInitData } from '@/utils/telegram';
 import TGLoader from '@/components/ui/TGLoader.vue';
+import { useUserStore } from '@/stores/useUserStore';
 
 // Используем ВСЕ методы из useTelegram
 const { initTelegram, fetchUserData, fetchBalance, isLoading, error } = useTelegram();
 const isInitialized = ref(false);
+const userStore = useUserStore();
 
 const retryInit = async () => {
   isInitialized.value = false;
