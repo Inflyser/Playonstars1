@@ -1,80 +1,46 @@
 <script setup lang="ts">
-import { onMounted, watch, ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useTelegram } from '@/composables/useTelegram'
 import { useUserStore } from '@/stores/useUserStore'
 
 const router = useRouter()
-const { isWebApp, isInitialized } = useTelegram()
 const userStore = useUserStore()
-const isLoading = ref(true)
-
-// Ждем инициализации Telegram
-watch(isInitialized, async (initialized) => {
-  if (initialized) {
-    await checkTelegramAccess()
-    if (isWebApp.value) {
-      await userStore.initAuth()
-    }
-    isLoading.value = false
-  }
-})
-
-const checkTelegramAccess = async () => {
-  const currentPath = router.currentRoute.value.path
-  
-  if (!isWebApp.value && currentPath !== '/telegram-only') {
-    await router.push('/telegram-only')
-  }
-  
-  if (isWebApp.value && currentPath === '/telegram-only') {
-    await router.push('/')
-  }
-}
-console.log('App mounted - start') // ← ДОБАВЬТЕ
+const isLoading = ref(false) // ← Меняем на false чтобы сразу показать контент
 
 onMounted(async () => {
-  console.log('onMounted called') // ← ДОБАВЬТЕ
+  console.log('App mounted, checking environment...')
   
-  setTimeout(async () => {
-    console.log('Timeout started') // ← ДОБАВЬТЕ
+  // Немедленная проверка без таймаута
+  const isWebApp = !!window.Telegram?.WebApp
+  console.log('Is Telegram WebApp:', isWebApp)
+  
+  if (isWebApp) {
+    console.log('Initializing Telegram app...')
+    window.Telegram.WebApp.expand()
     
-    const isWebApp = !!window.Telegram?.WebApp
-    console.log('Is Web App:', isWebApp) // ← ДОБАВЬТЕ
-    
-    if (isWebApp) {
-      console.log('Telegram Web App detected') // ← ДОБАВЬТЕ
-      window.Telegram.WebApp.expand()
+    // Пытаемся авторизоваться
+    try {
       await userStore.initAuth()
-      if (window.location.pathname === '/telegram-only') {
-        router.push('/')
-      }
-    } else {
-      console.log('Regular browser detected') // ← ДОБАВЬТЕ
-      if (window.location.pathname !== '/telegram-only') {
-        router.push('/telegram-only')
-      }
+      console.log('Auth successful')
+    } catch (error) {
+      console.error('Auth failed:', error)
     }
     
-    isLoading.value = false
-    console.log('Loading finished') // ← ДОБАВЬТЕ
-  }, 500)
+    // Если мы на странице только для браузера - уходим
+    if (window.location.pathname === '/telegram-only') {
+      router.push('/')
+    }
+  } else {
+    console.log('Regular browser detected')
+    // Если не в Telegram и не на странице telegram-only - редирект
+    if (window.location.pathname !== '/telegram-only') {
+      console.log('Redirecting to telegram-only page')
+      router.push('/telegram-only')
+    }
+  }
 })
 </script>
 
 <template>
-  <div v-if="isLoading" class="loading">
-    Загрузка...
-  </div>
-  <router-view v-else />
+  <router-view />
 </template>
-
-<style>
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  font-size: 18px;
-}
-</style>
