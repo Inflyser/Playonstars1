@@ -44,7 +44,13 @@ app.add_middleware(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("FRONTEND_URL")],
+    allow_origins=[
+    "https://playonstars.netlify.app",  # Ваш фронтенд
+    "https://web.telegram.org",          # Telegram Web
+    "https://telegram.org",              # Telegram
+    "http://localhost:5173",             # Локальная разработка
+    os.getenv("FRONTEND_URL", "https://playonstars.netlify.app")
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -131,17 +137,25 @@ async def get_user_language_api(
         return {"error": str(e)}
 
 @app.get("/api/user/data")
-async def get_user_data(
-    request: Request,
-    db: Session = Depends(get_db)
-):
+async def get_user_data(request: Request, db: Session = Depends(get_db)):
     try:
-        user_id = request.session.get("user_id")
-        if not user_id:
+        telegram_id = request.session.get("telegram_id")  # ← Используем telegram_id
+        if not telegram_id:
             return {"error": "Not authenticated"}
         
-        user_data = request.session.get("telegram_user", {})
-        return {"user_data": user_data}
+        # Получаем данные из БД, а не из сессии
+        user = get_user_by_telegram_id(db, telegram_id)
+        if not user:
+            return {"error": "User not found"}
+        
+        return {
+            "user_data": {
+                "id": user.telegram_id,
+                "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name
+            }
+        }
         
     except Exception as e:
         return {"error": str(e)}
@@ -214,27 +228,32 @@ def parse_telegram_data(init_data: str) -> dict:
 # Альтернативная упрощенная версия проверки (если первая не работает)
 def verify_telegram_webapp_simple(init_data: str) -> bool:
     """Упрощенная проверка для разработки"""
-    # В режиме разработки можно временно отключить проверку
-    if os.getenv("ENVIRONMENT") == "development":
+    current_env = os.getenv("ENVIRONMENT", "development")
+    print(f"🛠️ Current environment: {current_env}")
+    
+    if current_env == "production":
+        # Полная проверка в production
+        print("🔒 Production mode - full verification")
+        try:
+            parsed_data = parse_qs(init_data)
+            return 'user' in parsed_data and 'hash' in parsed_data
+        except:
+            return False
+    else:
+        # В development пропускаем проверку
+        print("⚠️ Development mode - skipping Telegram verification")
         return True
-        
-    # Или проверяем наличие обязательных полей
-    try:
-        parsed_data = parse_qs(init_data)
-        return 'user' in parsed_data and 'hash' in parsed_data
-    except:
-        return False
 
 @app.post("/api/auth/telegram")
-async def auth_telegram(
-    request: Request,
-    db: Session = Depends(get_db)
-):
+async def auth_telegram(request: Request, db: Session = Depends(get_db)):
     try:
+        print("🔐 Auth endpoint called")
         data = await request.json()
-        init_data = data.get("initData")
+        print(f"📦 Request data: {data}")
         
+        init_data = data.get("initData")
         if not init_data:
+            print("❌ No initData provided")
             raise HTTPException(status_code=400, detail="No initData provided")
         
         # Используем упрощенную проверку для начала
@@ -294,17 +313,20 @@ async def auth_telegram(
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/user/balance")
-async def get_balance(
-    request: Request,
-    db: Session = Depends(get_db)
-):
+async def get_balance(request: Request, db: Session = Depends(get_db)):
     """Получаем баланс пользователя"""
     telegram_id = request.session.get("telegram_id")
     if not telegram_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    balance = get_user_balance(db, telegram_id)
-    return balance
+    user = get_user_by_telegram_id(db, telegram_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "ton_balance": user.ton_balance,
+        "stars_balance": user.stars_balance
+    }
 
 @app.post("/api/user/deposit")
 async def make_deposit(
@@ -407,6 +429,13 @@ async def get_referral_info(
         "stars_spent_by_refs": user.stars_spent_by_refs,
         "total_refs_balance": user.total_refs_balance,
         "referral_link": f"https://t.me/your_bot?start=ref_{user.id}"
+    }
+    
+@app.get("/api/debug/session")
+async def debug_session(request: Request):
+    return {
+        "session": dict(request.session),
+        "headers": dict(request.headers)
     }
 
 # Подключаем роутеры
