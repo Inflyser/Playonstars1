@@ -39,7 +39,7 @@ app.add_middleware(
     session_cookie="session",
     max_age=3600 * 24 * 7,  # 7 дней
     same_site="none",
-    https_only=True
+    https_only=True if os.getenv("ENVIRONMENT") == "development" else False
 )
 
 app.add_middleware(
