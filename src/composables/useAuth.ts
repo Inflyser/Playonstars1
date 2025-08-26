@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { useUserStore } from '@/stores/useUserStore';
+import { useUserStore } from '@/stores/useUserStore.ts';
 import { useTelegram } from './useTelegram';
 
 export function useAuth() {
