@@ -1,59 +1,57 @@
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue';
+import { telegramService } from '@/services/telegram.service';
+import { useUserStore } from '@/stores/useUserStore';
 
-export const useTelegram = () => {
-  const isWebApp = ref(false)
-  const webApp = ref<any>(null)
-  const isInitialized = ref(false)
+export function useTelegram() {
+  const userStore = useUserStore();
+  const isLoading = ref(false);
+  const error = ref<string | null>(null);
 
-  const init = () => {
-    // Нахуй типы, просто работаем
-    if (window.Telegram?.WebApp) {
-      isWebApp.value = true
-      webApp.value = window.Telegram.WebApp
-      isInitialized.value = true
-      console.log('Telegram detected, initData:', window.Telegram.WebApp.initData)
-    } else {
-      isWebApp.value = false
-      isInitialized.value = true
-      console.log('Not in Telegram')
-    }
-  }
-
-  onMounted(() => {
-    // Даем время на загрузку
-    setTimeout(init, 500)
-  })
-
-  const expandApp = () => {
-    if (webApp.value) {
-      webApp.value.expand()
-    }
-  }
-
-  const initTelegramAuth = async (): Promise<boolean> => {
-    if (!isWebApp.value || !webApp.value) return false
+  const initTelegram = async (initData: string) => {
     try {
-      const initData = webApp.value.initData
-      const response = await fetch('/api/auth/telegram', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ initData })
-      })
-      return response.ok
-    } catch (error) {
-      console.error('Telegram auth error:', error)
-      return false
+      isLoading.value = true;
+      error.value = null;
+      
+      const response = await telegramService.authTelegram(initData);
+      
+      if (response.status === 'success') {
+        userStore.setUser(response.user);
+        localStorage.setItem('telegram_token', initData);
+        return true;
+      }
+      
+      return false;
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Authentication failed';
+      return false;
+    } finally {
+      isLoading.value = false;
     }
-  }
+  };
+
+  const fetchUserData = async () => {
+    try {
+      const response = await telegramService.getUserData();
+      userStore.setTelegramUser(response.user_data);
+    } catch (err) {
+      console.error('Failed to fetch user data:', err);
+    }
+  };
+
+  const fetchBalance = async () => {
+    try {
+      const balance = await telegramService.getBalance();
+      userStore.setBalance(balance);
+    } catch (err) {
+      console.error('Failed to fetch balance:', err);
+    }
+  };
 
   return {
-    isWebApp,
-    webApp,
-    isInitialized,
-    expandApp,
-    initTelegramAuth,
-    init
-  }
+    initTelegram,
+    fetchUserData,
+    fetchBalance,
+    isLoading,
+    error
+  };
 }

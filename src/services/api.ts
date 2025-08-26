@@ -2,20 +2,28 @@ import axios from 'axios'
 
 const API_BASE_URL = 'https://playonstars.onrender.com'
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
-})
+  withCredentials: true, // Важно для сессий и куков
+});
 
-// Простая функция для теста
-export const testConnection = async () => {
-  try {
-    const response = await api.get('/api/test')
-    return response.data
-  } catch (error) {
-    console.log('Using mock data - backend unavailable')
-    return { status: 'mock', message: 'Backend not available' }
+// Интерцептор для добавления заголовков
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('telegram_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-}
+  return config;
+});
 
-export default api
+// Интерцептор для обработки ошибок
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('telegram_token');
+      window.location.reload();
+    }
+    return Promise.reject(error);
+  }
+);
