@@ -1,15 +1,30 @@
+<template>
+  <div v-if="!isInitialized">
+    <TGLoader v-if="isLoading" />
+    <div v-else-if="error" class="error-message">
+      {{ error }}
+      <button @click="retryInit" class="retry-btn">Retry</button>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useTelegram } from '@/composables/useTelegram';
-import { useUserStore } from '@/stores/useUserStore';
 import { initTelegramWebApp, getTelegramInitData } from '@/utils/telegram';
 import TGLoader from '@/components/ui/TGLoader.vue';
 
-const { initTelegram, isLoading, error } = useTelegram();
-const userStore = useUserStore();
+// Используем ВСЕ методы из useTelegram
+const { initTelegram, fetchUserData, fetchBalance, isLoading, error } = useTelegram();
 const isInitialized = ref(false);
 
-onMounted(async () => {
+const retryInit = async () => {
+  isInitialized.value = false;
+  error.value = null;
+  await initializeApp();
+};
+
+const initializeApp = async () => {
   // Инициализируем Telegram WebApp
   const isTelegram = initTelegramWebApp();
   
@@ -22,6 +37,9 @@ onMounted(async () => {
       
       if (success) {
         isInitialized.value = true;
+        // ЗАГРУЖАЕМ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ - это было пропущено!
+        await fetchUserData();
+        await fetchBalance();
         console.log('Telegram auth successful');
       } else {
         console.error('Telegram auth failed');
@@ -34,5 +52,27 @@ onMounted(async () => {
     console.log('Running in browser mode');
     isInitialized.value = true;
   }
+};
+
+onMounted(async () => {
+  await initializeApp();
 });
 </script>
+
+<style scoped>
+.error-message {
+  color: #ff4757;
+  padding: 1rem;
+  text-align: center;
+}
+
+.retry-btn {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #007aff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+</style>
