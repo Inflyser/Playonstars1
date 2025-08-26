@@ -17,13 +17,18 @@
           <!-- Правая часть: кошелек, баланс, валюта -->
           <div class="currency-section wallet-section">
             <img src="@/assets/images/wallet.svg" alt="Кошелек" class="wallet-icon" />
-            <span class="balance-amount">9 999</span>
+            <span class="balance-amount">{{ userStore.balance.stars_balance }}</span>
             <img src="@/assets/images/coin.svg" alt="Валюта" class="coin-icon" />
           </div>
         </div>
       </div>
     </header>
 </template>
+
+<script setup lang="ts">
+import { useUserStore } from '@/stores/useUserStore';
+const userStore = useUserStore();
+</script>
 
 <style scoped>
 /* Первый хедер */

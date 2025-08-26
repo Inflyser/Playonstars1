@@ -23,7 +23,7 @@
         <div class="username1">@username</div>
 
         <!-- Имя -->
-        <div class="name">Иван Иванов</div>
+        <div class="name">{{ userStore.getDisplayName }}</div>
       </div>
 
       <!-- Нижняя кнопка на всю ширину -->
@@ -147,12 +147,15 @@
 
 
 <script setup lang="ts">
+import { useUserStore } from '@/stores/useUserStore';
 import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 import TelegramHeader from '@/components/layout/TelegramHeader.vue'
 import TelegramHeader2 from '@/components/layout/TelegramHeader2.vue'
 import InfoPanel from '@/components/layout/InfoPanel.vue'
 
 import { useRouter } from 'vue-router'
+
+const userStore = useUserStore();
 
 const router = useRouter()
 
