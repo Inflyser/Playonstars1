@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 declare global {
   interface Window {
@@ -9,10 +9,26 @@ declare global {
 }
 
 export const useTelegram = () => {
-  const isWebApp = ref(!!window.Telegram?.WebApp)
-  const webApp = ref(window.Telegram?.WebApp || null)
+  const isWebApp = ref(false)
+  const webApp = ref<any>(null)
+  const isInitialized = ref(false)
 
-  // Добавьте эту функцию ↓
+  // Ждем инициализации Telegram
+  onMounted(() => {
+    const checkTelegram = () => {
+      if (window.Telegram?.WebApp) {
+        isWebApp.value = true
+        webApp.value = window.Telegram.WebApp
+        isInitialized.value = true
+      } else {
+        // Проверяем еще раз через небольшой интервал
+        setTimeout(checkTelegram, 100)
+      }
+    }
+    
+    checkTelegram()
+  })
+
   const expandApp = () => {
     if (webApp.value) {
       webApp.value.expand()
@@ -40,7 +56,8 @@ export const useTelegram = () => {
   return {
     isWebApp,
     webApp,
-    expandApp, // ← Не забудьте экспортировать!
+    isInitialized, // ← Добавляем флаг инициализации
+    expandApp,
     initTelegramAuth
   }
 }
