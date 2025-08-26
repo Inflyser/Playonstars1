@@ -2,32 +2,20 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import api from '@/services/api.ts'
 
-// Интерфейс пользователя
-interface User {
-  id: number;
-  username?: string;
-  first_name?: string;
-  last_name?: string;
-  ton_balance: number;
-  stars_balance: number;
-  // добавьте другие поля по необходимости
-}
-
 export const useUserStore = defineStore('user', () => {
-  const user = ref<User | null>(null)
+  const user = ref<any>(null)
   const isAuthenticated = ref(false)
-  
 
-  // Автоматическая авторизация через Telegram
   const initAuth = async (): Promise<boolean> => {
-    // Проверяем это Telegram Web App
+    // Просто ебнем проверку как есть
     const isWebApp = !!window.Telegram?.WebApp
     
-    
-    if (isWebApp && window.Telegram.WebApp) {
-      // Telegram Web App - используем прямую авторизацию
+    if (isWebApp) {
       try {
+        // Без всяких проверок, нахуй typescript
         const initData = window.Telegram.WebApp.initData
+        console.log('Telegram initData:', initData)
+        
         const response = await fetch('/api/auth/telegram', {
           method: 'POST',
           headers: {
@@ -48,9 +36,8 @@ export const useUserStore = defineStore('user', () => {
         return false
       }
     } else {
-      // Веб-версия - проверяем сессию
+      // Для браузера
       try {
-        // Только если не на странице telegram-only
         if (window.location.pathname !== '/telegram-only') {
           const response = await api.get('/api/auth/check')
           user.value = response.data.user
@@ -65,7 +52,6 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  // Получить баланс
   const fetchBalance = async () => {
     try {
       const response = await api.get('/api/user/balance')
@@ -80,7 +66,6 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  // Выйти
   const logout = async () => {
     try {
       await api.post('/api/auth/logout')
