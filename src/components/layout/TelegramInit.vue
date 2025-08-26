@@ -10,10 +10,10 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { useTelegram } from '@/composables/useTelegram';
-import { initTelegramWebApp, getTelegramInitData } from '@/utils/telegram';
+import { useTelegram } from '@/composables/useTelegram.ts';
+import { initTelegramWebApp, getTelegramInitData } from '@/utils/telegram.ts';
 import TGLoader from '@/components/ui/TGLoader.vue';
-import { useUserStore } from '@/stores/useUserStore';
+import { useUserStore } from '@/stores/useUserStore.ts';
 
 // Используем ВСЕ методы из useTelegram
 const { initTelegram, fetchUserData, fetchBalance, isLoading, error } = useTelegram();
