@@ -1,42 +1,41 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/useUserStore'
 
 const router = useRouter()
-const userStore = useUserStore()
-const isLoading = ref(false)
 
-onMounted(async () => {
-  console.log('App mounted, checking Telegram...')
+// Простая функция для теста запроса
+const testBackend = async () => {
+  try {
+    console.log('Testing backend connection...')
+    const response = await fetch('https://playonstars.onrender.com/api/test')
+    const data = await response.text()
+    console.log('Backend response:', data)
+  } catch (error) {
+    console.error('Backend error:', error)
+  }
+}
+
+onMounted(() => {
+  console.log('App mounted, checking environment...')
   
-  // Ждем немного и проверяем
-  setTimeout(() => {
-    const isWebApp = !!window.Telegram?.WebApp
-    console.log('Is Telegram WebApp:', isWebApp)
-    
-    if (isWebApp) {
-      console.log('Initializing Telegram app...')
-      window.Telegram.WebApp.expand()
-      
-      // Пытаемся авторизоваться
-      userStore.initAuth().then(success => {
-        console.log('Auth result:', success)
-        
-        // Если на странице только для браузера - уходим
-        if (window.location.pathname === '/telegram-only') {
-          router.push('/')
-        }
-      })
-    } else {
-      console.log('Regular browser detected')
-      // Если не в Telegram и не на странице telegram-only - редирект
-      if (window.location.pathname !== '/telegram-only') {
-        console.log('Redirecting to telegram-only page')
-        router.push('/telegram-only')
-      }
+  // Тестируем бекенд
+  testBackend()
+  
+  const isTelegram = !!window.Telegram?.WebApp
+  console.log('Is Telegram:', isTelegram)
+  
+  if (isTelegram) {
+    console.log('We are in Telegram!')
+    if (window.location.pathname === '/telegram-only') {
+      router.push('/')
     }
-  }, 300)
+  } else {
+    console.log('We are in browser')
+    if (window.location.pathname !== '/telegram-only') {
+      router.push('/telegram-only')
+    }
+  }
 })
 </script>
 

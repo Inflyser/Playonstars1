@@ -4,21 +4,18 @@ const API_BASE_URL = 'https://playonstars.onrender.com'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // Для кук и сессий
+  withCredentials: true,
 })
 
-// Интерцептор для ошибок
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Перенаправляем на страницу только для Telegram
-      if (window.location.pathname !== '/telegram-only') {
-        window.location.href = '/telegram-only'
-      }
-    }
-    return Promise.reject(error)
+// Простая функция для теста
+export const testConnection = async () => {
+  try {
+    const response = await api.get('/api/test')
+    return response.data
+  } catch (error) {
+    console.log('Using mock data - backend unavailable')
+    return { status: 'mock', message: 'Backend not available' }
   }
-)
+}
 
 export default api
