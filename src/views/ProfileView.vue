@@ -20,9 +20,9 @@
         </div>
 
         <!-- Юзернейм -->
-        <div class="username1">@username</div>
+        <div class="username1">@{{ userStore.user?.username || userStore.telegramUser?.username }}</div>
 
-        <!-- Имя -->user
+        <!-- Имя -->
         <div class="name">{{ userStore.getDisplayName }}</div>
       </div>
 
