@@ -9,9 +9,9 @@
   </div>
   
   <!-- После инициализации показываем основное приложение -->
-  <HomeView v-else>
+  <AppLayout v-else>
     <RouterView />
-  </HomeView>
+  </AppLayout>
 </template>
 
 <script setup lang="ts">
@@ -19,7 +19,7 @@ import { onMounted, ref } from 'vue';
 import { useTelegram } from '@/composables/useTelegram';
 import { initTelegramWebApp, getTelegramInitData } from '@/utils/telegram';
 import TGLoader from '@/components/ui/TGLoader.vue';
-import HomeView from '@/views/HomeView.vue';
+import AppLayout  from '@/components/layout/AppLayout.vue';
 import { useUserStore } from '@/stores/useUserStore';
 
 const { initTelegram, fetchUserData, fetchBalance, isLoading, error } = useTelegram();
