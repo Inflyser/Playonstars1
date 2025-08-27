@@ -12,10 +12,10 @@
           <!-- Текстовый блок -->
           <div class="user-text-info">
             <div class="username-line">
-              <span class="username">@username</span>
+              <span class="username">@{{ userStore.user?.username || userStore.telegramUser?.username }}</span>
             </div>
             <div class="balance-line">
-              <span class="balance-secondary">0.001</span>
+              <span class="balance-secondary">{{ userStore.balance.stars_balance }}</span>
               <div class="balance-buttons">
                 <TGButton />
               </div>
@@ -33,6 +33,8 @@
 
 <script setup lang="ts">
 import TGButton from '@/components/ui/TGButton.vue'
+import { useUserStore } from '@/stores/useUserStore';
+const userStore = useUserStore();
 </script>
 
 <style scoped>

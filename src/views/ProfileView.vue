@@ -22,7 +22,7 @@
         <!-- Юзернейм -->
         <div class="username1">@username</div>
 
-        <!-- Имя -->
+        <!-- Имя -->user
         <div class="name">{{ userStore.getDisplayName }}</div>
       </div>
 
