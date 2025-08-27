@@ -24,7 +24,7 @@
 
           <!-- Аватар -->
           <div class="avatar">
-            <img src="@/assets/images/avatar.jpg" alt="Аватар" />
+            <img :src="userStore.getAvatarUrl" :alt="userStore.getDisplayName" />
           </div>
         </div>
       </div>
