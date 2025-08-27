@@ -92,7 +92,7 @@ onMounted(async () => {
 .retry-btn {
   margin-top: 1rem;
   padding: 0.75rem 1.5rem;
-  background: var(--tg-theme-button-color, #007aff);
+  background: #007aff;
   color: white;
   border: none;
   border-radius: 8px;
