@@ -8,6 +8,8 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
     username = Column(String)
+    first_name = Column(String, nullable=True)  # ✅ Добавьте
+    last_name = Column(String, nullable=True)   # ✅ Добавьте
     
     # ✅ ДОБАВЬТЕ ForeignKey для реферера
     referrer_id = Column(Integer, ForeignKey('users.id'), nullable=True, index=True)
