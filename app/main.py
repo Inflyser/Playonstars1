@@ -470,7 +470,6 @@ async def get_top_users(
 ):
     """Получаем топ пользователей по stars_balance"""
     try:
-        # Сортируем по убыванию баланса звезд
         top_users = db.query(User)\
             .order_by(User.stars_balance.desc())\
             .offset(offset)\
@@ -480,14 +479,15 @@ async def get_top_users(
         return {
             "users": [
                 {
-                    "rank": offset + i + 1,  # Порядковый номер
+                    "rank": offset + i + 1,
                     "id": user.id,
                     "telegram_id": user.telegram_id,
                     "username": user.username,
                     "first_name": user.first_name,
                     "last_name": user.last_name,
                     "stars_balance": user.stars_balance,
-                    "photo_url": f"https://t.me/i/userpic/320/{user.telegram_id}.jpg"  # Генерация аватарки
+                    # ✅ Умная генерация аватарки
+                    "photo_url": generate_avatar_url(user)
                 }
                 for i, user in enumerate(top_users)
             ],
@@ -497,6 +497,19 @@ async def get_top_users(
     except Exception as e:
         print(f"Error getting top users: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+def generate_avatar_url(user: User) -> str:
+    """Генерирует URL аватарки с fallback логикой"""
+    # Если у пользователя есть фото в БД
+    if user.photo_url:
+        return user.photo_url
+    
+    # Если есть username - пробуем через него
+    if user.username:
+        return f"https://t.me/i/userpic/320/{user.username}.jpg"
+    
+    # Если нет username - используем дефолтную аватарку
+    return f"https://t.me/i/userpic/320/{user.telegram_id}.jpg"
     
     
 # Подключаем роутеры
