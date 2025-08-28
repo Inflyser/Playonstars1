@@ -1,11 +1,6 @@
 <template>
   <div class="top-all">
     <div class="top-list">
-      <div class="top-item">
-        <div class="rank">#</div>
-        <div class="user">Игрок</div>
-        <div class="balance">Звезды</div>
-      </div>
       
       <div 
         v-for="user in topStore.topUsers" 
