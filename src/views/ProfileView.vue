@@ -16,7 +16,7 @@
       <div class="panel-content">
         <!-- Аватарка -->
         <div class="avatar-container">
-          <img src="@/assets/images/avatar.jpg" alt="Аватар" class="user-avatar" />
+          <img :src="userStore.getAvatarUrl" class="user-avatar" />
         </div>
 
         <!-- Юзернейм -->
@@ -32,6 +32,7 @@
         <span>Пополнить</span>
       </button>
     </div>
+
 
     <h2 style="color: white; margin: 15px;">Рефералы</h2>
 

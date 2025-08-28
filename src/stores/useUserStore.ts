@@ -17,6 +17,7 @@ export interface User {
   last_name?: string;
   ton_balance: number;
   stars_balance: number;
+  photo_url?: string;
 }
 
 export interface UserBalance {
@@ -31,10 +32,20 @@ export const useUserStore = defineStore('user', () => {
 
   const setUser = (userData: User) => {
     user.value = userData;
-  };
+    
+    // ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ - убрана сложная логика
+    if (userData.photo_url && telegramUser.value && !telegramUser.value.photo_url) {
+      telegramUser.value.photo_url = userData.photo_url;
+    }
+  }; // ✅ Закрывающая скобка здесь!
 
   const setTelegramUser = (telegramData: TelegramUser) => {
     telegramUser.value = telegramData;
+    
+    // ✅ Упрощенная версия
+    if (user.value && telegramData.photo_url && !user.value.photo_url) {
+      user.value.photo_url = telegramData.photo_url;
+    }
   };
 
   const setBalance = (newBalance: UserBalance) => {
@@ -82,15 +93,49 @@ export const useUserStore = defineStore('user', () => {
 
   // Computed properties
   const getAvatarUrl = computed(() => {
-    return telegramUser.value?.photo_url || '/src/assets/images/avatar.jpg';
+    // 1. Пробуем из Telegram данных
+    if (telegramUser.value?.photo_url) {
+      return telegramUser.value.photo_url;
+    }
+    
+    // 2. Пробуем из основного пользователя
+    if (user.value?.photo_url) {
+      return user.value.photo_url;
+    }
+    
+    // 3. Генерируем на основе username
+    const username = telegramUser.value?.username || user.value?.username;
+    if (username) {
+      return `https://t.me/i/userpic/320/${username}.jpg`;
+    }
+    
+    // 4. Fallback на дефолтную аватарку
+    return '/src/assets/images/avatar.jpg';
   });
 
   const getDisplayName = computed(() => {
-    if (telegramUser.value) {
-      return telegramUser.value.first_name + 
-             (telegramUser.value.last_name ? ` ${telegramUser.value.last_name}` : '');
+    // 1. Сначала username (приоритет)
+    const username = telegramUser.value?.username || user.value?.username;
+    if (username) {
+      return username;
     }
-    return user.value?.username || 'User';
+    
+    // 2. Затем имя + фамилия
+    if (telegramUser.value) {
+      const firstName = telegramUser.value.first_name || '';
+      const lastName = telegramUser.value.last_name || '';
+      if (firstName || lastName) {
+        return `${firstName} ${lastName}`.trim();
+      }
+    }
+    
+    // 3. Fallback
+    return 'User';
+  });
+
+  // ✅ Добавляем computed для username отдельно
+  const getUsername = computed(() => {
+    return telegramUser.value?.username || user.value?.username || '';
   });
 
   return {
@@ -102,9 +147,10 @@ export const useUserStore = defineStore('user', () => {
     setBalance,
     updateBalance,
     clearUser,
-    fetchUserData, // ✅ Добавляем в возвращаемый объект
-    fetchBalance,  // ✅ Добавляем в возвращаемый объект
+    fetchUserData,
+    fetchBalance,
     getAvatarUrl,
-    getDisplayName
+    getDisplayName,
+    getUsername
   };
 });
