@@ -68,13 +68,15 @@ onMounted(() => {
 }
 
 .top-item {
+  margin-left: 5px;
+  margin-right: 5px;
   background-color: #1D1131;
   display: grid;
   grid-template-columns: 50px 1fr 90px; /* Уменьшаем ширину колонок */
   align-items: center;
   padding: 0.75rem 1rem;
   margin-bottom: 8px; /* Отступ между карточками */
-  border-radius: 8px; /* Закругленные углы у каждой карточки */
+  border-radius: 5px; /* Закругленные углы у каждой карточки */
   border: 1px solid #25213C; 
 }
 
@@ -115,7 +117,6 @@ onMounted(() => {
   height: 38px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #7e57c2;
 }
 
 .user-name {
