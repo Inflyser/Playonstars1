@@ -1,7 +1,7 @@
 <template>
   <div class="top-my">
     <div class="placeholder">
-      <img src="@/assets/images/star.svg" alt="Star" class="placeholder-icon" />
+      <img src="@/assets/images/coin.svg" alt="Star" class="placeholder-icon" />
       <h3>Мой топ</h3>
       <p>Функция в разработке</p>
     </div>
