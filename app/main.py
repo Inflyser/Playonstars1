@@ -461,5 +461,43 @@ async def webhook_info():
         "webhook_set": await bot.get_webhook_info() if webhook_url else False
     }
 
+
+@app.get("/api/top/users")
+async def get_top_users(
+    db: Session = Depends(get_db),
+    limit: int = 100,
+    offset: int = 0
+):
+    """Получаем топ пользователей по stars_balance"""
+    try:
+        # Сортируем по убыванию баланса звезд
+        top_users = db.query(User)\
+            .order_by(User.stars_balance.desc())\
+            .offset(offset)\
+            .limit(limit)\
+            .all()
+        
+        return {
+            "users": [
+                {
+                    "rank": offset + i + 1,  # Порядковый номер
+                    "id": user.id,
+                    "telegram_id": user.telegram_id,
+                    "username": user.username,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "stars_balance": user.stars_balance,
+                    "photo_url": f"https://t.me/i/userpic/320/{user.telegram_id}.jpg"  # Генерация аватарки
+                }
+                for i, user in enumerate(top_users)
+            ],
+            "total": db.query(User).count()
+        }
+        
+    except Exception as e:
+        print(f"Error getting top users: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    
+    
 # Подключаем роутеры
 dp.include_router(telegram_router)
