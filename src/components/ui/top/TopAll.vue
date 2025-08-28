@@ -22,7 +22,7 @@
         </div>
         
         <div class="balance-container">
-          <img src="/src/assets/images/star-currency.png" alt="Stars" class="currency-icon" />
+          <img src="/src/assets/images/coin.svg" alt="Stars" class="currency-icon" />
           <span class="balance">{{ formatStars(user.stars_balance) }}</span>
         </div>
       </div>
