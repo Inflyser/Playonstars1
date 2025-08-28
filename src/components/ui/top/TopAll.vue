@@ -67,7 +67,7 @@ onMounted(() => {
 }
 
 .top-list {
-  background: #1a1a2e;
+  background: transparent; /* Убираем фон всего списка */
   border-radius: 12px;
   overflow: hidden;
 }
@@ -75,41 +75,62 @@ onMounted(() => {
 .top-item {
   background-color: #25213C;
   display: grid;
-  grid-template-columns: 60px 1fr 100px;
+  grid-template-columns: 50px 1fr 90px; /* Уменьшаем ширину колонок */
   align-items: center;
-  padding: 1rem;
-  border-bottom: 1px solid #2d2d4d;
+  padding: 0.75rem 1rem;
+  margin-bottom: 8px; /* Отступ между карточками */
+  border-radius: 8px; /* Закругленные углы у каждой карточки */
+  border: none; /* Убираем границу */
 }
 
 .top-item.header {
   background: #7e57c2;
   color: #ffffff;
   font-weight: 600;
+  margin-bottom: 12px;
 }
 
 .top-item:last-child {
-  border-bottom: none;
+  margin-bottom: 0; /* Убираем отступ у последней карточки */
 }
 
 .top-item.current-user {
-  background: rgba(126, 87, 194, 0.1);
-  border-left: 4px solid #7e57c2;
+  background: rgba(126, 87, 194, 0.15);
+  border-left: 3px solid #7e57c2;
 }
 
 .rank {
   text-align: center;
   font-weight: 600;
+  font-size: 1.1rem;
 }
 
 .rank-number {
   display: inline-block;
-  width: 30px;
-  height: 30px;
-  line-height: 30px;
+  min-width: 25px;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* Стили для первых трех мест */
+.top-item:nth-child(2) .rank-number { /* 1 место */
+  color: gold;
+  font-size: 1.2rem;
+}
+
+.top-item:nth-child(3) .rank-number { /* 2 место */
+  color: silver;
+  font-size: 1.15rem;
+}
+
+.top-item:nth-child(4) .rank-number { /* 3 место */
+  color: #cd7f32; /* bronze */
+  font-size: 1.1rem;
 }
 
 .top-item.header .rank-number {
   background: transparent;
+  font-size: 1rem;
 }
 
 .user-info {
@@ -119,20 +140,48 @@ onMounted(() => {
 }
 
 .user-avatar {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   object-fit: cover;
+  border: 2px solid #7e57c2;
 }
 
 .user-name {
   font-weight: 500;
   color: #ffffff;
+  font-size: 0.95rem;
 }
 
 .balance {
   text-align: right;
-  font-weight: 600;
+  font-weight: 700;
   color: #7e57c2;
+  font-size: 1rem;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 480px) {
+  .top-item {
+    grid-template-columns: 40px 1fr 70px;
+    padding: 0.6rem 0.8rem;
+  }
+  
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .user-name {
+    font-size: 0.9rem;
+  }
+  
+  .balance {
+    font-size: 0.9rem;
+  }
+  
+  .rank {
+    font-size: 1rem;
+  }
 }
 </style>
