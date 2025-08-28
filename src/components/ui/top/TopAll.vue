@@ -67,22 +67,23 @@ onMounted(() => {
 }
 
 .top-list {
-  background: var(--tg-theme-secondary-bg-color, #1a1a2e);
+  background: #1a1a2e;
   border-radius: 12px;
   overflow: hidden;
 }
 
 .top-item {
+  background-color: #25213C;
   display: grid;
   grid-template-columns: 60px 1fr 100px;
   align-items: center;
   padding: 1rem;
-  border-bottom: 1px solid var(--tg-theme-hint-color, #2d2d4d);
+  border-bottom: 1px solid #2d2d4d;
 }
 
 .top-item.header {
-  background: var(--tg-theme-button-color, #7e57c2);
-  color: var(--tg-theme-button-text-color, #ffffff);
+  background: #7e57c2;
+  color: #ffffff;
   font-weight: 600;
 }
 
@@ -92,7 +93,7 @@ onMounted(() => {
 
 .top-item.current-user {
   background: rgba(126, 87, 194, 0.1);
-  border-left: 4px solid var(--tg-theme-button-color, #7e57c2);
+  border-left: 4px solid #7e57c2;
 }
 
 .rank {
@@ -105,9 +106,6 @@ onMounted(() => {
   width: 30px;
   height: 30px;
   line-height: 30px;
-  border-radius: 50%;
-  background: var(--tg-theme-button-color, #7e57c2);
-  color: var(--tg-theme-button-text-color, #ffffff);
 }
 
 .top-item.header .rank-number {
@@ -129,12 +127,12 @@ onMounted(() => {
 
 .user-name {
   font-weight: 500;
-  color: var(--tg-theme-text-color, #ffffff);
+  color: #ffffff;
 }
 
 .balance {
   text-align: right;
   font-weight: 600;
-  color: var(--tg-theme-button-color, #7e57c2);
+  color: #7e57c2;
 }
 </style>
