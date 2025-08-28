@@ -13,7 +13,8 @@ def create_user(
     first_name: Optional[str] = None,
     last_name: Optional[str] = None,
     referrer_id: Optional[int] = None,
-    language: str = 'ru'  # Добавляем язык по умолчанию
+    language: str = 'ru',  # Добавляем язык по умолчанию
+    photo_url: str = None 
 ) -> User:
     """Создаем нового пользователя с учетом реферальной системы"""
     db_user = User(
@@ -22,7 +23,8 @@ def create_user(
         first_name=first_name,
         last_name=last_name,
         referrer_id=referrer_id,
-        language=language  # Устанавливаем язык
+        language=language,
+        photo_url=photo_url # Устанавливаем язык
     )
     
     db.add(db_user)

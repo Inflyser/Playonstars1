@@ -260,17 +260,12 @@ async def auth_telegram(request: Request, db: Session = Depends(get_db)):
     try:
         print("🔐 Auth endpoint called")
         data = await request.json()
-        print(f"📦 Request data: {data}")
         
         init_data = data.get("initData")
         if not init_data:
-            print("❌ No initData provided")
             raise HTTPException(status_code=400, detail="No initData provided")
         
-        # Используем упрощенную проверку для начала
         if not verify_telegram_webapp_simple(init_data):
-            # Логируем для отладки
-            print(f"Invalid initData: {init_data}")
             raise HTTPException(status_code=401, detail="Invalid Telegram data")
         
         user_data = parse_telegram_data(init_data)
@@ -279,22 +274,51 @@ async def auth_telegram(request: Request, db: Session = Depends(get_db)):
         if not telegram_id:
             raise HTTPException(status_code=400, detail="No user data in initData")
         
-        # Логируем полученные данные для отладки
-        print(f"Telegram user data: {user_data}")
+        # ✅ Логируем что приходит от Telegram
+        print(f"📸 Telegram photo_url: {user_data.get('photo_url')}")
+        print(f"👤 Telegram first_name: {user_data.get('first_name')}")
+        print(f"👤 Telegram last_name: {user_data.get('last_name')}")
         
         # Проверяем/создаем пользователя в БД
         user = get_user_by_telegram_id(db, telegram_id)
         if not user:
+            # ✅ СОЗДАЕМ с photo_url
             user = create_user(
                 db=db,
                 telegram_id=telegram_id,
                 username=user_data.get("username"),
                 first_name=user_data.get("first_name"),
-                last_name=user_data.get("last_name")
+                last_name=user_data.get("last_name"),
+                photo_url=user_data.get("photo_url")  # ✅ ВАЖНО!
             )
             print(f"Created new user: {user.id}")
         else:
             print(f"Found existing user: {user.id}")
+            
+            # ✅ ОБНОВЛЯЕМ отсутствующие данные
+            update_fields = False
+            
+            if not user.first_name and user_data.get("first_name"):
+                user.first_name = user_data.get("first_name")
+                update_fields = True
+                
+            if not user.last_name and user_data.get("last_name"):
+                user.last_name = user_data.get("last_name")
+                update_fields = True
+                
+            if not user.photo_url and user_data.get("photo_url"):
+                user.photo_url = user_data.get("photo_url")
+                update_fields = True
+            
+            if update_fields:
+                db.commit()
+                db.refresh(user)
+                print(f"✅ Updated user data in DB")
+        
+        # ✅ Логируем что сохранилось в БД
+        print(f"💾 DB photo_url: {user.photo_url}")
+        print(f"💾 DB first_name: {user.first_name}")
+        print(f"💾 DB last_name: {user.last_name}")
         
         # Сохраняем в сессию
         request.session["user_id"] = user.id
@@ -303,7 +327,8 @@ async def auth_telegram(request: Request, db: Session = Depends(get_db)):
             "id": user.telegram_id,
             "username": user.username,
             "first_name": user.first_name,
-            "last_name": user.last_name
+            "last_name": user.last_name,
+            "photo_url": user.photo_url  # ✅ Добавляем в сессию
         }
         
         return {
@@ -316,7 +341,7 @@ async def auth_telegram(request: Request, db: Session = Depends(get_db)):
                 "last_name": user.last_name,
                 "ton_balance": user.ton_balance,
                 "stars_balance": user.stars_balance,
-                "photo_url": user_data.get("photo_url")
+                "photo_url": user.photo_url  # ✅ Берем из БД
             }
         }
         
