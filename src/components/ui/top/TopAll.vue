@@ -9,7 +9,7 @@
         :class="{ 'current-user': isCurrentUser(user.telegram_id) }"
       >
         <div class="rank">
-          <span class="rank-number">{{ user.rank }}</span>
+          <span class="rank-number">#{{ user.rank }}</span>
         </div>
         
         <div class="user-info">
@@ -68,14 +68,14 @@ onMounted(() => {
 }
 
 .top-item {
-  background-color: #25213C;
+  background-color: #1D1131;
   display: grid;
   grid-template-columns: 50px 1fr 90px; /* Уменьшаем ширину колонок */
   align-items: center;
   padding: 0.75rem 1rem;
   margin-bottom: 8px; /* Отступ между карточками */
   border-radius: 8px; /* Закругленные углы у каждой карточки */
-  border: none; /* Убираем границу */
+  border: 1px solid #25213C; 
 }
 
 .top-item:last-child {
@@ -83,7 +83,6 @@ onMounted(() => {
 }
 
 .top-item.current-user {
-  background: rgba(126, 87, 194, 0.15);
   border-left: 3px solid #7e57c2;
 }
 
@@ -98,22 +97,6 @@ onMounted(() => {
   min-width: 25px;
   text-align: center;
   font-weight: bold;
-}
-
-/* Стили для первых трех мест */
-.top-item:nth-child(2) .rank-number { /* 1 место */
-  color: gold;
-  font-size: 1.2rem;
-}
-
-.top-item:nth-child(3) .rank-number { /* 2 место */
-  color: silver;
-  font-size: 1.15rem;
-}
-
-.top-item:nth-child(4) .rank-number { /* 3 место */
-  color: #cd7f32; /* bronze */
-  font-size: 1.1rem;
 }
 
 .top-item.header .rank-number {
