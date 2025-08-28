@@ -62,5 +62,120 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Стили такие же как в TopAll.vue */
+.top-all {
+  padding: 1rem 0;
+}
+
+.top-list {
+  background: transparent;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.top-item {
+  margin-left: 10px;
+  margin-right: 10px;
+  background-color: #1D1131;
+  display: grid;
+  grid-template-columns: 50px 1fr auto;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  border: 1px solid #25213C; 
+}
+
+.top-item:last-child {
+  margin-bottom: 0;
+}
+
+.top-item.current-user {
+  border-left: 3px solid #7e57c2;
+}
+
+.rank {
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.rank-number {
+  display: inline-block;
+  min-width: 25px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-name {
+  font-weight: 500;
+  color: #ffffff;
+  font-size: 0.95rem;
+}
+
+.balance-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(126, 87, 194, 0.15);
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+}
+
+.currency-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.balance {
+  font-weight: 700;
+  color: #7e57c2;
+  font-size: 0.95rem;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 480px) {
+  .top-item {
+    grid-template-columns: 40px 1fr auto;
+    padding: 0.6rem 0.8rem;
+  }
+  
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .user-name {
+    font-size: 0.9rem;
+  }
+  
+  .balance-container {
+    padding: 0.3rem 0.6rem;
+  }
+  
+  .currency-icon {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .balance {
+    font-size: 0.9rem;
+  }
+  
+  .rank {
+    font-size: 1rem;
+  }
+}
 </style>
