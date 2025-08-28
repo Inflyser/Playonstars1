@@ -113,25 +113,34 @@ export const useUserStore = defineStore('user', () => {
     return '/src/assets/images/avatar.jpg';
   });
 
-  const getDisplayName = computed(() => {
-    // 1. Сначала username (приоритет)
-    const username = telegramUser.value?.username || user.value?.username;
-    if (username) {
-      return username;
+const getDisplayName = computed(() => {
+  // 1. Сначала имя + фамилия (приоритет!)
+  if (telegramUser.value) {
+    const firstName = telegramUser.value.first_name || '';
+    const lastName = telegramUser.value.last_name || '';
+    if (firstName || lastName) {
+      return `${firstName} ${lastName}`.trim();
     }
-    
-    // 2. Затем имя + фамилия
-    if (telegramUser.value) {
-      const firstName = telegramUser.value.first_name || '';
-      const lastName = telegramUser.value.last_name || '';
-      if (firstName || lastName) {
-        return `${firstName} ${lastName}`.trim();
-      }
+  }
+  
+  // 2. Затем из основного пользователя
+  if (user.value) {
+    const firstName = user.value.first_name || '';
+    const lastName = user.value.last_name || '';
+    if (firstName || lastName) {
+      return `${firstName} ${lastName}`.trim();
     }
-    
-    // 3. Fallback
-    return 'User';
-  });
+  }
+  
+  // 3. Затем username
+  const username = telegramUser.value?.username || user.value?.username;
+  if (username) {
+    return username;
+  }
+  
+  // 4. Fallback
+  return 'User';
+});
 
   // ✅ Добавляем computed для username отдельно
   const getUsername = computed(() => {
