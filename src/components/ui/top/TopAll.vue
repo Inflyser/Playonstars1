@@ -13,7 +13,7 @@
         
         <div class="user-info">
           <img 
-            :src="user.photo_url" 
+            :src="getUserAvatarUrl(user)" 
             :alt="topStore.getUserDisplayName(user)"
             class="user-avatar"
             @error="handleAvatarError"
@@ -38,6 +38,26 @@ import { useUserStore } from '@/stores/useUserStore';
 const topStore = useTopStore();
 const userStore = useUserStore();
 
+const getUserAvatarUrl = (user: any) => {
+  // Если есть photo_url - используем его
+  if (user.photo_url) {
+    return user.photo_url;
+  }
+  
+  // Генерируем аватарку на основе username
+  if (user.username) {
+    return `https://t.me/i/userpic/320/${user.username}.jpg`;
+  }
+  
+  // Или на основе telegram_id
+  if (user.telegram_id) {
+    return `https://t.me/i/userpic/320/${user.telegram_id}.jpg`;
+  }
+  
+  // Fallback на локальную аватарку
+  return '/src/assets/images/avatar.jpg';
+};
+
 const isCurrentUser = (telegramId: number) => {
   return userStore.user?.telegram_id === telegramId;
 };
@@ -50,6 +70,7 @@ const handleAvatarError = (event: Event) => {
   const img = event.target as HTMLImageElement;
   img.src = '/src/assets/images/avatar.jpg';
 };
+
 
 onMounted(() => {
   topStore.fetchTopUsers(100);
