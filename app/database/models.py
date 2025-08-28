@@ -11,6 +11,8 @@ class User(Base):
     first_name = Column(String, nullable=True)  # ✅ Добавьте
     last_name = Column(String, nullable=True)   # ✅ Добавьте
     
+    photo_url = Column(String, nullable=True)  # ✅ ДОБАВЬТЕ ЭТУ СТРОКУ
+    
     # ✅ ДОБАВЬТЕ ForeignKey для реферера
     referrer_id = Column(Integer, ForeignKey('users.id'), nullable=True, index=True)
     
