@@ -1,12 +1,6 @@
 <template>
-  <div class="top-10">
+  <div class="top-all">
     <div class="top-list">
-      <div class="top-item header">
-        <div class="rank">#</div>
-        <div class="user">Игрок</div>
-        <div class="balance">Звезды</div>
-      </div>
-      
       <div 
         v-for="user in top10Users" 
         :key="user.id" 
@@ -14,7 +8,7 @@
         :class="{ 'current-user': isCurrentUser(user.telegram_id) }"
       >
         <div class="rank">
-          <span class="rank-number">{{ user.rank }}</span>
+          <span class="rank-number">#{{ user.rank }}</span>
         </div>
         
         <div class="user-info">
@@ -27,8 +21,9 @@
           <span class="user-name">{{ topStore.getUserDisplayName(user) }}</span>
         </div>
         
-        <div class="balance">
-          {{ formatStars(user.stars_balance) }}
+        <div class="balance-container">
+          <img src="/src/assets/images/coin.svg" alt="Stars" class="currency-icon" />
+          <span class="balance">{{ formatStars(user.stars_balance) }}</span>
         </div>
       </div>
     </div>
