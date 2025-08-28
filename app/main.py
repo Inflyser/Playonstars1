@@ -218,7 +218,18 @@ def parse_telegram_data(init_data: str) -> dict:
         
         user_str = parsed_data.get('user', [''])[0]
         if user_str:
-            return json.loads(user_str)
+            user_data = json.loads(user_str)
+            
+            # ✅ ВАЖНО: Проверяем все поля которые приходят
+            print(f"🎯 User data keys: {list(user_data.keys())}")
+            print(f"📸 Photo URL exists: {'photo_url' in user_data}")
+            print(f"📸 Photo URL value: {user_data.get('photo_url')}")
+            print(f"👤 First name: {user_data.get('first_name')}")
+            print(f"👤 Username: {user_data.get('username')}")
+            print(f"🆔 ID: {user_data.get('id')}")
+            
+            return user_data
+
         return {}
         
     except Exception as e:
@@ -304,7 +315,8 @@ async def auth_telegram(request: Request, db: Session = Depends(get_db)):
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "ton_balance": user.ton_balance,
-                "stars_balance": user.stars_balance
+                "stars_balance": user.stars_balance,
+                "photo_url": user_data.get("photo_url")
             }
         }
         
