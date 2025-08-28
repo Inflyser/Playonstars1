@@ -1,7 +1,7 @@
 <template>
   <div class="top-all">
     <div class="top-list">
-      <div class="top-item header">
+      <div class="top-item">
         <div class="rank">#</div>
         <div class="user">Игрок</div>
         <div class="balance">Звезды</div>
@@ -81,13 +81,6 @@ onMounted(() => {
   margin-bottom: 8px; /* Отступ между карточками */
   border-radius: 8px; /* Закругленные углы у каждой карточки */
   border: none; /* Убираем границу */
-}
-
-.top-item.header {
-  background: #7e57c2;
-  color: #ffffff;
-  font-weight: 600;
-  margin-bottom: 12px;
 }
 
 .top-item:last-child {
