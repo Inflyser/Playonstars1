@@ -33,9 +33,9 @@ import TelegramHeader from '@/components/layout/TelegramHeader.vue'
 import TelegramHeader2 from '@/components/layout/TelegramHeader2.vue'
 
 import ButtonTop from '@/components/layout/ButtonTop.vue'
-import Top10 from '@/components/ui/topCrash/Top10.vue'
-import TopAll from '@/components/ui/topCrash/TopAll.vue'
-import TopMy from '@/components/ui/topCrash/TopMy.vue'
+import Top10 from '@/components/ui/top/Top10.vue'
+import TopAll from '@/components/ui/top/TopAll.vue'
+import TopMy from '@/components/ui/top/TopMy.vue'
 
 
 const selectedPaymentMethod = ref('top')
