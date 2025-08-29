@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
-from app.database.models import User, DepositHistory, CrashBetHistory
+from sqlalchemy import func
+from app.database import models
+from app.database.models import User, DepositHistory, CrashBetHistory, Wallet, Transaction
 from typing import Optional
 
 def get_user_by_telegram_id(db: Session, telegram_id: int) -> Optional[User]:
@@ -13,7 +15,7 @@ def create_user(
     first_name: Optional[str] = None,
     last_name: Optional[str] = None,
     referrer_id: Optional[int] = None,
-    language: str = 'ru',  # Добавляем язык по умолчанию
+    language: str = 'ru',
     photo_url: str = None 
 ) -> User:
     """Создаем нового пользователя с учетом реферальной системы"""
@@ -24,7 +26,7 @@ def create_user(
         last_name=last_name,
         referrer_id=referrer_id,
         language=language,
-        photo_url=photo_url # Устанавливаем язык
+        photo_url=photo_url
     )
     
     db.add(db_user)
@@ -58,7 +60,7 @@ def update_referrer_stats(db: Session, referrer_id: int):
         ).count()
         referrer.active_referrals = db.query(User).filter(
             User.referrer_id == referrer_id,
-            User.ton_balance > 0  # или другая логика активности
+            User.ton_balance > 0
         ).count()
         db.commit()
 
@@ -141,5 +143,50 @@ def add_crash_bet(
     db.commit()
     db.refresh(bet)
     return bet
+
+def get_wallet_by_address(db: Session, address: str):
+    return db.query(Wallet).filter(Wallet.address == address).first()
+
+def get_wallet_by_user(db: Session, user_id: int):
+    return db.query(Wallet).filter(Wallet.user_id == user_id).first()
+
+def create_wallet(db: Session, user_id: int, address: str, wallet_provider: str = "tonconnect"):
+    db_wallet = Wallet(
+        user_id=user_id,
+        address=address,
+        wallet_provider=wallet_provider
+    )
+    db.add(db_wallet)
+    db.commit()
+    db.refresh(db_wallet)
+    return db_wallet
+
+def create_transaction(db: Session, wallet_id: int, tx_hash: str, amount: float, transaction_type: str):
+    db_transaction = Transaction(
+        wallet_id=wallet_id,
+        tx_hash=tx_hash,
+        amount=amount,
+        transaction_type=transaction_type
+    )
+    db.add(db_transaction)
+    db.commit()
+    db.refresh(db_transaction)
+    return db_transaction
+
+def get_transaction_by_hash(db: Session, tx_hash: str):
+    return db.query(Transaction).filter(Transaction.tx_hash == tx_hash).first()
+
+def update_transaction_status(db: Session, tx_hash: str, status: str):
+    db_transaction = get_transaction_by_hash(db, tx_hash)
+    if db_transaction:
+        db_transaction.status = status
+        if status == "completed":
+            db_transaction.completed_at = func.now()
+        db.commit()
+        db.refresh(db_transaction)
+    return db_transaction
+
+def get_user_wallets(db: Session, user_id: int):
+    return db.query(Wallet).filter(Wallet.user_id == user_id).all()
 
 get_user = get_user_by_telegram_id

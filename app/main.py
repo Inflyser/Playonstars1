@@ -6,6 +6,7 @@ from app.database.session import engine, Base
 from app.bot.bot import bot, dp
 from aiogram.types import Update
 from app.routers.telegram import router as telegram_router
+from app.routers import wallet
 import os
 from app.database.crud import get_user_by_telegram_id
 from app.database.session import get_db
@@ -539,3 +540,4 @@ def generate_avatar_url(user: User) -> str:
     
 # Подключаем роутеры
 dp.include_router(telegram_router)
+app.include_router(wallet.router)
