@@ -1,8 +1,7 @@
 {
-  "url": "https://yourdomain.com",
-  "name": "Play on Stars",
-  "iconUrl": "https://yourdomain.com/icon.png",
-  "termsOfUseUrl": "https://yourdomain.com/terms",
-  "privacyPolicyUrl": "https://yourdomain.com/privacy",
-  "platforms": ["web", "ios", "android"]
+  "url": "https://your-app-domain.com",
+  "name": "Playonstars",
+  "iconUrl": "https://your-app-domain.com/icon.png",
+  "termsOfUseUrl": "https://your-app-domain.com/terms",
+  "privacyPolicyUrl": "https://your-app-domain.com/privacy"
 }
