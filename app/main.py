@@ -18,6 +18,10 @@ import secrets
 import hmac
 import hashlib
 import json
+import asyncio
+from app.services.ton_service import ton_service
+from app.database import crud
+from app.database.session import SessionLocal
 
 from app.database.crud import (
     get_user_by_telegram_id, 
@@ -57,13 +61,60 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+async def check_deposits_periodically():
+    """Периодическая проверка депозитов"""
+    while True:
+        try:
+            db = SessionLocal()
+            deposits = await ton_service.check_deposits_to_wallet()
+            
+            for deposit in deposits:
+                # Проверяем не обрабатывали ли уже эту транзакцию
+                existing_tx = crud.get_transaction_by_hash(db, deposit['tx_hash'])
+                if not existing_tx:
+                    print(f"New deposit detected: {deposit}")
+                    # Здесь логика обработки депозита
+                    
+            db.close()
+            await asyncio.sleep(60)  # Проверяем каждую минуту
+            
+        except Exception as e:
+            print(f"Error in deposit check: {e}")
+            await asyncio.sleep(60)
+
+from app.services.ton_service import ton_service
+
 @app.on_event("startup")
-async def startup(): 
+async def startup():
     Base.metadata.create_all(bind=engine)
-    webhook_url = os.getenv("WEBHOOK_URL")
+    webhook_url = os.getenv("WEBHOOK_URL_TELEGRAM")
     if webhook_url:
         await bot.set_webhook(webhook_url)
-        print(f"Webhook set to: {webhook_url}")
+        print(f"Telegram webhook set to: {webhook_url}")
+    
+    # Настраиваем TON webhook
+    await ton_service.setup_webhook()
+
+@app.post("/api/webhook/ton")
+async def ton_webhook(request: Request):
+    """Эндпоинт для получения веб-перехватчиков от TON API"""
+    try:
+        payload = await request.json()
+        return await ton_service.process_webhook(request, payload)
+    except Exception as e:
+        print(f"TON webhook error: {e}")
+        return {"status": "error", "message": str(e)}
+    
+@app.get("/api/ton/status")
+async def ton_status():
+    """Проверка статуса TON интеграции"""
+    return {
+        "ton_api_connected": bool(os.getenv("TON_API_KEY")),
+        "wallet_address": os.getenv("TON_WALLET_ADDRESS"),
+        "webhook_url": f"{os.getenv('WEBHOOK_URL_TON')}/api/webhook/ton",
+        "has_wallet_secret": bool(os.getenv("TON_WALLET_SECRET"))
+    }
+
         
 @app.post("/telegram")
 async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
