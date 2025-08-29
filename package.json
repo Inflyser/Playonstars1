@@ -21,6 +21,8 @@
   },
   "homepage": "https://github.com/Inflyser/Playonstars#readme",
   "dependencies": {
+    "@tonconnect/sdk": "^3.2.0",
+    "@tonconnect/ui": "^2.2.0",
     "axios": "^1.11.0",
     "pinia": "^3.0.3",
     "vue": "^3.5.19",

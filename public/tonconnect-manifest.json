@@ -1,0 +1,8 @@
+{
+  "url": "https://yourdomain.com",
+  "name": "Play on Stars",
+  "iconUrl": "https://yourdomain.com/icon.png",
+  "termsOfUseUrl": "https://yourdomain.com/terms",
+  "privacyPolicyUrl": "https://yourdomain.com/privacy",
+  "platforms": ["web", "ios", "android"]
+}
