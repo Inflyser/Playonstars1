@@ -2,14 +2,20 @@
     <div class="wallet-connect">
         <div v-if="!isConnected" class="connect-section">
             <h3>Connect TON Wallet</h3>
+            
+            <div v-if="isTelegramEnv" class="telegram-note">
+                <p>⚠️ В Telegram WebApp подключение кошелька работает через внешнее приложение</p>
+            </div>
+            
             <button 
                 @click="connect" 
                 :disabled="isLoading"
                 class="tg-button primary"
             >
                 <span v-if="isLoading">Connecting...</span>
-                <span v-else>Connect Wallet</span>
+                <span v-else>{{ isTelegramEnv ? 'Open Tonkeeper' : 'Connect Wallet' }}</span>
             </button>
+            
             <p>Connect your TON wallet to deposit and withdraw funds</p>
         </div>
         
@@ -37,18 +43,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useWalletStore } from '@/stores/useWalletStore';
+import { ref, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
+import { useWalletStore } from '@/stores/useWalletStore';
 
 const walletStore = useWalletStore();
 const error = ref('');
+const isTelegramEnv = ref(false);
+
+onMounted(() => {
+    // Проверяем что мы в Telegram WebApp
+    isTelegramEnv.value = !!(window.Telegram && window.Telegram.WebApp);
+    console.log('📱 Environment:', isTelegramEnv.value ? 'Telegram WebApp' : 'Browser');
+});
 
 const { isConnected, isLoading, shortAddress, formattedBalance } = storeToRefs(walletStore);
 
 const connect = async () => {
     try {
         error.value = '';
+        
+        if (isTelegramEnv.value) {
+            console.log('🔗 Opening TonConnect in Telegram...');
+            // В Telegram WebApp可能需要 special handling
+            window.open('https://app.tonkeeper.com/ton-connect', '_blank');
+        }
+        
         await walletStore.connect();
     } catch (err) {
         error.value = 'Failed to connect wallet';

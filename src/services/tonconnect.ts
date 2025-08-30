@@ -2,12 +2,15 @@ import TonConnect from '@tonconnect/sdk';
 
 const manifestUrl = `${window.location.origin}/tonconnect-manifest.json`;
 
-export const connector = new TonConnect({ manifestUrl });
+export const connector = new TonConnect({ 
+    manifestUrl
+    // Убираем несуществующие опции
+});
 
-// Инициализация connector
 export const initTonConnect = async () => {
     try {
         await connector.restoreConnection();
+        console.log('✅ TonConnect initialized');
         return connector;
     } catch (error) {
         console.error('Failed to initialize TonConnect:', error);
@@ -15,27 +18,27 @@ export const initTonConnect = async () => {
     }
 };
 
-// Подключение кошелька
 export const connectWallet = async () => {
     try {
-        const walletConnectionSource = {
+        console.log('🔄 Starting wallet connection...');
+        
+        const connection = connector.connect({
             universalLink: 'https://app.tonkeeper.com/ton-connect',
             bridgeUrl: 'https://bridge.tonapi.io/bridge'
-        };
+        });
 
-        return connector.connect(walletConnectionSource);
+        console.log('✅ Connection process started');
+        return connection;
     } catch (error) {
         console.error('Connection error:', error);
         throw error;
     }
 };
 
-// Отключение кошелька
 export const disconnectWallet = () => {
     connector.disconnect();
 };
 
-// Отправка транзакции
 export const sendTransaction = async (to: string, amount: string) => {
     try {
         const transaction = {
