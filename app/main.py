@@ -69,7 +69,7 @@ async def startup():
     # Telegram webhook
     webhook_url_telegram = os.getenv("WEBHOOK_URL_TELEGRAM")
     if webhook_url_telegram:
-        await bot.set_webhook(webhook_url_telegram)
+        await bot.set_webhook(os.getenv("WEBHOOK_URL_TON"))
         print(f"📱 Telegram webhook set to: {webhook_url_telegram}")
     
     # TON webhook
