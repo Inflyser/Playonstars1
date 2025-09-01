@@ -6,6 +6,7 @@ export const connector = new TonConnect({ manifestUrl });
 
 export const initTonConnect = async () => {
     try {
+        // Восстанавливаем соединение если было
         await connector.restoreConnection();
         console.log('✅ TonConnect initialized');
         return true;

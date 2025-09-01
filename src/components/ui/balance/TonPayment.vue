@@ -71,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'; // УБИРАЕМ onMounted
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import InputPanel from '@/components/layout/InputPanel.vue'
@@ -94,16 +94,13 @@ const isProcessing = ref(false)
 const error = ref('')
 const successMessage = ref('')
 
-// Инициализация при монтировании
-onMounted(async () => {
-    await walletStore.init()
-})
+// УБИРАЕМ onMounted - инициализация уже выполнена в TelegramInit
 
 // Вычисляемые свойства
-const maxAmount = computed(() => tonBalance.value.toString())
+const maxAmount = computed(() => tonBalance.value?.toString() || '1000')
 const isValidAmount = computed(() => {
-    const numAmount = parseFloat(amount.value)
-    return numAmount >= 0.1 && numAmount <= tonBalance.value
+    const numAmount = parseFloat(amount.value || '0')
+    return numAmount >= 0.1 && numAmount <= (tonBalance.value || 0)
 })
 
 // Методы
@@ -133,19 +130,20 @@ const deposit = async () => {
 
     try {
         const depositAmount = parseFloat(amount.value)
-        const result = await walletStore.deposit(depositAmount)
-        
-        successMessage.value = `Успешно пополнено ${depositAmount} TON!`
-        amount.value = ''
-        
-        // Обновляем баланс после успешного депозита
-        await walletStore.updateBalance()
-        
-        // Можно добавить автоматический возврат через несколько секунд
-        setTimeout(() => {
-            router.back()
-        }, 2000)
-        
+        // Добавляем проверку на существование метода deposit
+        if (walletStore.deposit) {
+            await walletStore.deposit(depositAmount)
+            successMessage.value = `Успешно пополнено ${depositAmount} TON!`
+            amount.value = ''
+            
+            await walletStore.updateBalance()
+            
+            setTimeout(() => {
+                router.back()
+            }, 2000)
+        } else {
+            error.value = 'Метод deposit не доступен'
+        }
     } catch (err: any) {
         error.value = err.response?.data?.detail || 'Ошибка при пополнении'
         console.error('Deposit error:', err)

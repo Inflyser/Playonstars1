@@ -6,18 +6,27 @@ interface WalletState {
     isConnected: boolean;
     walletAddress: string | null;
     tonBalance: number;
+    isLoading: boolean;
+    isInitialized: boolean; // Добавляем флаг инициализации
 }
 
 export const useWalletStore = defineStore('wallet', {
     state: (): WalletState => ({
         isConnected: false,
         walletAddress: null,
-        tonBalance: 0
+        tonBalance: 0,
+        isLoading: false,
+        isInitialized: false // Инициализировано ли хранилище
     }),
 
     actions: {
         async init() {
-            // Простая инициализация
+            // Защита от повторной инициализации
+            if (this.isInitialized) {
+                console.log('✅ Wallet store already initialized');
+                return;
+            }
+
             this.isConnected = connector.connected;
             
             if (connector.connected && connector.wallet) {
@@ -25,7 +34,6 @@ export const useWalletStore = defineStore('wallet', {
                 await this.updateBalance();
             }
 
-            // Слушаем изменения статуса
             connector.onStatusChange((wallet) => {
                 this.isConnected = !!wallet;
                 this.walletAddress = wallet?.account.address || null;
@@ -33,27 +41,31 @@ export const useWalletStore = defineStore('wallet', {
                     this.updateBalance();
                 }
             });
+
+            this.isInitialized = true;
+            console.log('✅ Wallet store initialized');
         },
 
         async connect() {
+            this.isLoading = true;
             try {
                 console.log('🔗 Opening TonConnect...');
                 
                 // Для Telegram WebApp используем openLink
                 if (window.Telegram && window.Telegram.WebApp) {
                     window.Telegram.WebApp.openLink('https://app.tonkeeper.com/ton-connect');
-                    return;
+                } else {
+                    // Для браузера стандартное подключение
+                    await connector.connect({
+                        universalLink: 'https://app.tonkeeper.com/ton-connect',
+                        bridgeUrl: 'https://bridge.tonapi.io/bridge'
+                    });
                 }
-                
-                // Для браузера стандартное подключение
-                await connector.connect({
-                    universalLink: 'https://app.tonkeeper.com/ton-connect',
-                    bridgeUrl: 'https://bridge.tonapi.io/bridge'
-                });
-                
             } catch (error) {
                 console.error('Connection error:', error);
                 throw error;
+            } finally {
+                this.isLoading = false;
             }
         },
 
@@ -72,6 +84,20 @@ export const useWalletStore = defineStore('wallet', {
                 this.tonBalance = response.data.balance;
             } catch (error) {
                 console.error('Failed to update balance:', error);
+            }
+        },
+
+        // Добавляем метод deposit если его нет
+        async deposit(amount: number) {
+            try {
+                const response = await api.post('/wallet/deposit/verify', {
+                    amount,
+                    address: this.walletAddress
+                });
+                return response.data;
+            } catch (error) {
+                console.error('Failed to deposit:', error);
+                throw error;
             }
         }
     },
