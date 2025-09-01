@@ -1,26 +1,52 @@
-from sqlalchemy import Column, Integer, String, DateTime, Float, BigInteger, ForeignKey, Index, func
+from sqlalchemy import Column, Integer, String, DateTime, Float, BigInteger, ForeignKey, Index, func, Boolean, Numeric
 from sqlalchemy.orm import relationship, backref 
 from app.database.session import Base
 
+
+class Wallet(Base):
+    __tablename__ = "wallets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    address = Column(String, unique=True, index=True, nullable=False)
+    wallet_provider = Column(String, default="tonconnect")
+    is_verified = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=func.now())
+    
+    user = relationship("User", back_populates="wallets")
+    transactions = relationship("Transaction", back_populates="wallet")
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    wallet_id = Column(Integer, ForeignKey("wallets.id"), nullable=False, index=True)
+    tx_hash = Column(String, unique=True, index=True, nullable=False)
+    amount = Column(Numeric(20, 9), nullable=False)
+    status = Column(String, default="pending")  # pending, completed, failed
+    transaction_type = Column(String)  # deposit, withdrawal
+    created_at = Column(DateTime, default=func.now())
+    completed_at = Column(DateTime, nullable=True)
+    
+    wallet = relationship("Wallet", back_populates="transactions")
+
+# Обновим модель User для связи с кошельками
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
     username = Column(String)
-    first_name = Column(String, nullable=True)  # ✅ Добавьте
-    last_name = Column(String, nullable=True)   # ✅ Добавьте
-    
-    photo_url = Column(String, nullable=True)  # ✅ ДОБАВЬТЕ ЭТУ СТРОКУ
-    
-    # ✅ ДОБАВЬТЕ ForeignKey для реферера
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    photo_url = Column(String, nullable=True)
     referrer_id = Column(Integer, ForeignKey('users.id'), nullable=True, index=True)
     
     # Основные балансы
     ton_balance = Column(Float, default=0.0)
     stars_balance = Column(Float, default=0.0)
     
-    # Крипто кошелек
+    # Крипто кошелек (оставляем для обратной совместимости)
     wallet_token = Column(String, nullable=True)
     
     # Язык и настройки
@@ -44,7 +70,7 @@ class User(Base):
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     
-    # ✅ ПРАВИЛЬНО настроенные связи
+    # Связи
     referrer = relationship(
         "User", 
         remote_side=[id],
@@ -54,6 +80,7 @@ class User(Base):
     
     deposits = relationship("DepositHistory", back_populates="user")
     crash_bets = relationship("CrashBetHistory", back_populates="user")
+    wallets = relationship("Wallet", back_populates="user")  # Добавляем связь с кошельками
 
 
 class DepositHistory(Base):

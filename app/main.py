@@ -6,6 +6,7 @@ from app.database.session import engine, Base
 from app.bot.bot import bot, dp
 from aiogram.types import Update
 from app.routers.telegram import router as telegram_router
+from app.routers import wallet
 import os
 from app.database.crud import get_user_by_telegram_id
 from app.database.session import get_db
@@ -17,6 +18,10 @@ import secrets
 import hmac
 import hashlib
 import json
+import asyncio
+from app.services.ton_service import ton_service
+from app.database import crud
+from app.database.session import SessionLocal
 
 from app.database.crud import (
     get_user_by_telegram_id, 
@@ -56,13 +61,67 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
-async def startup(): 
+async def startup():
     Base.metadata.create_all(bind=engine)
-    webhook_url = os.getenv("WEBHOOK_URL")
-    if webhook_url:
-        await bot.set_webhook(webhook_url)
-        print(f"Webhook set to: {webhook_url}")
+    
+    # Telegram webhook
+    webhook_url_telegram = os.getenv("WEBHOOK_URL_TELEGRAM")
+    if webhook_url_telegram:
+        await bot.set_webhook(webhook_url_telegram)
+        print(f"📱 Telegram webhook set to: {webhook_url_telegram}")
+    
+    # TON webhook
+    webhook_url_ton = os.getenv("WEBHOOK_URL_TON")
+    if webhook_url_ton:
+        print(f"🔗 Setting up TON webhook to: {webhook_url_ton}")
+        await ton_service.setup_webhook()
+    
+    # Запускаем фоновую задачу для проверки депозитов (fallback)
+    asyncio.create_task(check_deposits_periodically())
+    
+async def check_deposits_periodically():
+    """Периодическая проверка депозитов (fallback)"""
+    while True:
+        try:
+            db = SessionLocal()
+            deposits = await ton_service.check_deposits_to_wallet()
+            
+            for deposit in deposits:
+                # Проверяем не обрабатывали ли уже эту транзакцию
+                existing_tx = crud.get_transaction_by_hash(db, deposit['tx_hash'])
+                if not existing_tx:
+                    print(f"New deposit detected: {deposit}")
+                    # Здесь логика обработки депозита
+                    
+            db.close()
+            await asyncio.sleep(300)  # Проверяем каждые 5 минут (вместо 1)
+            
+        except Exception as e:
+            print(f"Error in deposit check: {e}")
+            await asyncio.sleep(300)
+
+@app.post("/api/webhook/ton")
+async def ton_webhook(request: Request):
+    """Эндпоинт для получения веб-перехватчиков от TON API"""
+    try:
+        payload = await request.json()
+        return await ton_service.process_webhook(request, payload)
+    except Exception as e:
+        print(f"TON webhook error: {e}")
+        return {"status": "error", "message": str(e)}
+    
+@app.get("/api/ton/status")
+async def ton_status():
+    """Проверка статуса TON интеграции"""
+    return {
+        "ton_api_connected": bool(os.getenv("TON_API_KEY")),
+        "wallet_address": os.getenv("TON_WALLET_ADDRESS"),
+        "webhook_url": f"{os.getenv('WEBHOOK_URL_TON')}/api/webhook/ton",
+        "has_wallet_secret": bool(os.getenv("TON_WALLET_SECRET"))
+    }
+
         
 @app.post("/telegram")
 async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
@@ -260,17 +319,12 @@ async def auth_telegram(request: Request, db: Session = Depends(get_db)):
     try:
         print("🔐 Auth endpoint called")
         data = await request.json()
-        print(f"📦 Request data: {data}")
         
         init_data = data.get("initData")
         if not init_data:
-            print("❌ No initData provided")
             raise HTTPException(status_code=400, detail="No initData provided")
         
-        # Используем упрощенную проверку для начала
         if not verify_telegram_webapp_simple(init_data):
-            # Логируем для отладки
-            print(f"Invalid initData: {init_data}")
             raise HTTPException(status_code=401, detail="Invalid Telegram data")
         
         user_data = parse_telegram_data(init_data)
@@ -279,22 +333,51 @@ async def auth_telegram(request: Request, db: Session = Depends(get_db)):
         if not telegram_id:
             raise HTTPException(status_code=400, detail="No user data in initData")
         
-        # Логируем полученные данные для отладки
-        print(f"Telegram user data: {user_data}")
+        # ✅ Логируем что приходит от Telegram
+        print(f"📸 Telegram photo_url: {user_data.get('photo_url')}")
+        print(f"👤 Telegram first_name: {user_data.get('first_name')}")
+        print(f"👤 Telegram last_name: {user_data.get('last_name')}")
         
         # Проверяем/создаем пользователя в БД
         user = get_user_by_telegram_id(db, telegram_id)
         if not user:
+            # ✅ СОЗДАЕМ с photo_url
             user = create_user(
                 db=db,
                 telegram_id=telegram_id,
                 username=user_data.get("username"),
                 first_name=user_data.get("first_name"),
-                last_name=user_data.get("last_name")
+                last_name=user_data.get("last_name"),
+                photo_url=user_data.get("photo_url")  # ✅ ВАЖНО!
             )
             print(f"Created new user: {user.id}")
         else:
             print(f"Found existing user: {user.id}")
+            
+            # ✅ ОБНОВЛЯЕМ отсутствующие данные
+            update_fields = False
+            
+            if not user.first_name and user_data.get("first_name"):
+                user.first_name = user_data.get("first_name")
+                update_fields = True
+                
+            if not user.last_name and user_data.get("last_name"):
+                user.last_name = user_data.get("last_name")
+                update_fields = True
+                
+            if not user.photo_url and user_data.get("photo_url"):
+                user.photo_url = user_data.get("photo_url")
+                update_fields = True
+            
+            if update_fields:
+                db.commit()
+                db.refresh(user)
+                print(f"✅ Updated user data in DB")
+        
+        # ✅ Логируем что сохранилось в БД
+        print(f"💾 DB photo_url: {user.photo_url}")
+        print(f"💾 DB first_name: {user.first_name}")
+        print(f"💾 DB last_name: {user.last_name}")
         
         # Сохраняем в сессию
         request.session["user_id"] = user.id
@@ -303,7 +386,8 @@ async def auth_telegram(request: Request, db: Session = Depends(get_db)):
             "id": user.telegram_id,
             "username": user.username,
             "first_name": user.first_name,
-            "last_name": user.last_name
+            "last_name": user.last_name,
+            "photo_url": user.photo_url  # ✅ Добавляем в сессию
         }
         
         return {
@@ -316,7 +400,7 @@ async def auth_telegram(request: Request, db: Session = Depends(get_db)):
                 "last_name": user.last_name,
                 "ton_balance": user.ton_balance,
                 "stars_balance": user.stars_balance,
-                "photo_url": user_data.get("photo_url")
+                "photo_url": user.photo_url  # ✅ Берем из БД
             }
         }
         
@@ -514,3 +598,4 @@ def generate_avatar_url(user: User) -> str:
     
 # Подключаем роутеры
 dp.include_router(telegram_router)
+app.include_router(wallet.router)
