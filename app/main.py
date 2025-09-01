@@ -45,10 +45,10 @@ app.add_middleware(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-    "https://playonstars.netlify.app",  # Ваш фронтенд
+    "https://playonstars.netlify.app",  # Ваш фронтенд1
     "https://web.telegram.org",          # Telegram Web
     "https://telegram.org",              # Telegram
-    "http://localhost:5173",             # Локальная разработка
+    "http://localhost:5173",             # Локальная разработ 1ка
     os.getenv("FRONTEND_URL", "https://playonstars.netlify.app")
     ],
     allow_credentials=True,
@@ -68,7 +68,7 @@ async def startup():
 async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
     try:
         data = await request.json()
-        update = Update(**data)
+        update = Update(**data)  
         
         # Получаем user_id из Telegram update
         if update.message:
