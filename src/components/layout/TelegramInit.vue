@@ -18,17 +18,15 @@
 import { onMounted, ref } from 'vue';
 import { useTelegram } from '@/composables/useTelegram';
 import { initTelegramWebApp, getTelegramInitData } from '@/utils/telegram';
-
-import TGLoader from '@/components/ui/TGLoader.vue';
-import AppLayout  from '@/components/layout/AppLayout.vue';
 import { useUserStore } from '@/stores/useUserStore';
-
-import { initTonConnect } from '@/services/tonconnect'; // Добавляем
-import { useWalletStore } from '@/stores/useWalletStore'; // Добавляем
+import { initTonConnect } from '@/services/tonconnect';
+import { useWalletStore } from '@/stores/useWalletStore';
+import TGLoader from '@/components/ui/TGLoader.vue';
+import AppLayout from '@/components/layout/AppLayout.vue';
 
 const { initTelegram, fetchUserData, fetchBalance, isLoading, error } = useTelegram();
 const userStore = useUserStore();
-const walletStore = useWalletStore(); // Добавляем
+const walletStore = useWalletStore();
 const isInitialized = ref(false);
 
 const retryInit = async () => {
@@ -54,12 +52,15 @@ const initializeApp = async () => {
       
       if (success) {
         console.log('✅ Telegram auth successful');
-        console.log('📦 Loading user data...');
-        await fetchUserData();
-        console.log('💰 Loading balance...');
-        await fetchBalance();
         
-        // ДОБАВЛЯЕМ инициализацию TonConnect здесь
+        // ✅ ВАЖНО: ВЫЗЫВАЕМ методы получения данных ПОСЛЕ аутентификации
+        console.log('📦 Loading user data...');
+        await fetchUserData(); // Вызываем метод из useTelegram()
+        
+        console.log('💰 Loading balance...');
+        await fetchBalance(); // Вызываем метод из useTelegram()
+        
+        // Инициализируем TonConnect
         console.log('🔗 Initializing TonConnect...');
         await initTonConnect();
         await walletStore.init();
@@ -71,14 +72,14 @@ const initializeApp = async () => {
       }
     } else {
       console.warn('⚠️ No initData available');
-      // Все равно инициализируем TonConnect
+      // Инициализируем только TonConnect
       await initTonConnect();
       await walletStore.init();
       isInitialized.value = true;
     }
   } else {
     console.log('🌐 Running in browser mode');
-    // Инициализируем TonConnect для браузера
+    // Инициализируем только TonConnect
     await initTonConnect();
     await walletStore.init();
     isInitialized.value = true;

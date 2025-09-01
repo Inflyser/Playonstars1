@@ -4,6 +4,7 @@ declare global {
     Telegram: {
       WebApp: {
         initData: string;
+        openLink: (url: string) => void;
         initDataUnsafe: any;
         expand: () => void;
         ready: () => void;
