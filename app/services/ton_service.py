@@ -17,9 +17,15 @@ class TonService:
     async def setup_webhook(self):
         """Настраиваем веб-перехватчик для уведомлений о транзакциях"""
         try:
-            webhook_url = f"{os.getenv('WEBHOOK_URL_TON', '')}/api/webhook/ton"
+            # ИСПОЛЬЗУЕМ WEBHOOK_URL_TON для TON вебхуков
+            webhook_url = f"{os.getenv('WEBHOOK_URL_TON', '').rstrip('/')}/api/webhook/ton"
+            print(f"🔗 Registering TON webhook: {webhook_url}")
             
-            # Регистрируем веб-перехватчик для отслеживания транзакций
+            # Проверяем что URL валидный
+            if not webhook_url.startswith('http'):
+                print("❌ Invalid TON webhook URL")
+                return False
+            
             url = f"{self.base_url}/webhooks/account"
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
@@ -33,17 +39,18 @@ class TonService:
                 "secret": self.webhook_secret
             }
             
+            print(f"📤 Sending TON webhook registration to: {url}")
             response = requests.post(url, headers=headers, json=payload)
             
             if response.status_code in [200, 201]:
-                print("✅ Webhook successfully registered")
+                print("✅ TON Webhook successfully registered")
                 return True
             else:
-                print(f"❌ Webhook registration failed: {response.text}")
+                print(f"❌ TON Webhook registration failed: {response.status_code} - {response.text}")
                 return False
                 
         except Exception as e:
-            print(f"Error setting up webhook: {e}")
+            print(f"Error setting up TON webhook: {e}")
             return False
     
     def verify_webhook_signature(self, request: Request, payload: bytes) -> bool:
@@ -77,7 +84,7 @@ class TonService:
             return {"status": "processed"}
             
         except Exception as e:
-            print(f"Error processing webhook: {e}")
+            print(f"Error processing TON webhook: {e}")
             raise HTTPException(status_code=500, detail=str(e))
     
     async def handle_transaction_event(self, transaction_data: dict):
@@ -128,52 +135,32 @@ class TonService:
             
         except Exception as e:
             print(f"Error handling transaction event: {e}")
-
-    # Добавляем дополнительные методы для полноты функционала
-    async def get_wallet_balance(self, address: str) -> float:
-        """Получаем баланс кошелька"""
+    
+    async def check_deposits_to_wallet(self) -> list:
+        """Проверяем все транзакции на кошелек приложения (fallback)"""
         try:
-            url = f"{self.base_url}/accounts/{address}"
+            url = f"{self.base_url}/blockchain/accounts/{self.wallet_address}/transactions"
             headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
             
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, params={'limit': 50})
             if response.status_code == 200:
-                data = response.json()
-                balance = int(data.get('balance', 0)) / 1e9  # нанотоны → TON
-                return balance
-            return 0.0
+                transactions = response.json().get('transactions', [])
+                
+                deposits = []
+                for tx in transactions:
+                    in_msg = tx.get('in_msg')
+                    if in_msg and in_msg.get('destination') == self.wallet_address:
+                        deposits.append({
+                            'tx_hash': tx.get('hash'),
+                            'from_address': in_msg.get('source'),
+                            'amount': float(in_msg.get('value', 0)) / 1e9,
+                            'timestamp': tx.get('utime')
+                        })
+                
+                return deposits
+            return []
         except Exception as e:
-            print(f"Error getting balance: {e}")
-            return 0.0
-
-    async def verify_transaction(self, tx_hash: str, to_address: str, amount: float) -> bool:
-        """Проверяем транзакцию в блокчейне"""
-        try:
-            url = f"{self.base_url}/blockchain/transactions/{tx_hash}"
-            headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
-            
-            response = requests.get(url, headers=headers)
-            if response.status_code == 200:
-                data = response.json()
-                
-                # Проверяем что транзакция успешна
-                if not data.get('success', False):
-                    return False
-                
-                # Проверяем входящие сообщения
-                in_msg = data.get('in_msg')
-                if in_msg:
-                    destination = in_msg.get('destination', {}).get('address', '')
-                    value = float(in_msg.get('value', 0)) / 1e9  # нанотоны → TON
-                    
-                    # Проверяем адрес и сумму
-                    if destination.endswith(to_address.replace('EQ', '')) and value >= amount:
-                        return True
-                
-                return False
-            return False
-        except Exception as e:
-            print(f"Error verifying transaction: {e}")
-            return False
+            print(f"Error checking deposits: {e}")
+            return []
 
 ton_service = TonService()

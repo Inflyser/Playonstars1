@@ -61,8 +61,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.on_event("startup")
+async def startup():
+    Base.metadata.create_all(bind=engine)
+    
+    # Telegram webhook
+    webhook_url_telegram = os.getenv("WEBHOOK_URL_TELEGRAM")
+    if webhook_url_telegram:
+        await bot.set_webhook(webhook_url_telegram)
+        print(f"📱 Telegram webhook set to: {webhook_url_telegram}")
+    
+    # TON webhook
+    webhook_url_ton = os.getenv("WEBHOOK_URL_TON")
+    if webhook_url_ton:
+        print(f"🔗 Setting up TON webhook to: {webhook_url_ton}")
+        await ton_service.setup_webhook()
+    
+    # Запускаем фоновую задачу для проверки депозитов (fallback)
+    asyncio.create_task(check_deposits_periodically())
+    
 async def check_deposits_periodically():
-    """Периодическая проверка депозитов"""
+    """Периодическая проверка депозитов (fallback)"""
     while True:
         try:
             db = SessionLocal()
@@ -76,24 +96,11 @@ async def check_deposits_periodically():
                     # Здесь логика обработки депозита
                     
             db.close()
-            await asyncio.sleep(60)  # Проверяем каждую минуту
+            await asyncio.sleep(300)  # Проверяем каждые 5 минут (вместо 1)
             
         except Exception as e:
             print(f"Error in deposit check: {e}")
-            await asyncio.sleep(60)
-
-from app.services.ton_service import ton_service
-
-@app.on_event("startup")
-async def startup():
-    Base.metadata.create_all(bind=engine)
-    webhook_url = os.getenv("WEBHOOK_URL_TELEGRAM")
-    if webhook_url:
-        await bot.set_webhook(webhook_url)
-        print(f"Telegram webhook set to: {webhook_url}")
-    
-    # Настраиваем TON webhook
-    await ton_service.setup_webhook()
+            await asyncio.sleep(300)
 
 @app.post("/api/webhook/ton")
 async def ton_webhook(request: Request):
