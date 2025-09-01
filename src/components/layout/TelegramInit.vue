@@ -18,12 +18,17 @@
 import { onMounted, ref } from 'vue';
 import { useTelegram } from '@/composables/useTelegram';
 import { initTelegramWebApp, getTelegramInitData } from '@/utils/telegram';
+
 import TGLoader from '@/components/ui/TGLoader.vue';
 import AppLayout  from '@/components/layout/AppLayout.vue';
 import { useUserStore } from '@/stores/useUserStore';
 
+import { initTonConnect } from '@/services/tonconnect'; // Добавляем
+import { useWalletStore } from '@/stores/useWalletStore'; // Добавляем
+
 const { initTelegram, fetchUserData, fetchBalance, isLoading, error } = useTelegram();
 const userStore = useUserStore();
+const walletStore = useWalletStore(); // Добавляем
 const isInitialized = ref(false);
 
 const retryInit = async () => {
@@ -53,6 +58,12 @@ const initializeApp = async () => {
         await fetchUserData();
         console.log('💰 Loading balance...');
         await fetchBalance();
+        
+        // ДОБАВЛЯЕМ инициализацию TonConnect здесь
+        console.log('🔗 Initializing TonConnect...');
+        await initTonConnect();
+        await walletStore.init();
+        
         isInitialized.value = true;
         console.log('🎉 App fully initialized');
       } else {
@@ -60,11 +71,17 @@ const initializeApp = async () => {
       }
     } else {
       console.warn('⚠️ No initData available');
-      isInitialized.value = true; // Все равно продолжаем
+      // Все равно инициализируем TonConnect
+      await initTonConnect();
+      await walletStore.init();
+      isInitialized.value = true;
     }
   } else {
     console.log('🌐 Running in browser mode');
-    isInitialized.value = true; // Продолжаем в браузере
+    // Инициализируем TonConnect для браузера
+    await initTonConnect();
+    await walletStore.init();
+    isInitialized.value = true;
   }
 };
 
