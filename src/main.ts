@@ -13,10 +13,6 @@ app.use(router)
 
 
 // Инициализация после создания app, но до mount
-declare global {
-  interface Window {
-    Telegram: any;
-  }
-}
+
 
 app.mount('#app')

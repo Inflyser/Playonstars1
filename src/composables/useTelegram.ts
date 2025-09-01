@@ -1,6 +1,6 @@
 import { ref } from 'vue';
-import { telegramService } from '@/services/telegram.service.ts';
-import { useUserStore } from '@/stores/useUserStore.ts';
+import { telegramService } from '@/services/telegram.service';
+import { useUserStore } from '@/stores/useUserStore';
 
 export function useTelegram() {
   const userStore = useUserStore();

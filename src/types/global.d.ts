@@ -1,8 +1,10 @@
 declare global {
   interface Window {
+    tonProtocol: any;
     Telegram: {
       WebApp: {
         initData: string;
+        openLink: (url: string) => void;
         initDataUnsafe: any;
         expand: () => void;
         ready: () => void;

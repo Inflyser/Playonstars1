@@ -1,8 +1,7 @@
 {
-  "url": "https://yourdomain.com",
-  "name": "Play on Stars",
-  "iconUrl": "https://yourdomain.com/icon.png",
-  "termsOfUseUrl": "https://yourdomain.com/terms",
-  "privacyPolicyUrl": "https://yourdomain.com/privacy",
-  "platforms": ["web", "ios", "android"]
+    "url": "https://playonstars.netlify.app",
+    "name": "Playonstars",
+    "iconUrl": "https://playonstars.netlify.app/ton.svg",
+    "termsOfUseUrl": "https://playonstars.netlify.app/terms",
+    "privacyPolicyUrl": "https://playonstars.netlify.app/privacy"
 }
