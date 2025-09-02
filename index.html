@@ -3,12 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="
-        script-src 'self' 'unsafe-eval' https://bridge.tonapi.io https://t.me/_websync_ https://telegram.me/_websync_;
-        connect-src 'self' https://tonapi.io https://bridge.tonapi.io https://playonstars.onrender.com;
-        style-src 'self' 'unsafe-inline';
-        img-src 'self' data: https:;
-    ">
+    <meta http-equiv="Content-Security-Policy" 
+      content="default-src 'self';
+               script-src 'self' 'unsafe-eval' https://telegram.org https://bridge.tonapi.io https://t.me https://telegram.me https://raw.githubusercontent.com;
+               connect-src 'self' https://tonapi.io https://bridge.tonapi.io https://playonstars.onrender.com https://raw.githubusercontent.com;
+               style-src 'self' 'unsafe-inline';
+               img-src 'self' data: https:;
+               font-src 'self';
+               object-src 'none';
+               base-uri 'self';
+               form-action 'self';
+               frame-ancestors 'none'">
     <title>Play on Stars</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
