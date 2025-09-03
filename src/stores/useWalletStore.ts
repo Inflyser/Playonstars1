@@ -1,7 +1,11 @@
 import { defineStore } from 'pinia';
 import { connector } from '@/services/tonconnect';
 import { api } from '@/services/api';
-import { openTelegramLink, isTelegramWebApp } from '@/utils/telegram-webapp';
+import { 
+  openTelegramLink, 
+  isTelegramWebApp,
+  createTelegramDeepLink 
+} from '@/utils/telegram';
 
 interface WalletState {
     isConnected: boolean;
@@ -21,7 +25,6 @@ export const useWalletStore = defineStore('wallet', {
     }),
 
     actions: {
-        // ✅ ДОБАВЛЯЕМ метод init()
         async init() {
             if (this.isInitialized) {
                 console.log('✅ Wallet store already initialized');
@@ -50,42 +53,44 @@ export const useWalletStore = defineStore('wallet', {
         async connect() {
             this.isLoading = true;
             try {
-                console.log('🔗 Opening TonConnect...');
-                
-                if (this.isTelegramWebApp()) {
-                    // ✅ СПЕЦИАЛЬНЫЙ URL для Telegram WebApp
-                    const telegramDeepLink = `tg://wallet?startattach=tonconnect&ref=playonstars`;
-                    
-                    // ✅ Используем специальный метод для Telegram
-                    if (window.Telegram?.WebApp?.openLink) {
-                        window.Telegram.WebApp.openLink(telegramDeepLink);
-                    } else {
-                        window.open(telegramDeepLink, '_blank');
-                    }
+                console.log('🔗 Starting wallet connection...');
+
+                // ✅ Используем импортированную функцию isTelegramWebApp
+                if (isTelegramWebApp()) {
+                    console.log('📱 Using Telegram WebApp deep link...');
+
+                    // ✅ Используем импортированную функцию createTelegramDeepLink
+                    const deepLink = createTelegramDeepLink({
+                        startattach: 'tonconnect',
+                        ref: 'playonstars'
+                    });
+
+                    // ✅ Используем импортированную функцию openTelegramLink
+                    openTelegramLink(deepLink);
+                    console.log('✅ Deep link opened in Telegram');
+
                     return;
                 }
-                
-                // Для браузера стандартное подключение
+
+                // ✅ Для браузера используем стандартный TonConnect
+                console.log('🌐 Using standard TonConnect for browser...');
                 await connector.connect({
                     universalLink: 'https://app.tonkeeper.com/ton-connect',
                     bridgeUrl: 'https://bridge.tonapi.io/bridge'
                 });
-                
+
             } catch (error) {
-                console.error('Connection error:', error);
+                console.error('❌ Connection error:', error);
                 throw error;
             } finally {
                 this.isLoading = false;
             }
         },
 
-        // Показываем модалку с QR кодом (если нужно)
-        showTonConnectModal() {
-            // Здесь можно показать кастомную модалку
-            console.log('Showing TonConnect modal in Telegram');
-        },
+        // ✅ УДАЛЯЕМ дублирующиеся методы - используем импортированные
+        // createTelegramDeepLink() - УДАЛЯЕМ, используем импортированную
+        // isTelegramWebApp() - УДАЛЯЕМ, используем импортированную
 
-        // ✅ ДОБАВЛЯЕМ метод disconnect
         disconnect() {
             connector.disconnect();
             this.isConnected = false;
@@ -103,15 +108,10 @@ export const useWalletStore = defineStore('wallet', {
             } catch (error) {
                 console.error('Failed to update balance:', error);
             }
-        },
-
-        // ✅ ДОБАВЛЯЕМ метод isTelegramWebApp
-        isTelegramWebApp(): boolean {
-            return isTelegramWebApp();
         }
-    },
 
-    // ✅ ДОБАВЛЯЕМ геттеры
+    }, // ← ЗАКРЫВАЕМ actions
+
     getters: {
         shortAddress: (state) => {
             if (!state.walletAddress) return '';
@@ -119,4 +119,4 @@ export const useWalletStore = defineStore('wallet', {
         },
         formattedBalance: (state) => state.tonBalance.toFixed(2)
     }
-});
+}); // ← ЗАКРЫВАЕМ defineStore

@@ -4,7 +4,6 @@
       <div class="qr-section" v-if="showQR">
         <h3>Scan QR Code</h3>
         <div class="qr-code">
-          <!-- Здесь будет QR код -->
           <img :src="qrCodeUrl" alt="TON Connect QR Code" v-if="qrCodeUrl">
           <div class="qr-placeholder" v-else>
             <span>Loading QR code...</span>
@@ -34,42 +33,69 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { connector } from '@/services/tonconnect';
+import { openTelegramLink, isTelegramWebApp } from '@/utils/telegram'; // ✅ Добавляем импорт
 
 const isVisible = ref(false);
 const showQR = ref(false);
 const qrCodeUrl = ref('');
+const connectionSource = ref<any>(null);
 
-const open = () => {
+const open = async () => {
   isVisible.value = true;
   showQR.value = true;
-  generateQRCode();
+  await generateQRCode();
 };
 
 const close = () => {
   isVisible.value = false;
+  // Отменяем подключение если модалка закрыта
+  if (connectionSource.value) {
+    connectionSource.value.close?.();
+  }
 };
 
 const generateQRCode = async () => {
   try {
-    // TonConnect автоматически генерирует QR для десктоп версии
-    console.log('Generating QR code for TonConnect');
+    console.log('🔗 Creating TonConnect connection...');
+    
+    // ✅ Создаем подключение через TonConnect
+    connectionSource.value = connector.connect({
+      jsBridgeKey: 'tonkeeper' // Ключ для Telegram WebApp
+    });
+    
+    // ✅ Получаем universal link для QR кода
+    const connection = await connectionSource.value;
+    if (connection?.universalLink) {
+      console.log('📱 Universal link for QR:', connection.universalLink);
+      // Генерируем QR код из universalLink
+      qrCodeUrl.value = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(connection.universalLink)}`;
+    }
+    
   } catch (error) {
-    console.error('Error generating QR code:', error);
+    console.error('❌ Error generating QR code:', error);
   }
 };
 
 const connectTonKeeper = () => {
-  // Открываем Tonkeeper прямо в Telegram
-  if (window.Telegram?.WebApp) {
-    window.Telegram.WebApp.openLink('https://app.tonkeeper.com/ton-connect');
+  // ✅ Используем правильный deeplink для Telegram
+  if (isTelegramWebApp()) {
+    openTelegramLink('tg://resolve?domain=tonkeeper&startattach=tonconnect');
+  } else {
+    // Для браузера
+    window.open('https://app.tonkeeper.com/ton-connect', '_blank');
   }
+  close();
 };
 
 const connectTelegramWallet = () => {
-  // Для Telegram Wallet
-  if (window.Telegram?.WebApp) {
-    window.Telegram.WebApp.openLink('tg://wallet?startattach=tonconnect');
+  // ✅ Используем правильный deeplink
+  if (isTelegramWebApp()) {
+    openTelegramLink('tg://wallet?startattach=tonconnect&ref=playonstars');
+  } else {
+    // Для браузера
+    window.open('tg://wallet?startattach=tonconnect', '_blank');
   }
+  close();
 };
 
 defineExpose({ open, close });
@@ -99,10 +125,22 @@ defineExpose({ open, close });
   justify-content: center;
 }
 
+.qr-code img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.qr-placeholder {
+  color: #666;
+  font-size: 14px;
+}
+
 .wallet-buttons {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-top: 15px;
 }
 
 .wallet-btn {
@@ -125,5 +163,9 @@ defineExpose({ open, close });
 .wallet-btn img {
   width: 24px;
   height: 24px;
+}
+
+.wallet-btn span {
+  font-weight: 500;
 }
 </style>

@@ -1,21 +1,5 @@
-<template>
-  <!-- Показываем загрузчик/ошибку пока не инициализировано -->
-  <div v-if="!isInitialized" class="telegram-init-container">
-    <TGLoader v-if="isLoading" />
-    <div v-else-if="error" class="error-message">
-      {{ error }}
-      <button @click="retryInit" class="retry-btn">Retry</button>
-    </div>
-  </div>
-  
-  <!-- После инициализации показываем основное приложение -->
-  <AppLayout v-else>
-    <RouterView />
-  </AppLayout>
-</template>
-
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, onUnmounted } from 'vue';
 import { useTelegram } from '@/composables/useTelegram';
 import { initTelegramWebApp, getTelegramInitData } from '@/utils/telegram';
 import { useUserStore } from '@/stores/useUserStore';
@@ -29,6 +13,35 @@ const userStore = useUserStore();
 const walletStore = useWalletStore();
 const isInitialized = ref(false);
 
+// ✅ Обработчик глубоких ссылок TonConnect
+const handleWalletReturn = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  
+  console.log('🔍 Checking URL params for wallet return:', {
+    tonconnect: urlParams.has('tonconnect'),
+    startattach: urlParams.has('startattach'),
+    ref: urlParams.get('ref')
+  });
+  
+  // Проверяем параметры TonConnect
+  if (urlParams.has('tonconnect') || urlParams.has('startattach')) {
+    console.log('🔄 TonConnect return detected - initializing wallet');
+    
+    // Очищаем URL чтобы избежать повторной обработки
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+    
+    // Даем время на обработку подключения
+    setTimeout(() => {
+      walletStore.init().then(() => {
+        console.log('✅ Wallet initialized after return');
+      }).catch((err) => {
+        console.error('❌ Failed to init wallet after return:', err);
+      });
+    }, 1500);
+  }
+};
+
 const retryInit = async () => {
   console.log('🔄 Retrying initialization...');
   isInitialized.value = false;
@@ -38,6 +51,9 @@ const retryInit = async () => {
 
 const initializeApp = async () => {
   console.log('🔐 Starting Telegram initialization...');
+  
+  // ✅ Сначала проверяем возврат из кошелька
+  handleWalletReturn();
   
   const isTelegram = initTelegramWebApp();
   console.log('Is Telegram environment:', isTelegram);
@@ -53,17 +69,36 @@ const initializeApp = async () => {
       if (success) {
         console.log('✅ Telegram auth successful');
         
-        // ✅ ВАЖНО: ВЫЗЫВАЕМ методы получения данных ПОСЛЕ аутентификации
-        console.log('📦 Loading user data...');
-        await fetchUserData(); // Вызываем метод из useTelegram()
-        
-        console.log('💰 Loading balance...');
-        await fetchBalance(); // Вызываем метод из useTelegram()
-        
-        // Инициализируем TonConnect
-        console.log('🔗 Initializing TonConnect...');
-        await initTonConnect();
-        await walletStore.init();
+        // ✅ Параллельно загружаем данные
+        await Promise.all([
+          (async () => {
+            try {
+              console.log('📦 Loading user data...');
+              await fetchUserData();
+            } catch (err) {
+              console.error('Failed to load user data:', err);
+            }
+          })(),
+          
+          (async () => {
+            try {
+              console.log('💰 Loading balance...');
+              await fetchBalance();
+            } catch (err) {
+              console.error('Failed to load balance:', err);
+            }
+          })(),
+          
+          (async () => {
+            try {
+              console.log('🔗 Initializing TonConnect...');
+              await initTonConnect();
+              await walletStore.init();
+            } catch (err) {
+              console.error('Failed to init TonConnect:', err);
+            }
+          })()
+        ]);
         
         isInitialized.value = true;
         console.log('🎉 App fully initialized');
@@ -87,32 +122,34 @@ const initializeApp = async () => {
 };
 
 onMounted(async () => {
+  // ✅ Слушаем изменения URL
+  window.addEventListener('popstate', handleWalletReturn);
+  
+  // ✅ Запускаем инициализацию
   await initializeApp();
 });
 
-
-const handleWalletReturn = () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  
-  // Проверяем параметры TonConnect
-  if (urlParams.has('tonconnect') || urlParams.has('startattach')) {
-    console.log('🔄 TonConnect return detected');
-    
-    // Даем время на обработку подключения
-    setTimeout(() => {
-      walletStore.init().catch(console.error);
-    }, 2000);
-  }
-};
-
-// Вызываем при загрузке и изменении URL
-onMounted(() => {
-  handleWalletReturn();
-  
-  // Слушаем изменения URL (для SPA)
-  window.addEventListener('popstate', handleWalletReturn);
+onUnmounted(() => {
+  // ✅ Убираем обработчик при размонтировании
+  window.removeEventListener('popstate', handleWalletReturn);
 });
 </script>
+
+<template>
+  <!-- Показываем загрузчик/ошибку пока не инициализировано -->
+  <div v-if="!isInitialized" class="telegram-init-container">
+    <TGLoader v-if="isLoading" />
+    <div v-else-if="error" class="error-message">
+      {{ error }}
+      <button @click="retryInit" class="retry-btn">Retry</button>
+    </div>
+  </div>
+  
+  <!-- После инициализации показываем основное приложение -->
+  <AppLayout v-else>
+    <RouterView />
+  </AppLayout>
+</template>
 
 
 <style scoped>

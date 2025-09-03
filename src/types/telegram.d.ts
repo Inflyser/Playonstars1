@@ -1,5 +1,7 @@
+// telegram.d.ts - полная версия
 declare namespace Telegram {
   interface WebApp {
+    // Основные свойства
     initData: string;
     initDataUnsafe: any;
     version: string;
@@ -11,13 +13,29 @@ declare namespace Telegram {
     viewportStableHeight: number;
     headerColor: string;
     backgroundColor: string;
+    
+    // Кнопки
     BackButton: BackButton;
     MainButton: MainButton;
+    
+    // Сервисы
     HapticFeedback: HapticFeedback;
     CloudStorage: CloudStorage;
+    
+    // Основные методы
     close(): void;
     expand(): void;
     ready(): void;
+    openLink(url: string): void;
+    showPopup(params: any): void;
+    showAlert(message: string): void;
+    showConfirm(message: string, callback: (confirmed: boolean) => void): void;
+    
+    // Дополнительные методы (если нужны)
+    enableClosingConfirmation?(): void;
+    disableClosingConfirmation?(): void;
+    setHeaderColor?(color: string): void;
+    setBackgroundColor?(color: string): void;
   }
 
   interface ThemeParams {
@@ -77,5 +95,8 @@ declare global {
     Telegram: {
       WebApp: Telegram.WebApp;
     };
+    tonProtocol: any; // Переносим из global.d.ts
   }
 }
+
+// Убираем export если это .d.ts файл
