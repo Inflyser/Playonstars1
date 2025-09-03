@@ -50,26 +50,27 @@ export const useWalletStore = defineStore('wallet', {
         async connect() {
             this.isLoading = true;
             try {
-                console.log('🔗 Connecting wallet in Telegram WebApp...');
-
-                // Для Telegram WebApp используем специальный метод
+                console.log('🔗 Opening TonConnect...');
+                
                 if (this.isTelegramWebApp()) {
-                    // ✅ Открываем TonConnect внутри Telegram
-                    const connection = connector.connect({
-                        jsBridgeKey: 'tonkeeper' // Ключ для Telegram WebApp
-                    });
-
-                    // Показываем QR код внутри приложения
-                    this.showTonConnectModal();
-                    return connection;
+                    // ✅ СПЕЦИАЛЬНЫЙ URL для Telegram WebApp
+                    const telegramDeepLink = `tg://wallet?startattach=tonconnect&ref=playonstars`;
+                    
+                    // ✅ Используем специальный метод для Telegram
+                    if (window.Telegram?.WebApp?.openLink) {
+                        window.Telegram.WebApp.openLink(telegramDeepLink);
+                    } else {
+                        window.open(telegramDeepLink, '_blank');
+                    }
+                    return;
                 }
-
+                
                 // Для браузера стандартное подключение
                 await connector.connect({
                     universalLink: 'https://app.tonkeeper.com/ton-connect',
                     bridgeUrl: 'https://bridge.tonapi.io/bridge'
                 });
-
+                
             } catch (error) {
                 console.error('Connection error:', error);
                 throw error;
