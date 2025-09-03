@@ -51,7 +51,7 @@ const walletStore = useWalletStore();
 const error = ref('');
 const tonConnectModal = ref();
 
-// ✅ Теперь все геттеры используются в шаблоне
+// ✅ Теперь эти геттеры существуют!
 const { 
   isConnected, 
   isLoading, 
@@ -63,11 +63,10 @@ const connect = async () => {
   try {
     error.value = '';
     
-    // Если в Telegram WebApp - показываем модалку
+    // ✅ Метод isTelegramWebApp теперь существует
     if (walletStore.isTelegramWebApp()) {
       tonConnectModal.value?.open();
     } else {
-      // Для браузера стандартное подключение
       await walletStore.connect();
     }
   } catch (err) {
@@ -76,6 +75,7 @@ const connect = async () => {
   }
 };
 
+// ✅ Метод disconnect теперь существует
 const disconnect = () => {
   walletStore.disconnect();
 };
