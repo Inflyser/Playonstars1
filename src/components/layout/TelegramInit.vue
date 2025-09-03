@@ -89,6 +89,29 @@ const initializeApp = async () => {
 onMounted(async () => {
   await initializeApp();
 });
+
+
+const handleWalletReturn = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  
+  // Проверяем параметры TonConnect
+  if (urlParams.has('tonconnect') || urlParams.has('startattach')) {
+    console.log('🔄 TonConnect return detected');
+    
+    // Даем время на обработку подключения
+    setTimeout(() => {
+      walletStore.init().catch(console.error);
+    }, 2000);
+  }
+};
+
+// Вызываем при загрузке и изменении URL
+onMounted(() => {
+  handleWalletReturn();
+  
+  // Слушаем изменения URL (для SPA)
+  window.addEventListener('popstate', handleWalletReturn);
+});
 </script>
 
 
