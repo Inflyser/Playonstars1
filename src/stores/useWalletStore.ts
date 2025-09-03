@@ -50,24 +50,47 @@ export const useWalletStore = defineStore('wallet', {
         async connect() {
             this.isLoading = true;
             try {
-                console.log('🔗 Opening TonConnect...');
-                
-                if (isTelegramWebApp()) {
-                    openTelegramLink('https://app.tonkeeper.com/ton-connect');
-                    return;
+                console.log('🔗 Connecting wallet in Telegram WebApp...');
+
+                // Для Telegram WebApp используем специальный метод
+                if (this.isTelegramWebApp()) {
+                    // ✅ Открываем TonConnect внутри Telegram
+                    const connection = connector.connect({
+                        jsBridgeKey: 'tonkeeper' // Ключ для Telegram WebApp
+                    });
+
+                    // Показываем QR код внутри приложения
+                    this.showTonConnectModal();
+                    return connection;
                 }
-                
+
+                // Для браузера стандартное подключение
                 await connector.connect({
                     universalLink: 'https://app.tonkeeper.com/ton-connect',
                     bridgeUrl: 'https://bridge.tonapi.io/bridge'
                 });
-                
+
             } catch (error) {
                 console.error('Connection error:', error);
                 throw error;
             } finally {
                 this.isLoading = false;
             }
+        },
+
+        // Показываем модалку с QR кодом (если нужно)
+        showTonConnectModal() {
+            // Здесь можно показать кастомную модалку
+            console.log('Showing TonConnect modal in Telegram');
+        },
+
+        // ✅ ДОБАВЛЯЕМ метод disconnect
+        disconnect() {
+            connector.disconnect();
+            this.isConnected = false;
+            this.walletAddress = null;
+            this.tonBalance = 0;
+            console.log('✅ Wallet disconnected');
         },
 
         async updateBalance() {
@@ -79,6 +102,20 @@ export const useWalletStore = defineStore('wallet', {
             } catch (error) {
                 console.error('Failed to update balance:', error);
             }
+        },
+
+        // ✅ ДОБАВЛЯЕМ метод isTelegramWebApp
+        isTelegramWebApp(): boolean {
+            return isTelegramWebApp();
         }
+    },
+
+    // ✅ ДОБАВЛЯЕМ геттеры
+    getters: {
+        shortAddress: (state) => {
+            if (!state.walletAddress) return '';
+            return `${state.walletAddress.slice(0, 6)}...${state.walletAddress.slice(-4)}`;
+        },
+        formattedBalance: (state) => state.tonBalance.toFixed(2)
     }
 });
