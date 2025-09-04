@@ -1,7 +1,7 @@
 <template>
-  <div class="home">
-    <TelegramHeader />
-    <div class="crash-game">
+
+    <div class="home">
+      <TelegramHeader />
       <TelegramHeader2 title="Crash Game" />
 
       <div class="game-container">
@@ -158,24 +158,24 @@
       <div v-if="gameError" class="error-notification">
         {{ gameError }}
       </div>
-    </div>
-        <div class="divider"></div>
+    
+      <div class="divider"></div>
 
-    <div class="balance-view">
-          <!-- Панель с кнопками -->
-      <ButtonTop v-model="selectedPaymentMethod" />
+      <div class="balance-view">
+            <!-- Панель с кнопками -->
+        <ButtonTop v-model="selectedPaymentMethod" />
 
-      <!-- Контент в зависимости от выбранного метода -->
-      <div class="payment-content">
-        <TopAll v-if="selectedPaymentMethod === 'top'" />
-        <Top10 v-if="selectedPaymentMethod === 'top10'" />
-        <TopMy v-if="selectedPaymentMethod === 'mytop'" />
+        <!-- Контент в зависимости от выбранного метода -->
+        <div class="payment-content">
+          <TopAll v-if="selectedPaymentMethod === 'top'" />
+          <Top10 v-if="selectedPaymentMethod === 'top10'" />
+          <TopMy v-if="selectedPaymentMethod === 'mytop'" />
+        </div>
       </div>
-    </div>
 
-    <!-- Плавающая панель навигации -->
-    <BottomNavigation />
-  </div>
+      <!-- Плавающая панель навигации -->
+      <BottomNavigation />
+    </div>
 </template>
 
 <script setup lang="ts">
