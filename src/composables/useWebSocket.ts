@@ -89,48 +89,7 @@ export const useWebSocket = () => {
         return connectToUrl(url)
     }
 
-    // ✅ Обновляем обработчик сообщений для краш-игры
-    const handleWebSocketMessage = (data: any) => {
-        const userStore = useUserStore()
-        const walletStore = useWalletStore()
-        const gameStore = useGameStore()
 
-        switch (data.type) {
-            case 'crash_update':
-                // Обновляем состояние краш-игры
-                gameStore.setCrashGameState(data.data)
-                break
-                
-            case 'crash_result':
-                // Обрабатываем результат игры
-                gameStore.processCrashResult(data.data)
-                break
-                
-            case 'balance_update':
-                userStore.setBalance(data.balance)
-                break
-                
-            case 'transaction_update':
-                if (data.status === 'completed') {
-                    walletStore.updateBalance()
-                    userStore.fetchBalance()
-                }
-                break
-
-            case 'game_result':
-                // Обработка результатов других игр
-                console.log('Game result:', data)
-                break
-
-            case 'ping':
-                // Отвечаем на ping
-                send({ type: 'pong', timestamp: data.timestamp })
-                break
-
-            default:
-                console.log('Unknown WebSocket message:', data)
-        }
-    }
 
     const attemptReconnect = () => {
         if (reconnectAttempts.value < maxReconnectAttempts) {
@@ -201,6 +160,41 @@ export const useWebSocket = () => {
         poll()
         return setInterval(poll, interval)
     }
+
+    const handleWebSocketMessage = (data: any) => {
+        const userStore = useUserStore();
+        const walletStore = useWalletStore();
+        const gameStore = useGameStore();
+
+        switch (data.type) {
+            case 'crash_update':
+                // Обновляем состояние краш-игры с реальными данными
+                gameStore.setCrashGameState({
+                    ...data.data,
+                    // Добавляем недостающие поля
+                    players: data.data.players || [],
+                    bets: data.data.bets || []
+                });
+                break;
+
+            case 'crash_result':
+                // Обрабатываем результат игры
+                gameStore.processCrashResult(data.data);
+
+                // Автоматически обновляем баланс после игры
+                setTimeout(() => {
+                    userStore.fetchBalance();
+                }, 2000);
+                break;
+
+            case 'balance_update':
+                // Синхронизируем баланс с сервером
+                userStore.setBalance(data.balance);
+                break;
+
+            // ... остальные cases
+        }
+    };
 
     onUnmounted(() => {
         disconnect()

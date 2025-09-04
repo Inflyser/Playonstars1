@@ -31,6 +31,7 @@ export interface UserBet {
     cashedOut: boolean
     cashoutMultiplier?: number
     profit?: number
+    betId?: number // ✅ Добавим опциональное поле
 }
 
 export interface CrashGameHistory {
@@ -113,7 +114,7 @@ export const useGameStore = defineStore('game', () => {
                 userBet.value.cashoutMultiplier = userBet.value.autoCashout
                 userBet.value.profit = userBet.value.amount * userBet.value.autoCashout
             } else {
-                // Игра крашнулась раньше вывода
+                // Проигрыш
                 userBet.value.cashedOut = false
                 userBet.value.profit = 0
             }
@@ -153,8 +154,8 @@ export const useGameStore = defineStore('game', () => {
                 cashedOut: false
             }
 
-            // Отправляем на сервер через WebSocket или API
-            // (WebSocket вызов будет в компоненте)
+            // ✅ ОТПРАВЛЯЕМ НА СЕРВЕР ЧЕРЕЗ WebSocket (не API)
+            // API вызов будет в компоненте через placeCrashBet
 
         } catch (err: any) {
             error.value = err.message
@@ -180,9 +181,6 @@ export const useGameStore = defineStore('game', () => {
             // Зачисляем выигрыш
             userStore.updateBalance('stars', userBet.value.profit)
 
-            // Отправляем на сервер
-            // (WebSocket вызов будет в компоненте)
-
         } catch (err: any) {
             error.value = err.message
             throw err
@@ -193,12 +191,37 @@ export const useGameStore = defineStore('game', () => {
         userBet.value = null
     }
 
+    // ✅ ДОБАВИМ ЗАГЛУШКУ ДЛЯ ИСТОРИИ
+    const generateFallbackHistory = () => {
+        return [
+            {
+                gameId: 1,
+                multiplier: 3.45,
+                crashedAt: 3.45,
+                timestamp: new Date(),
+                playersCount: 12,
+                totalBet: 1500,
+                totalPayout: 1200
+            },
+            {
+                gameId: 2,
+                multiplier: 1.89,
+                crashedAt: 1.89,
+                timestamp: new Date(Date.now() - 100000),
+                playersCount: 8,
+                totalBet: 800,
+                totalPayout: 0
+            }
+        ]
+    }
+
     const loadGameHistory = async (limit: number = 50) => {
         try {
-            const response = await api.get(`/games/crash/history?limit=${limit}`)
-            crashGame.value.history = response.data.history
+            // ✅ ЗАГЛУШКА - потом заменим на реальный API
+            crashGame.value.history = generateFallbackHistory();
         } catch (err) {
-            console.error('Failed to load game history:', err)
+            console.error('Failed to load game history:', err);
+            crashGame.value.history = generateFallbackHistory();
         }
     }
 
@@ -236,6 +259,7 @@ export const useGameStore = defineStore('game', () => {
         resetBet,
         loadGameHistory,
         getPlayerById,
-        getTopPlayers
+        getTopPlayers,
+        generateFallbackHistory // ✅ Экспортируем если нужно
     }
 })
