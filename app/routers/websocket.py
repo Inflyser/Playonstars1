@@ -6,7 +6,7 @@ import json
 
 router = APIRouter()
 
-@router.websocket("/api/ws/general")
+@router.websocket("/ws/general")
 async def websocket_general(websocket: WebSocket, db: Session = Depends(get_db)):
     await websocket_manager.connect(websocket, "general")
     try:
@@ -26,7 +26,7 @@ async def websocket_general(websocket: WebSocket, db: Session = Depends(get_db))
     except WebSocketDisconnect:
         websocket_manager.disconnect(websocket, "general")
 
-@router.websocket("/api/ws/crash")
+@router.websocket("/ws/crash")
 async def websocket_crash(websocket: WebSocket, db: Session = Depends(get_db)):
     await websocket_manager.connect_crash_game(websocket)
     try:
@@ -44,7 +44,7 @@ async def websocket_crash(websocket: WebSocket, db: Session = Depends(get_db)):
     except WebSocketDisconnect:
         websocket_manager.disconnect_crash_game(websocket)
 
-@router.websocket("/api/ws/user/{user_id}")
+@router.websocket("/ws/user/{user_id}")
 async def websocket_user(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
     await websocket_manager.connect(websocket, f"user_{user_id}")
     try:
