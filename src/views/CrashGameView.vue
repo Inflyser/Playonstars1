@@ -256,20 +256,28 @@ const placeBet = async () => {
 
 const doCashOut = async () => {
     try {
-        // 1. Обновляем локально
         await gameStore.cashOut()
-        
-        // 2. Отправляем на сервер
         cashOut()
         
-        // 3. Обновляем баланс
-        setTimeout(() => {
-            userStore.fetchBalance()
-        }, 1000)
-    } catch (err) {
-        console.error('Failed to cash out:', err)
+        // ✅ ДВОЙНАЯ СИНХРОНИЗАЦИЯ ДЛЯ НАДЕЖНОСТИ
+        setTimeout(async () => {
+            await userStore.fetchBalance()
+        }, 1500)
+        
+    } catch (error) {
+        console.error('Failed to cash out:', error)
     }
 }
+
+// В watch для фазы finished
+watch(() => gameState.value.phase, (newPhase) => {
+    if (newPhase === 'finished') {
+        setTimeout(async () => {
+            await userStore.fetchBalance() // ✅ СИНХРОНИЗИРУЕМ
+            prepareNewGame()
+        }, 2000)
+    }
+})
 
 const prepareNewGame = () => {
     gameStore.resetBet()

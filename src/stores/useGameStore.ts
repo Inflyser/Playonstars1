@@ -95,39 +95,9 @@ export const useGameStore = defineStore('game', () => {
         }
     }
 
-    const processCrashResult = (data: any) => {
-        // Обновляем историю
-        if (data.history) {
-            crashGame.value.history = data.history.slice(0, 50)
-        }
 
-        // Обрабатываем результат ставки пользователя
-        if (userBet.value && data.finalMultiplier) {
-            const finalMultiplier = data.finalMultiplier
-            
-            if (userBet.value.cashedOut) {
-                // Пользователь успел вывести
-                userBet.value.profit = userBet.value.amount * (userBet.value.cashoutMultiplier || 1)
-            } else if (userBet.value.autoCashout && finalMultiplier >= userBet.value.autoCashout) {
-                // Сработал авто-вывод
-                userBet.value.cashedOut = true
-                userBet.value.cashoutMultiplier = userBet.value.autoCashout
-                userBet.value.profit = userBet.value.amount * userBet.value.autoCashout
-            } else {
-                // Проигрыш
-                userBet.value.cashedOut = false
-                userBet.value.profit = 0
-            }
 
-            // Обновляем баланс пользователя
-            if (userBet.value.profit > 0) {
-                userStore.updateBalance('stars', userBet.value.profit)
-            }
-        }
 
-        // Переходим в фазу завершения
-        crashGame.value.phase = 'finished'
-    }
 
     const placeBet = async (amount: number, autoCashout?: number) => {
         if (!canPlaceBet.value) {
@@ -171,21 +141,54 @@ export const useGameStore = defineStore('game', () => {
         if (!canCashOut.value || !userBet.value) {
             throw new Error('Cannot cash out at this time')
         }
-
+    
         try {
-            // Помечаем ставку как выведенную
             userBet.value.cashedOut = true
             userBet.value.cashoutMultiplier = crashGame.value.multiplier
-            userBet.value.profit = userBet.value.amount * crashGame.value.multiplier
-
-            // Зачисляем выигрыш
-            userStore.updateBalance('stars', userBet.value.profit)
-
+            const profit = userBet.value.amount * crashGame.value.multiplier
+            userBet.value.profit = profit
+        
+            // ✅ ОБНОВЛЯЕМ БАЛАНС ЧЕРЕЗ USER STORE
+            userStore.updateBalance('stars', profit)
+            
+            // ✅ СИНХРОНИЗИРУЕМ С СЕРВЕРОМ
+            await userStore.fetchBalance()
+        
         } catch (err: any) {
             error.value = err.message
             throw err
         }
     }
+    
+    const processCrashResult = (data: any) => {
+        if (data.history) {
+            crashGame.value.history = data.history.slice(0, 50)
+        }
+    
+        if (userBet.value && data.finalMultiplier) {
+            const finalMultiplier = data.finalMultiplier
+            
+            if (userBet.value.cashedOut) {
+                userBet.value.profit = userBet.value.amount * (userBet.value.cashoutMultiplier || 1)
+            } else if (userBet.value.autoCashout && finalMultiplier >= userBet.value.autoCashout) {
+                userBet.value.cashedOut = true
+                userBet.value.cashoutMultiplier = userBet.value.autoCashout
+                userBet.value.profit = userBet.value.amount * userBet.value.autoCashout
+                
+                // ✅ ОБНОВЛЯЕМ БАЛАНС
+                userStore.updateBalance('stars', userBet.value.profit)
+                // ✅ СИНХРОНИЗИРУЕМ
+                setTimeout(() => userStore.fetchBalance(), 1000)
+            } else {
+                userBet.value.cashedOut = false
+                userBet.value.profit = 0
+            }
+        }
+    
+        crashGame.value.phase = 'finished'
+    }
+
+
 
     const resetBet = () => {
         userBet.value = null

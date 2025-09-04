@@ -32,20 +32,10 @@ export const useUserStore = defineStore('user', () => {
 
   const setUser = (userData: User) => {
     user.value = userData;
-    
-    // ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ - убрана сложная логика
-    if (userData.photo_url && telegramUser.value && !telegramUser.value.photo_url) {
-      telegramUser.value.photo_url = userData.photo_url;
-    }
-  }; // ✅ Закрывающая скобка здесь!
+  };
 
   const setTelegramUser = (telegramData: TelegramUser) => {
     telegramUser.value = telegramData;
-    
-    // ✅ Упрощенная версия
-    if (user.value && telegramData.photo_url && !user.value.photo_url) {
-      user.value.photo_url = telegramData.photo_url;
-    }
   };
 
   const setBalance = (newBalance: UserBalance) => {
@@ -64,13 +54,18 @@ export const useUserStore = defineStore('user', () => {
     }
   };
 
-  const clearUser = () => {
-    user.value = null;
-    telegramUser.value = null;
-    balance.value = { ton_balance: 0, stars_balance: 0 };
+  const fetchBalance = async () => {
+    try {
+      const { api } = await import('@/services/api');
+      const response = await api.get('/api/user/balance');
+      
+      // ✅ ПРАВИЛЬНЫЙ ФОРМАТ - response.data содержит баланс
+      setBalance(response.data);
+    } catch (err) {
+      console.error('Failed to fetch balance:', err);
+    }
   };
 
-  // Методы для получения данных
   const fetchUserData = async () => {
     try {
       const { telegramService } = await import('@/services/telegram.service');
@@ -81,68 +76,49 @@ export const useUserStore = defineStore('user', () => {
     }
   };
 
-  const fetchBalance = async () => {
-    try {
-      const { telegramService } = await import('@/services/telegram.service');
-      const balanceData = await telegramService.getBalance();
-      setBalance(balanceData);
-    } catch (err) {
-      console.error('Failed to fetch balance:', err);
-    }
+  const clearUser = () => {
+    user.value = null;
+    telegramUser.value = null;
+    balance.value = { ton_balance: 0, stars_balance: 0 };
   };
 
   // Computed properties
   const getAvatarUrl = computed(() => {
-    // 1. Пробуем из Telegram данных
     if (telegramUser.value?.photo_url) {
       return telegramUser.value.photo_url;
     }
-    
-    // 2. Пробуем из основного пользователя
     if (user.value?.photo_url) {
       return user.value.photo_url;
     }
-    
-    // 3. Генерируем на основе username
     const username = telegramUser.value?.username || user.value?.username;
     if (username) {
       return `https://t.me/i/userpic/320/${username}.jpg`;
     }
-    
-    // 4. Fallback на дефолтную аватарку
     return '/src/assets/images/avatar.jpg';
   });
 
-const getDisplayName = computed(() => {
-  // 1. Сначала имя + фамилия (приоритет!)
-  if (telegramUser.value) {
-    const firstName = telegramUser.value.first_name || '';
-    const lastName = telegramUser.value.last_name || '';
-    if (firstName || lastName) {
-      return `${firstName} ${lastName}`.trim();
+  const getDisplayName = computed(() => {
+    if (telegramUser.value) {
+      const firstName = telegramUser.value.first_name || '';
+      const lastName = telegramUser.value.last_name || '';
+      if (firstName || lastName) {
+        return `${firstName} ${lastName}`.trim();
+      }
     }
-  }
-  
-  // 2. Затем из основного пользователя
-  if (user.value) {
-    const firstName = user.value.first_name || '';
-    const lastName = user.value.last_name || '';
-    if (firstName || lastName) {
-      return `${firstName} ${lastName}`.trim();
+    if (user.value) {
+      const firstName = user.value.first_name || '';
+      const lastName = user.value.last_name || '';
+      if (firstName || lastName) {
+        return `${firstName} ${lastName}`.trim();
+      }
     }
-  }
-  
-  // 3. Затем username
-  const username = telegramUser.value?.username || user.value?.username;
-  if (username) {
-    return username;
-  }
-  
-  // 4. Fallback
-  return 'User';
-});
+    const username = telegramUser.value?.username || user.value?.username;
+    if (username) {
+      return username;
+    }
+    return 'User';
+  });
 
-  // ✅ Добавляем computed для username отдельно
   const getUsername = computed(() => {
     return telegramUser.value?.username || user.value?.username || '';
   });
