@@ -4,7 +4,6 @@
       <TelegramHeader />
       <TelegramHeader2 title="Crash Game" />
 
-      <div class="game-container">
         <!-- График игры -->
         <div class="game-graph">
           <div class="multiplier-display" :class="{ growing: isGameActive }">
@@ -152,7 +151,7 @@
             <p>Новая игра начнется через {{ gameState.timeRemaining }} секунд</p>
           </div>
         </div>
-      </div>
+   
 
       <!-- Уведомления -->
       <div v-if="gameError" class="error-notification">
