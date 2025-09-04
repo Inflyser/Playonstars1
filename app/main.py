@@ -59,7 +59,8 @@ app.add_middleware(
     "https://playonstars.netlify.app",  # Ваш фронтенд1
     "https://web.telegram.org",          # Telegram Web
     "https://telegram.org",              # Telegram
-    "http://localhost:5173",             # Локальная разработка
+    "http://localhost:5173",
+    "ws://localhost:5173",# Локальная разработка
     os.getenv("FRONTEND_URL", "https://playonstars.netlify.app")
     ],
     allow_credentials=True,
