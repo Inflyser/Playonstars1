@@ -178,7 +178,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useGameStore } from '@/stores/useGameStore'
 import { useUserStore } from '@/stores/useUserStore'
 import { useWebSocket } from '@/composables/useWebSocket'
@@ -291,12 +291,6 @@ const selectedPaymentMethod = ref('top')
   padding-bottom: 80px;
 }
 
-.crash-game {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #1a1f3b 0%, #13162b 100%);
-  color: white;
-  padding-bottom: 80px;
-}
 
 .game-container {
   padding: 16px;
@@ -310,7 +304,9 @@ const selectedPaymentMethod = ref('top')
   padding: 20px;
   margin-bottom: 16px;
   position: relative;
-  height: 200px;
+  height: 400px;
+  border: 1px solid #4479D98A;
+
 }
 
 .multiplier-display {
@@ -318,8 +314,8 @@ const selectedPaymentMethod = ref('top')
   font-weight: bold;
   text-align: center;
   margin-bottom: 20px;
-  color: #00ff88;
-  text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.76);
 }
 
 .multiplier-display.growing {
