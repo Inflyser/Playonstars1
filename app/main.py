@@ -22,6 +22,8 @@ import asyncio
 from app.services.ton_service import ton_service
 from app.database import crud
 from app.database.session import SessionLocal
+from app.routers import websocket
+from app.services import websocket_manager
 
 from app.database.crud import (
     get_user_by_telegram_id, 
@@ -78,8 +80,25 @@ async def startup():
         print(f"🔗 Setting up TON webhook to: {webhook_url_ton}")
         await ton_service.setup_webhook()
     
-    # Запускаем фоновую задачу для проверки депозитов (fallback)
-    asyncio.create_task(check_deposits_periodically())
+    # Запускаем фоновую задачу для краш-игры
+    asyncio.create_task(run_crash_game())
+
+# Добавляем роутер
+app.include_router(websocket.router)
+
+# Добавляем функцию для краш-игры
+async def run_crash_game():
+    """Фоновая задача для управления краш-игрой"""
+    from app.services.crash_game import CrashGame
+    crash_game = CrashGame(websocket_manager)
+    
+    while True:
+        try:
+            await crash_game.run_game_cycle()
+            await asyncio.sleep(5)  # Пауза между играми
+        except Exception as e:
+            print(f"Error in crash game: {e}")
+            await asyncio.sleep(10)
     
 async def check_deposits_periodically():
     """Периодическая проверка депозитов (fallback)"""
