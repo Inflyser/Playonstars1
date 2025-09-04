@@ -15,7 +15,7 @@
               <span class="username">@{{ userStore.user?.username || userStore.telegramUser?.username }}</span>
             </div>
             <div class="balance-line">
-              <span class="balance-secondary">{{ userStore.balance.stars_balance }}</span>
+              <span class="balance-secondary">{{ userStore.balance.ton_balance }}</span>
               <div class="balance-buttons">
                 <TGButton />
               </div>

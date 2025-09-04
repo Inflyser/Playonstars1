@@ -17,7 +17,7 @@
           <!-- Правая часть: кошелек, баланс, валюта -->
           <div class="currency-section wallet-section">
             <img src="@/assets/images/wallet.svg" alt="Кошелек" class="wallet-icon" />
-            <span class="balance-amount">{{ userStore.balance.ton_balance }}</span>
+            <span class="balance-amount">{{ userStore.balance.stars_balance }}</span>
             <img src="@/assets/images/coin.svg" alt="Валюта" class="coin-icon" />
           </div>
         </div>
