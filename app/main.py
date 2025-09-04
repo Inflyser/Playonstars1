@@ -594,6 +594,58 @@ def generate_avatar_url(user: User) -> str:
     
     # Если нет username - используем дефолтную аватарку
     return f"https://t.me/i/userpic/320/{user.telegram_id}.jpg"
+
+@app.post("/api/wallet/deposit")
+async def create_deposit(
+    request: Request,
+    deposit_data: dict,
+    db: Session = Depends(get_db)
+):
+    """Создаем запись о депозите"""
+    try:
+        telegram_id = request.session.get("telegram_id")
+        if not telegram_id:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        user = crud.get_user_by_telegram_id(db, telegram_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Создаем pending транзакцию
+        transaction = crud.create_transaction(
+            db=db,
+            user_id=user.id,
+            tx_hash=deposit_data.get("tx_hash"),
+            amount=float(deposit_data.get("amount", 0)),
+            transaction_type="deposit",
+            status="pending"
+        )
+        
+        return {
+            "status": "success",
+            "transaction_id": transaction.id,
+            "message": "Transaction created, waiting for confirmation"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/wallet/transaction/{tx_hash}")
+async def get_transaction_status(
+    tx_hash: str,
+    db: Session = Depends(get_db)
+):
+    """Проверяем статус транзакции"""
+    transaction = crud.get_transaction_by_hash(db, tx_hash)
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    return {
+        "tx_hash": transaction.tx_hash,
+        "status": transaction.status,
+        "amount": float(transaction.amount),
+        "created_at": transaction.created_at.isoformat()
+    }
     
     
 # Подключаем роутеры
