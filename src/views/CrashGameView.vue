@@ -7,7 +7,7 @@
         <!-- График игры -->
         <div class="game-graph">
           <div class="multiplier-display" :class="{ growing: isGameActive }">
-            {{ currentMultiplier.toFixed(2) }}x
+            x{{ currentMultiplier.toFixed(2) }}
           </div>
           <div class="graph-canvas" ref="graphCanvas"></div>
         </div>
