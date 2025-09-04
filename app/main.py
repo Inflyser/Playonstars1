@@ -166,18 +166,26 @@ async def websocket_crash(websocket: WebSocket):
         
 @app.get("/games/crash/history")
 async def get_crash_history(limit: int = 50, db: Session = Depends(get_db)):
-    """Получить историю краш-игр"""
-    return {
-        "history": [
-            {
-                "game_id": i + 1,
-                "multiplier": round(random.uniform(1.5, 10.0), 2),
-                "timestamp": datetime.now().isoformat(),
-                "players_count": random.randint(5, 50)
-            }
-            for i in range(min(limit, 50))
-        ]
-    }
+    """Получить историю краш-игр из базы данных"""
+    try:
+        results = crud.get_crash_game_history(db, limit)
+        return {
+            "history": [
+                {
+                    "game_id": result.game_id,
+                    "multiplier": float(result.multiplier),
+                    "crashed_at": float(result.crashed_at),
+                    "total_players": result.total_players,
+                    "total_bet": float(result.total_bet),
+                    "total_payout": float(result.total_payout),
+                    "timestamp": result.timestamp.isoformat()
+                }
+                for result in results
+            ]
+        }
+    except Exception as e:
+        print(f"Error getting crash history: {e}")
+        return {"history": []}
     
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

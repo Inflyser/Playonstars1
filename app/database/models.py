@@ -152,3 +152,21 @@ class ReferralAction(Base):
     # Связи
     referrer = relationship("User", foreign_keys=[referrer_id], backref="referral_actions_made")
     referral = relationship("User", foreign_keys=[referral_id], backref="referral_actions_received")
+    
+class CrashGameResult(Base):
+    __tablename__ = "crash_game_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    game_id = Column(Integer, index=True, nullable=False)
+    multiplier = Column(Numeric(10, 2), nullable=False)
+    crashed_at = Column(Numeric(10, 2), nullable=False)
+    total_players = Column(Integer, default=0)
+    total_bet = Column(Numeric(20, 2), default=0.0)
+    total_payout = Column(Numeric(20, 2), default=0.0)
+    timestamp = Column(DateTime, default=func.now())
+    
+    # Индексы для быстрого поиска
+    __table_args__ = (
+        Index('idx_crash_game_id', 'game_id'),
+        Index('idx_crash_timestamp', 'timestamp'),
+    )

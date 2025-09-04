@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import models
-from app.database.models import User, DepositHistory, CrashBetHistory, Wallet, Transaction
+from app.database.models import User, DepositHistory, CrashBetHistory, Wallet, Transaction, CrashGameResult
 from typing import Optional
 
 def get_user_by_telegram_id(db: Session, telegram_id: int) -> Optional[User]:
@@ -188,5 +188,47 @@ def update_transaction_status(db: Session, tx_hash: str, status: str):
 
 def get_user_wallets(db: Session, user_id: int):
     return db.query(Wallet).filter(Wallet.user_id == user_id).all()
+
+def create_crash_game_result(db: Session, game_id: int, multiplier: float, crashed_at: float, 
+                           total_players: int = 0, total_bet: float = 0.0, total_payout: float = 0.0):
+    """Создаем запись о результате краш-игры"""
+    db_result = CrashGameResult(
+        game_id=game_id,
+        multiplier=multiplier,
+        crashed_at=crashed_at,
+        total_players=total_players,
+        total_bet=total_bet,
+        total_payout=total_payout
+    )
+    db.add(db_result)
+    db.commit()
+    db.refresh(db_result)
+    return db_result
+
+def update_crash_bet_result(db: Session, bet_id: int, crash_coefficient: float, 
+                          win_amount: float, status: str):
+    """Обновляем результат ставки в краш-игре"""
+    bet = db.query(CrashBetHistory).filter(CrashBetHistory.id == bet_id).first()
+    if bet:
+        bet.crash_coefficient = crash_coefficient
+        bet.win_amount = win_amount
+        bet.status = status
+        bet.ended_at = func.now()
+        db.commit()
+        db.refresh(bet)
+    return bet
+
+def get_user_active_crash_bets(db: Session, user_id: int):
+    """Получаем активные ставки пользователя в краш-игре"""
+    return db.query(CrashBetHistory).filter(
+        CrashBetHistory.user_id == user_id,
+        CrashBetHistory.status == 'pending'
+    ).all()
+
+def get_crash_game_history(db: Session, limit: int = 50):
+    """Получаем историю краш-игр"""
+    return db.query(CrashGameResult).order_by(
+        CrashGameResult.timestamp.desc()
+    ).limit(limit).all()
 
 get_user = get_user_by_telegram_id
