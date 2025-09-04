@@ -60,6 +60,19 @@
             </button>
         </div>
 
+        <!-- Модальное окно подтверждения -->
+        <div v-if="showConfirmation" class="modal-overlay">
+            <div class="confirmation-modal">
+                <h3>Подтверждение перевода</h3>
+                <p>Вы собираетесь перевести {{ amount }} TON на адрес:</p>
+                <p class="wallet-address-confirm">{{ appWalletAddress }}</p>
+                <div class="modal-buttons">
+                    <button @click="showConfirmation = false" class="btn cancel">Отмена</button>
+                    <button @click="confirmDeposit" class="btn confirm">Подтвердить</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Уведомления -->
         <div v-if="error" class="error-message">
             {{ error }}
@@ -71,16 +84,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'; // УБИРАЕМ onMounted
+import { ref, computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import InputPanel from '@/components/layout/InputPanel.vue'
 import { useWalletStore } from '@/stores/useWalletStore'
+import { useUserStore } from '@/stores/useUserStore'
+import { api } from '@/services/api'
 
 const router = useRouter()
 const walletStore = useWalletStore()
+const userStore = useUserStore()
 
-// Используем storeToRefs для реактивности
 const { 
     isConnected, 
     isLoading, 
@@ -93,8 +108,8 @@ const amount = ref('')
 const isProcessing = ref(false)
 const error = ref('')
 const successMessage = ref('')
-
-// УБИРАЕМ onMounted - инициализация уже выполнена в TelegramInit
+const showConfirmation = ref(false)
+const appWalletAddress = ref(import.meta.env.VITE_APP_WALLET_ADDRESS || 'UQDrohhgJWapIy_zUhZMAby7BjgsrN3gt5rNlC6KByB27eXk')
 
 // Вычисляемые свойства
 const maxAmount = computed(() => tonBalance.value?.toString() || '1000')
@@ -121,181 +136,127 @@ const disconnectWallet = () => {
     successMessage.value = ''
 }
 
-const deposit = async () => {
-    if (!isValidAmount.value) return
+const deposit = () => {
+    if (!isValidAmount.value) {
+        error.value = 'Неверная сумма'
+        return
+    }
+    showConfirmation.value = true
+}
 
+const confirmDeposit = async () => {
+    showConfirmation.value = false
     isProcessing.value = true
     error.value = ''
     successMessage.value = ''
 
     try {
         const depositAmount = parseFloat(amount.value)
-        // Добавляем проверку на существование метода deposit
-        if (walletStore.deposit) {
-            await walletStore.deposit(depositAmount)
-            successMessage.value = `Успешно пополнено ${depositAmount} TON!`
-            amount.value = ''
+        
+        // 1. Отправляем транзакцию через кошелек
+        const result = await walletStore.sendTransaction(
+            appWalletAddress.value,
+            depositAmount,
+            `deposit:${userStore.user?.telegram_id}`
+        )
+
+        // 2. Сохраняем транзакцию на бекенде
+        const response = await api.post('/wallet/deposit', {
+            amount: depositAmount,
+            tx_hash: result.boc,
+            from_address: walletStore.walletAddress
+        })
+
+        if (response.data.status === 'success') {
+            successMessage.value = `Транзакция отправлена! Ожидайте подтверждения.`
             
-            await walletStore.updateBalance()
+            // 3. Обновляем баланс после задержки
+            setTimeout(async () => {
+                await userStore.fetchBalance()
+                await walletStore.updateBalance()
+            }, 3000)
             
+            // 4. Возвращаемся назад через 2 секунды
             setTimeout(() => {
                 router.back()
             }, 2000)
-        } else {
-            error.value = 'Метод deposit не доступен'
         }
+
     } catch (err: any) {
-        error.value = err.response?.data?.detail || 'Ошибка при пополнении'
         console.error('Deposit error:', err)
+        error.value = err.response?.data?.detail || 
+                     err.message || 
+                     'Ошибка при отправке транзакции'
     } finally {
         isProcessing.value = false
     }
 }
+
+onMounted(() => {
+    // Обновляем баланс при загрузке компонента
+    walletStore.updateBalance().catch(console.error)
+})
 </script>
 
 <style scoped>
-.ton-payment {
-    padding: 20px;
-    min-height: 100vh;
-    background: var(--tg-theme-bg-color);
-}
-
-.connect-section {
-    text-align: center;
-    padding: 40px 20px;
-}
-
-.connect-header {
+/* Добавляем стили для модального окна */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    margin-bottom: 16px;
+    z-index: 1000;
 }
 
-.ton-logo {
-    width: 32px;
-    height: 32px;
-}
-
-.connect-section h3 {
-    color: var(--tg-theme-text-color);
-    margin: 0;
-    font-size: 18px;
-}
-
-.connect-section p {
-    color: var(--tg-theme-hint-color);
-    margin-bottom: 24px;
-    font-size: 14px;
-}
-
-.connect-btn {
-    background: linear-gradient(135deg, #0088CC, #0066AA);
-    color: white;
-    border: none;
-    padding: 16px 32px;
+.confirmation-modal {
+    background: white;
+    padding: 20px;
     border-radius: 12px;
-    font-weight: 600;
-    font-size: 16px;
-    width: 100%;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
 }
 
-.payment-section {
-    padding-top: 20px;
-}
-
-.wallet-info {
-    background: var(--tg-theme-secondary-bg-color);
-    padding: 16px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-}
-
-.wallet-header, .balance-info {
-    display: flex;
-    justify-content: between;
-    margin-bottom: 8px;
-}
-
-.wallet-header span:first-child,
-.balance-info span:first-child {
-    color: var(--tg-theme-hint-color);
-    flex: 1;
-}
-
-.wallet-address {
-    color: var(--tg-theme-text-color);
+.wallet-address-confirm {
+    word-break: break-all;
     font-family: monospace;
+    background: #f5f5f5;
+    padding: 10px;
+    border-radius: 6px;
+    margin: 10px 0;
 }
 
-.balance-amount {
-    color: var(--tg-theme-button-color);
-    font-weight: 600;
-}
-
-.two-buttons-container {
+.modal-buttons {
     display: flex;
-    gap: 12px;
-    padding: 0 15px 15px 15px;
+    gap: 10px;
+    margin-top: 20px;
 }
 
-.btn {
-    flex: 1;
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
+.btn.cancel {
+    background: #6c757d;
 }
 
-.btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.primary {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-}
-
-.secondary {
-    background: linear-gradient(135deg, #00A6FC, #0088CC);
-    color: white;
-}
-
-.secondary:disabled {
-    background: rgba(0, 166, 252, 0.5);
+.btn.confirm {
+    background: #28a745;
 }
 
 .disconnect-btn {
-    width: 100%;
+    margin-top: 20px;
     background: none;
-    border: 1px solid var(--tg-theme-destructive-bg-color);
-    color: var(--tg-theme-destructive-text-color);
-    padding: 12px;
-    border-radius: 8px;
-    margin-top: 16px;
+    border: 1px solid #dc3545;
+    color: #dc3545;
+    padding: 8px 16px;
+    border-radius: 6px;
     cursor: pointer;
 }
 
-.error-message {
-    color: var(--tg-theme-destructive-text-color);
-    background: var(--tg-theme-destructive-bg-color);
-    padding: 12px;
-    border-radius: 8px;
-    margin: 16px 0;
-    text-align: center;
-}
-
-.success-message {
-    color: var(--tg-theme-button-color);
-    background: rgba(0, 136, 204, 0.1);
-    padding: 12px;
-    border-radius: 8px;
-    margin: 16px 0;
-    text-align: center;
-    border: 1px solid var(--tg-theme-button-color);
+.disconnect-btn:hover {
+    background: #dc3545;
+    color: white;
 }
 </style>

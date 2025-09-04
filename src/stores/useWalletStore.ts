@@ -87,6 +87,65 @@ export const useWalletStore = defineStore('wallet', {
             }
         },
 
+        async sendTransaction(toAddress: string, amount: number, payload?: string) {
+            this.isLoading = true;
+            try {
+                if (!this.isConnected || !connector.wallet) {
+                    throw new Error('Wallet not connected');
+                }
+            
+                const transaction = {
+                    validUntil: Date.now() + 1000000, // 1000 секунд
+                    messages: [
+                        {
+                            address: toAddress,
+                            amount: Math.floor(amount * 1e9).toString(), // TON → нанотоны
+                            payload: payload ? btoa(payload) : undefined
+                        }
+                    ]
+                };
+            
+                console.log('Sending transaction:', transaction);
+                
+                const result = await connector.sendTransaction(transaction);
+                console.log('Transaction result:', result);
+                
+                return result;
+            } catch (error) {
+                console.error('Transaction error:', error);
+                throw error;
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        
+        async waitForTransactionConfirmation(txHash: string, timeout: number = 60000) {
+            const startTime = Date.now();
+            
+            return new Promise((resolve, reject) => {
+                const checkInterval = setInterval(async () => {
+                    try {
+                        const response = await api.get(`/wallet/transaction/${txHash}`);
+                        
+                        if (response.data.status === 'completed') {
+                            clearInterval(checkInterval);
+                            resolve(true);
+                        } else if (response.data.status === 'failed') {
+                            clearInterval(checkInterval);
+                            reject(new Error('Transaction failed'));
+                        }
+                        
+                        if (Date.now() - startTime > timeout) {
+                            clearInterval(checkInterval);
+                            reject(new Error('Transaction timeout'));
+                        }
+                    } catch (error) {
+                        // Продолжаем попытки при ошибках сети
+                    }
+                }, 3000);
+            });
+        },
+
         // ✅ УДАЛЯЕМ дублирующиеся методы - используем импортированные
         // createTelegramDeepLink() - УДАЛЯЕМ, используем импортированную
         // isTelegramWebApp() - УДАЛЯЕМ, используем импортированную

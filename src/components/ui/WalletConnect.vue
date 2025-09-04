@@ -1,171 +1,201 @@
 <template>
-  <TGModal v-model="isVisible" title="Connect TON Wallet" class="ton-connect-modal">
-    <div class="modal-content">
-      <div class="qr-section" v-if="showQR">
-        <h3>Scan QR Code</h3>
-        <div class="qr-code">
-          <img :src="qrCodeUrl" alt="TON Connect QR Code" v-if="qrCodeUrl">
-          <div class="qr-placeholder" v-else>
-            <span>Loading QR code...</span>
-          </div>
-        </div>
-        <p>Scan with your TON wallet app</p>
+  <div class="wallet-connect">
+    <!-- Добавляем модалку -->
+    <TonConnectModal ref="tonConnectModal" />
+    
+    <!-- Состояние: кошелек не подключен -->
+    <div v-if="!isConnected" class="connect-section">
+      <h3>Connect TON Wallet</h3>
+      <button 
+        @click="connect" 
+        :disabled="isLoading"
+        class="tg-button primary"
+      >
+        <span v-if="isLoading">Connecting...</span>
+        <span v-else>Connect Wallet</span>
+      </button>
+      <p>Connect your TON wallet to deposit and withdraw funds</p>
+    </div>
+    
+    <!-- Состояние: кошелек подключен -->
+    <div v-else class="wallet-info">
+      <h3>Connected Wallet</h3>
+      <div class="wallet-details">
+        <p><strong>Address:</strong> {{ shortAddress }}</p>
+        <p><strong>Balance:</strong> {{ formattedBalance }} TON</p>
       </div>
       
-      <div class="wallets-list">
-        <h3>Connect with</h3>
-        <div class="wallet-buttons">
-          <button @click="connectTonKeeper" class="wallet-btn">
-            <img src="@/assets/images/tonkeeper-icon.svg" alt="Tonkeeper">
-            <span>Tonkeeper</span>
-          </button>
-          
-          <button @click="connectTelegramWallet" class="wallet-btn">
-            <img src="@/assets/images/telegram-icon.svg" alt="Telegram Wallet">
-            <span>Telegram Wallet</span>
-          </button>
-        </div>
+      <div class="wallet-actions">
+        <button @click="updateBalance" class="tg-button secondary">
+          Refresh Balance
+        </button>
+        <button @click="disconnect" class="tg-button danger">
+          Disconnect
+        </button>
       </div>
     </div>
-  </TGModal>
+    
+    <div v-if="error" class="error-message">
+      {{ error }}
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { connector } from '@/services/tonconnect';
-import { openTelegramLink, isTelegramWebApp } from '@/utils/telegram'; // ✅ Добавляем импорт
+import { ref } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useWalletStore } from '@/stores/useWalletStore';
+import { isTelegramWebApp } from '@/utils/telegram'; // ✅ Добавляем импорт
+import TonConnectModal from '@/components/ui/TonConnectModal.vue';
 
-const isVisible = ref(false);
-const showQR = ref(false);
-const qrCodeUrl = ref('');
-const connectionSource = ref<any>(null);
+const walletStore = useWalletStore();
+const error = ref('');
+const tonConnectModal = ref();
 
-const open = async () => {
-  isVisible.value = true;
-  showQR.value = true;
-  await generateQRCode();
-};
+const { 
+  isConnected, 
+  isLoading, 
+  shortAddress, 
+  formattedBalance 
+} = storeToRefs(walletStore);
 
-const close = () => {
-  isVisible.value = false;
-  // Отменяем подключение если модалка закрыта
-  if (connectionSource.value) {
-    connectionSource.value.close?.();
-  }
-};
-
-const generateQRCode = async () => {
+const connect = async () => {
   try {
-    console.log('🔗 Creating TonConnect connection...');
+    error.value = '';
     
-    // ✅ Создаем подключение через TonConnect
-    connectionSource.value = connector.connect({
-      jsBridgeKey: 'tonkeeper' // Ключ для Telegram WebApp
-    });
-    
-    // ✅ Получаем universal link для QR кода
-    const connection = await connectionSource.value;
-    if (connection?.universalLink) {
-      console.log('📱 Universal link for QR:', connection.universalLink);
-      // Генерируем QR код из universalLink
-      qrCodeUrl.value = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(connection.universalLink)}`;
+    // ✅ Используем импортированную функцию isTelegramWebApp()
+    if (isTelegramWebApp()) {
+      tonConnectModal.value?.open();
+    } else {
+      await walletStore.connect();
     }
-    
-  } catch (error) {
-    console.error('❌ Error generating QR code:', error);
+  } catch (err) {
+    error.value = 'Failed to connect wallet';
+    console.error('Connection error:', err);
   }
 };
 
-const connectTonKeeper = () => {
-  // ✅ Используем правильный deeplink для Telegram
-  if (isTelegramWebApp()) {
-    openTelegramLink('tg://resolve?domain=tonkeeper&startattach=tonconnect');
-  } else {
-    // Для браузера
-    window.open('https://app.tonkeeper.com/ton-connect', '_blank');
-  }
-  close();
+const disconnect = () => {
+  walletStore.disconnect();
 };
 
-const connectTelegramWallet = () => {
-  // ✅ Используем правильный deeplink
-  if (isTelegramWebApp()) {
-    openTelegramLink('tg://wallet?startattach=tonconnect&ref=playonstars');
-  } else {
-    // Для браузера
-    window.open('tg://wallet?startattach=tonconnect', '_blank');
-  }
-  close();
+const updateBalance = async () => {
+  await walletStore.updateBalance();
 };
-
-defineExpose({ open, close });
 </script>
 
 <style scoped>
-.ton-connect-modal {
-  max-width: 400px;
+.wallet-connect {
+  padding: 1rem;
+  border: 1px solid var(--tg-theme-secondary-bg-color);
+  border-radius: 8px;
+  margin-bottom: 1rem;
 }
 
-.modal-content {
-  padding: 20px;
+.connect-section, .wallet-info {
   text-align: center;
 }
 
-.qr-section {
-  margin-bottom: 20px;
+.wallet-details {
+  margin: 1rem 0;
+  text-align: left;
 }
 
-.qr-code {
-  width: 200px;
-  height: 200px;
-  margin: 0 auto;
-  border: 1px solid #ccc;
+.wallet-actions {
   display: flex;
-  align-items: center;
+  gap: 0.5rem;
   justify-content: center;
 }
 
-.qr-code img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.error-message {
+  color: var(--tg-theme-destructive-text-color);
+  margin-top: 0.5rem;
+  text-align: center;
 }
 
-.qr-placeholder {
-  color: #666;
-  font-size: 14px;
-}
-
-.wallet-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-.wallet-btn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: white;
+.tg-button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: opacity 0.2s;
 }
 
-.wallet-btn:hover {
-  background: #f5f5f5;
-  border-color: #007bff;
+.tg-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.wallet-btn img {
-  width: 24px;
-  height: 24px;
+.tg-button.primary {
+  background-color: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
 }
 
-.wallet-btn span {
-  font-weight: 500;
+.tg-button.secondary {
+  background-color: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-text-color);
+}
+
+.tg-button.danger {
+  background-color: var(--tg-theme-destructive-bg-color);
+  color: var(--tg-theme-destructive-text-color);
+}
+</style>
+
+<style scoped>
+.wallet-connect {
+    padding: 1rem;
+    border: 1px solid var(--tg-theme-secondary-bg-color);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.connect-section, .wallet-info {
+    text-align: center;
+}
+
+.wallet-details {
+    margin: 1rem 0;
+    text-align: left;
+}
+
+.wallet-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.error-message {
+    color: var(--tg-theme-destructive-text-color);
+    margin-top: 0.5rem;
+    text-align: center;
+}
+
+.tg-button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.tg-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.tg-button.primary {
+    background-color: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
+}
+
+.tg-button.secondary {
+    background-color: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-text-color);
+}
+
+.tg-button.danger {
+    background-color: var(--tg-theme-destructive-bg-color);
+    color: var(--tg-theme-destructive-text-color);
 }
 </style>
