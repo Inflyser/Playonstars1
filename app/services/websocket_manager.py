@@ -80,6 +80,44 @@ class WebSocketManager:
             "type": "crash_result", 
             "data": data
         })
+        
+        
+
+    async def send_crash_update(self, data: dict):
+        """Отправляем обновление состояния краш-игры"""
+        await self.broadcast_crash_game({
+            "type": "crash_update",
+            "data": data
+        })
+
+    async def send_crash_result(self, data: dict):
+        """Отправляем результат краш-игры"""
+        await self.broadcast_crash_game({
+            "type": "crash_result", 
+            "data": data
+        })
+
+    async def broadcast_crash_game(self, message: dict):
+        """Трансляция сообщений для краш-игры"""
+        disconnected = set()
+        for websocket in self.crash_game_connections:
+            try:
+                await websocket.send_json(message)
+            except Exception as e:
+                print(f"Error broadcasting to crash game client: {e}")
+                disconnected.add(websocket)
+        
+        for websocket in disconnected:
+            self.disconnect_crash_game(websocket)
+
+    async def connect_crash_game(self, websocket: WebSocket):
+        await websocket.accept()
+        self.crash_game_connections.add(websocket)
+        print(f"Client connected to crash game. Total: {len(self.crash_game_connections)}")
+
+    def disconnect_crash_game(self, websocket: WebSocket):
+        self.crash_game_connections.discard(websocket)
+        print("Client disconnected from crash game")
 
 # Глобальный экземпляр менеджера
 websocket_manager = WebSocketManager()

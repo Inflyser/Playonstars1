@@ -22,8 +22,12 @@ import asyncio
 from app.services.ton_service import ton_service
 from app.database import crud
 from app.database.session import SessionLocal
+from app.services.crash_game import CrashGame
+from app.routers import wallet
 from app.routers import websocket
-from app.services import websocket_manager
+
+from app.services.crash_game import CrashGame
+from app.services.websocket_manager import websocket_manager
 
 from app.database.crud import (
     get_user_by_telegram_id, 
@@ -64,6 +68,15 @@ app.add_middleware(
 )
 
 
+# Добавляем роутер
+
+
+# Добавляем функцию для краш-игры
+
+
+# Создайте экземпляр игры с передачей websocket_manager
+crash_game = CrashGame(websocket_manager)  # ✅ Передаем менеджер
+
 @app.on_event("startup")
 async def startup():
     Base.metadata.create_all(bind=engine)
@@ -74,28 +87,25 @@ async def startup():
         await bot.set_webhook(webhook_url_telegram)
         print(f"📱 Telegram webhook set to: {webhook_url_telegram}")
     
-    # TON webhook
-    webhook_url_ton = os.getenv("WEBHOOK_URL_TON")
-    if webhook_url_ton:
-        print(f"🔗 Setting up TON webhook to: {webhook_url_ton}")
-        await ton_service.setup_webhook()
+    # TON webhook (пропускаем если не настроен)
+    if os.getenv("TON_API_KEY") and os.getenv("TON_WALLET_ADDRESS"):
+        print(f"🔗 Setting up TON webhook...")
+        success = await ton_service.setup_webhook()
+        if success:
+            print("✅ TON Webhook successfully registered")
+        else:
+            print("⚠️ TON Webhook registration failed - continuing without")
     
     # Запускаем фоновую задачу для краш-игры
     asyncio.create_task(run_crash_game())
 
-# Добавляем роутер
-app.include_router(websocket.router)
-
-# Добавляем функцию для краш-игры
 async def run_crash_game():
     """Фоновая задача для управления краш-игрой"""
-    from app.services.crash_game import CrashGame
-    crash_game = CrashGame(websocket_manager)
-    
     while True:
         try:
-            await crash_game.run_game_cycle()
-            await asyncio.sleep(5)  # Пауза между играми
+            await crash_game.run_game_cycle()  # ✅ Используем существующий экземпляр
+            # Пауза между играми
+            await asyncio.sleep(10)
         except Exception as e:
             print(f"Error in crash game: {e}")
             await asyncio.sleep(10)
@@ -670,3 +680,4 @@ async def get_transaction_status(
 # Подключаем роутеры
 dp.include_router(telegram_router)
 app.include_router(wallet.router)
+app.include_router(websocket.router)

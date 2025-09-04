@@ -17,16 +17,11 @@ class TonService:
     async def setup_webhook(self):
         """Настраиваем веб-перехватчик для уведомлений о транзакциях"""
         try:
-            # ИСПОЛЬЗУЕМ WEBHOOK_URL_TON для TON вебхуков
             webhook_url = f"{os.getenv('WEBHOOK_URL_TON', '').rstrip('/')}/api/webhook/ton"
             print(f"🔗 Registering TON webhook: {webhook_url}")
             
-            # Проверяем что URL валидный
-            if not webhook_url.startswith('http'):
-                print("❌ Invalid TON webhook URL")
-                return False
-            
-            url = f"{self.base_url}/webhooks/account"
+            # ✅ Используем правильный endpoint для TON API v2
+            url = f"{self.base_url}/webhook"
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json"
@@ -34,8 +29,11 @@ class TonService:
             
             payload = {
                 "url": webhook_url,
-                "account": self.wallet_address,
-                "types": ["transaction"],
+                "subscription_type": "account",
+                "subscription_filter": {
+                    "account": self.wallet_address,
+                    "transaction_types": ["in"]
+                },
                 "secret": self.webhook_secret
             }
             
