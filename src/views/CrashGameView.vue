@@ -303,9 +303,11 @@ const selectedPaymentMethod = ref('top')
   border-radius: 16px;
   padding: 20px;
   margin-bottom: 16px;
+  width: 95%;
   position: relative;
-  height: 400px;
+  height: 350px;
   border: 1px solid #4479D98A;
+  margin: 20px 0px 20px 2.5%;
 
 }
 
