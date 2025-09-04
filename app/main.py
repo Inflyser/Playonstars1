@@ -26,7 +26,7 @@ from app.services.crash_game import CrashGame
 from app.routers import wallet
 from app.routers import websocket
 import random
-import datetime
+from datetime import datetime 
 from app.services.crash_game import CrashGame
 from app.services.websocket_manager import websocket_manager
 import websockets
