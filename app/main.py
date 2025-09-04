@@ -677,6 +677,16 @@ async def get_transaction_status(
         "created_at": transaction.created_at.isoformat()
     }
     
+@app.get("/api/ws/test")
+async def websocket_test():
+    return {
+        "websocket_enabled": True,
+        "crash_connections": len(websocket_manager.crash_game_connections),
+        "allowed_origins": [
+            "https://playonstars.netlify.app",
+            "https://web.telegram.org"
+        ]
+    }
     
 # Подключаем роутеры
 dp.include_router(telegram_router)
