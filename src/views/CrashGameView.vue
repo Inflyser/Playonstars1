@@ -1,156 +1,180 @@
 <template>
-  <div class="crash-game">
-    <TelegramHeader2 title="Crash Game" />
-    
-    <div class="game-container">
-      <!-- График игры -->
-      <div class="game-graph">
-        <div class="multiplier-display" :class="{ growing: isGameActive }">
-          {{ currentMultiplier.toFixed(2) }}x
-        </div>
-        <div class="graph-canvas" ref="graphCanvas"></div>
-      </div>
+  <div class="home">
+    <TelegramHeader />
+    <div class="crash-game">
+      <TelegramHeader2 title="Crash Game" />
 
-      <!-- Статус игры -->
-      <div class="game-status">
-        <div class="phase-badge" :class="gameState.phase">
-          {{ phaseText }}
+      <div class="game-container">
+        <!-- График игры -->
+        <div class="game-graph">
+          <div class="multiplier-display" :class="{ growing: isGameActive }">
+            {{ currentMultiplier.toFixed(2) }}x
+          </div>
+          <div class="graph-canvas" ref="graphCanvas"></div>
         </div>
-        <div class="timer" v-if="gameState.phase === 'betting'">
-          {{ gameState.timeRemaining }}s
-        </div>
-      </div>
 
-      <!-- История игр -->
-      <div class="game-history">
-        <h4>История</h4>
-        <div class="history-list">
-          <div 
-            v-for="game in gameState.history.slice(0, 5)" 
-            :key="game.gameId" 
-            class="history-item"
-            :class="{ crashed: game.multiplier < 2 }"
-          >
-            {{ game.multiplier.toFixed(2) }}x
+        <BettingPanel />
+
+        <BettingPanel />
+
+
+        <!-- Статус игры -->
+        <div class="game-status">
+          <div class="phase-badge" :class="gameState.phase">
+            {{ phaseText }}
+          </div>
+          <div class="timer" v-if="gameState.phase === 'betting'">
+            {{ gameState.timeRemaining }}s
           </div>
         </div>
-      </div>
 
-      <!-- Панель ставок -->
-      <div class="betting-panel" v-if="gameState.phase === 'betting'">
-        <div class="balance-info">
-          <span>Баланс: {{ userStore.balance.stars_balance.toFixed(2) }} stars</span>
-        </div>
-        
-        <div class="bet-amount">
-          <input
-            v-model="betAmount"
-            type="number"
-            placeholder="Сумма ставки"
-            :min="1"
-            :max="userStore.balance.stars_balance"
-            class="bet-input"
-          />
-          <button 
-            @click="setBetAmount(userStore.balance.stars_balance)"
-            class="max-btn"
-          >
-            MAX
-          </button>
-        </div>
-
-        <div class="auto-cashout">
-          <label>Авто-вывод (x):</label>
-          <input
-            v-model="autoCashout"
-            type="number"
-            placeholder="2.00"
-            step="0.1"
-            min="1.1"
-            class="cashout-input"
-          />
-        </div>
-
-        <button
-          @click="placeBet"
-          :disabled="!canPlaceBet || isBetting"
-          class="place-bet-btn"
-          :class="{ disabled: !canPlaceBet }"
-        >
-          {{ isBetting ? 'Размещение...' : `Поставить ${betAmount || 0} stars` }}
-        </button>
-      </div>
-
-      <!-- Панель игры -->
-      <div class="game-panel" v-else-if="gameState.phase === 'flying'">
-        <div class="current-bet" v-if="currentUserBet">
-          <div class="bet-info">
-            <span>Ставка: {{ currentUserBet.amount }} stars</span>
-            <span>Текущий выигрыш: {{ currentProfit.toFixed(2) }} stars</span>
-          </div>
-          
-          <button
-            @click="doCashOut"
-            :disabled="!canCashOut"
-            class="cashout-btn"
-            :class="{ disabled: !canCashOut }"
-          >
-            Вывести {{ currentMultiplier.toFixed(2) }}x
-          </button>
-        </div>
-
-        <div class="players-list">
-          <div class="players-title">Игроки ({{ gameState.players.length }})</div>
-          <div 
-            v-for="player in visiblePlayers" 
-            :key="player.userId" 
-            class="player-item"
-          >
-            <img :src="player.avatar" class="player-avatar" />
-            <span class="player-name">{{ player.username }}</span>
-            <span class="player-bet">{{ player.betAmount }} stars</span>
-            <span 
-              v-if="player.cashoutMultiplier" 
-              class="player-cashout"
+        <!-- История игр -->
+        <div class="game-history">
+          <h4>История</h4>
+          <div class="history-list">
+            <div 
+              v-for="game in gameState.history.slice(0, 5)" 
+              :key="game.gameId" 
+              class="history-item"
+              :class="{ crashed: game.multiplier < 2 }"
             >
-              Вывел {{ player.cashoutMultiplier }}x
-            </span>
+              {{ game.multiplier.toFixed(2) }}x
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Результат игры -->
-      <div class="result-panel" v-else-if="gameState.phase === 'finished'">
-        <div class="result-message">
-          <h3>Игра завершена!</h3>
-          <p>Множитель: {{ gameState.multiplier.toFixed(2) }}x</p>
-          
-          <div v-if="currentUserBet" class="your-result">
-            <p>Ваша ставка: {{ currentUserBet.amount }} stars</p>
-            <p :class="{ profit: (currentUserBet.profit || 0) > 0, loss: (currentUserBet.profit || 0) === 0 }">
-              Результат: {{ (currentUserBet.profit || 0) > 0 ? '+' + (currentUserBet.profit || 0).toFixed(2) : '0' }} stars
-            </p>
+        <!-- Панель ставок -->
+        <div class="betting-panel" v-if="gameState.phase === 'betting'">
+          <div class="balance-info">
+            <span>Баланс: {{ userStore.balance.stars_balance.toFixed(2) }} stars</span>
           </div>
 
-          <button @click="prepareNewGame" class="play-again-btn">
-            Играть снова
+          <div class="bet-amount">
+            <input
+              v-model="betAmount"
+              type="number"
+              placeholder="Сумма ставки"
+              :min="1"
+              :max="userStore.balance.stars_balance"
+              class="bet-input"
+            />
+            <button 
+              @click="setBetAmount(userStore.balance.stars_balance)"
+              class="max-btn"
+            >
+              MAX
+            </button>
+          </div>
+
+          <div class="auto-cashout">
+            <label>Авто-вывод (x):</label>
+            <input
+              v-model="autoCashout"
+              type="number"
+              placeholder="2.00"
+              step="0.1"
+              min="1.1"
+              class="cashout-input"
+            />
+          </div>
+
+          <button
+            @click="placeBet"
+            :disabled="!canPlaceBet || isBetting"
+            class="place-bet-btn"
+            :class="{ disabled: !canPlaceBet }"
+          >
+            {{ isBetting ? 'Размещение...' : `Поставить ${betAmount || 0} stars` }}
           </button>
         </div>
-      </div>
 
-      <!-- Ожидание игры -->
-      <div class="waiting-panel" v-else>
-        <div class="waiting-message">
-          <h3>Ожидание следующей игры...</h3>
-          <p>Новая игра начнется через {{ gameState.timeRemaining }} секунд</p>
+        <!-- Панель игры -->
+        <div class="game-panel" v-else-if="gameState.phase === 'flying'">
+          <div class="current-bet" v-if="currentUserBet">
+            <div class="bet-info">
+              <span>Ставка: {{ currentUserBet.amount }} stars</span>
+              <span>Текущий выигрыш: {{ currentProfit.toFixed(2) }} stars</span>
+            </div>
+
+            <button
+              @click="doCashOut"
+              :disabled="!canCashOut"
+              class="cashout-btn"
+              :class="{ disabled: !canCashOut }"
+            >
+              Вывести {{ currentMultiplier.toFixed(2) }}x
+            </button>
+          </div>
+
+          <div class="players-list">
+            <div class="players-title">Игроки ({{ gameState.players.length }})</div>
+            <div 
+              v-for="player in visiblePlayers" 
+              :key="player.userId" 
+              class="player-item"
+            >
+              <img :src="player.avatar" class="player-avatar" />
+              <span class="player-name">{{ player.username }}</span>
+              <span class="player-bet">{{ player.betAmount }} stars</span>
+              <span 
+                v-if="player.cashoutMultiplier" 
+                class="player-cashout"
+              >
+                Вывел {{ player.cashoutMultiplier }}x
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Результат игры -->
+        <div class="result-panel" v-else-if="gameState.phase === 'finished'">
+          <div class="result-message">
+            <h3>Игра завершена!</h3>
+            <p>Множитель: {{ gameState.multiplier.toFixed(2) }}x</p>
+
+            <div v-if="currentUserBet" class="your-result">
+              <p>Ваша ставка: {{ currentUserBet.amount }} stars</p>
+              <p :class="{ profit: (currentUserBet.profit || 0) > 0, loss: (currentUserBet.profit || 0) === 0 }">
+                Результат: {{ (currentUserBet.profit || 0) > 0 ? '+' + (currentUserBet.profit || 0).toFixed(2) : '0' }} stars
+              </p>
+            </div>
+
+            <button @click="prepareNewGame" class="play-again-btn">
+              Играть снова
+            </button>
+          </div>
+        </div>
+
+        <!-- Ожидание игры -->
+        <div class="waiting-panel" v-else>
+          <div class="waiting-message">
+            <h3>Ожидание следующей игры...</h3>
+            <p>Новая игра начнется через {{ gameState.timeRemaining }} секунд</p>
+          </div>
         </div>
       </div>
+
+      <!-- Уведомления -->
+      <div v-if="gameError" class="error-notification">
+        {{ gameError }}
+      </div>
+    </div>
+        <div class="divider"></div>
+
+    <div class="balance-view">
+          <!-- Панель с кнопками -->
+      <ButtonTop v-model="selectedPaymentMethod" />
+
+      <!-- Контент в зависимости от выбранного метода -->
+      <div class="payment-content">
+        <TopAll v-if="selectedPaymentMethod === 'top'" />
+        <Top10 v-if="selectedPaymentMethod === 'top10'" />
+        <TopMy v-if="selectedPaymentMethod === 'mytop'" />
+      </div>
     </div>
 
-    <!-- Уведомления -->
-    <div v-if="gameError" class="error-notification">
-      {{ gameError }}
-    </div>
+    <!-- Плавающая панель навигации -->
+    <BottomNavigation />
   </div>
 </template>
 
@@ -244,6 +268,20 @@ watch(() => gameState.value.phase, (newPhase) => {
     setTimeout(prepareNewGame, 5000)
   }
 })
+
+
+import BottomNavigation from '@/components/layout/BottomNavigation.vue'
+import TelegramHeader from '@/components/layout/TelegramHeader.vue'
+
+import ButtonTop from '@/components/layout/ButtonTop.vue'
+import Top10 from '@/components/ui/topCrash/Top10.vue'
+import TopAll from '@/components/ui/topCrash/TopAll.vue'
+import TopMy from '@/components/ui/topCrash/TopMy.vue'
+
+import BettingPanel from '@/components/layout/BettingPanel.vue'
+
+
+const selectedPaymentMethod = ref('top')
 </script>
 
 <style scoped>
@@ -510,4 +548,6 @@ watch(() => gameState.value.phase, (newPhase) => {
   text-align: center;
   color: #9ca3af;
 }
+
+
 </style>
