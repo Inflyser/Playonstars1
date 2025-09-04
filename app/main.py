@@ -164,6 +164,78 @@ async def websocket_crash(websocket: WebSocket):
         websocket_manager.disconnect_crash_game(websocket)
         
         
+        
+@app.post("/api/user/update-balance")
+async def update_user_balance(
+    request: Request,
+    balance_data: dict,
+    db: Session = Depends(get_db)
+):
+    """Обновляем баланс пользователя"""
+    try:
+        telegram_id = request.session.get("telegram_id")
+        if not telegram_id:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        user = crud.get_user_by_telegram_id(db, telegram_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        currency = balance_data.get("currency")
+        amount = float(balance_data.get("amount", 0))
+        operation = balance_data.get("operation", "add")  # add или set
+        
+        if currency == "stars":
+            if operation == "add":
+                user.stars_balance += amount
+            else:  # set
+                user.stars_balance = amount
+        elif currency == "ton":
+            if operation == "add":
+                user.ton_balance += amount
+            else:  # set
+                user.ton_balance = amount
+        
+        db.commit()
+        db.refresh(user)
+        
+        return {
+            "status": "success",
+            "balance": {
+                "stars_balance": user.stars_balance,
+                "ton_balance": user.ton_balance
+            }
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/user/sync-balance")
+async def sync_user_balance(
+    request: Request,
+    balance_data: dict,
+    db: Session = Depends(get_db)
+):
+    """Синхронизация баланса с клиентом"""
+    try:
+        telegram_id = request.session.get("telegram_id")
+        if not telegram_id:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        user = crud.get_user_by_telegram_id(db, telegram_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Просто возвращаем актуальный баланс из БД
+        return {
+            "stars_balance": user.stars_balance,
+            "ton_balance": user.ton_balance
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 @app.get("/games/crash/history")
 async def get_crash_history(limit: int = 50, db: Session = Depends(get_db)):
     """Получить историю краш-игр из базы данных"""
