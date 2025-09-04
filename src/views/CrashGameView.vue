@@ -284,6 +284,13 @@ const selectedPaymentMethod = ref('top')
 </script>
 
 <style scoped>
+
+.home {
+  min-height: 100vh;
+  background: linear-gradient(to right, #1B152F, #180A24);
+  padding-bottom: 80px;
+}
+
 .crash-game {
   min-height: 100vh;
   background: linear-gradient(135deg, #1a1f3b 0%, #13162b 100%);
