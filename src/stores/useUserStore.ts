@@ -42,29 +42,77 @@ export const useUserStore = defineStore('user', () => {
     balance.value = newBalance;
   };
 
-  const updateBalance = (currency: 'ton' | 'stars', amount: number) => {
-    if (user.value) {
-      if (currency === 'ton') {
-        user.value.ton_balance += amount;
-        balance.value.ton_balance += amount;
-      } else {
-        user.value.stars_balance += amount;
-        balance.value.stars_balance += amount;
+  const updateBalance = async (currency: 'ton' | 'stars', amount: number, operation: 'add' | 'set' = 'add') => {
+      if (user.value) {
+          // 1. Локальное обновление
+          if (currency === 'ton') {
+              if (operation === 'add') {
+                  user.value.ton_balance += amount;
+                  balance.value.ton_balance += amount;
+              } else {
+                  user.value.ton_balance = amount;
+                  balance.value.ton_balance = amount;
+              }
+          } else {
+              if (operation === 'add') {
+                  user.value.stars_balance += amount;
+                  balance.value.stars_balance += amount;
+              } else {
+                  user.value.stars_balance = amount;
+                  balance.value.stars_balance = amount;
+              }
+          }
+          
+          // 2. Синхронизация с сервером
+          try {
+              const { api } = await import('@/services/api');
+              await api.post('/api/user/update-balance', {
+                  currency: currency,
+                  amount: amount,
+                  operation: operation
+              });
+          } catch (error) {
+              console.error('Balance update failed:', error);
+              // Если сервер недоступен, оставляем локальные изменения
+          }
       }
-    }
+  };
+  
+  const fetchBalance = async () => {
+      try {
+          const { api } = await import('@/services/api');
+          const response = await api.get('/api/user/balance');
+          
+          // Обновляем локальное состояние
+          setBalance(response.data);
+          
+          // Также обновляем у пользователя
+          if (user.value) {
+              user.value.ton_balance = response.data.ton_balance;
+              user.value.stars_balance = response.data.stars_balance;
+          }
+      } catch (err) {
+          console.error('Failed to fetch balance:', err);
+      }
   };
 
-  const fetchBalance = async () => {
-    try {
-      const { api } = await import('@/services/api');
-      const response = await api.get('/api/user/balance');
-      
-      // ✅ ПРАВИЛЬНЫЙ ФОРМАТ - response.data содержит баланс
-      setBalance(response.data);
-    } catch (err) {
-      console.error('Failed to fetch balance:', err);
-    }
-  };
+  const syncBalance = async () => {
+     try {
+         const { api } = await import('@/services/api');
+         const response = await api.post('/api/user/sync-balance');
+         
+         setBalance(response.data);
+         if (user.value) {
+             user.value.ton_balance = response.data.ton_balance;
+             user.value.stars_balance = response.data.stars_balance;
+         }
+         
+         return response.data;
+     } catch (error) {
+         console.error('Balance sync failed:', error);
+         return null;
+     }
+    };
 
   const fetchUserData = async () => {
     try {
@@ -134,6 +182,7 @@ export const useUserStore = defineStore('user', () => {
     clearUser,
     fetchUserData,
     fetchBalance,
+    syncBalance,
     getAvatarUrl,
     getDisplayName,
     getUsername

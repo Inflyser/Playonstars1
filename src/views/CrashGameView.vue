@@ -163,6 +163,14 @@
             {{ gameError }}
         </div>
 
+        <div class="debug-info" v-if="false"> <!-- поставьте true для дебага -->
+            <p>Локальный баланс: {{ userStore.balance.stars_balance }}</p>
+            <p>Ставка: {{ currentUserBet?.amount }}</p>
+            <p>Выигрыш: {{ currentUserBet?.profit }}</p>
+            <button @click="userStore.fetchBalance()">Обновить баланс</button>
+            <button @click="userStore.syncBalance()">Синхронизировать</button>
+        </div>
+
         <div class="divider"></div>
 
         <!-- Топ игроков -->
@@ -256,28 +264,26 @@ const placeBet = async () => {
 
 const doCashOut = async () => {
     try {
-        await gameStore.cashOut()
-        cashOut()
+        await gameStore.cashOut();
+        cashOut();
         
-        // ✅ ДВОЙНАЯ СИНХРОНИЗАЦИЯ ДЛЯ НАДЕЖНОСТИ
+        // ✅ ДВОЙНАЯ ПРОВЕРКА СИНХРОНИЗАЦИИ
         setTimeout(async () => {
-            await userStore.fetchBalance()
-        }, 1500)
+            const syncedBalance = await userStore.syncBalance();
+            if (syncedBalance) {
+                console.log('Balance synced successfully:', syncedBalance);
+            }
+        }, 1000);
         
     } catch (error) {
-        console.error('Failed to cash out:', error)
+        console.error('Failed to cash out:', error);
     }
-}
+};
 
-// В watch для фазы finished
-watch(() => gameState.value.phase, (newPhase) => {
-    if (newPhase === 'finished') {
-        setTimeout(async () => {
-            await userStore.fetchBalance() // ✅ СИНХРОНИЗИРУЕМ
-            prepareNewGame()
-        }, 2000)
-    }
-})
+// Добавляем watch для отслеживания изменений баланса
+watch(() => userStore.balance, (newBalance) => {
+    console.log('Balance changed:', newBalance);
+}, { deep: true });
 
 const prepareNewGame = () => {
     gameStore.resetBet()
