@@ -36,49 +36,19 @@
             </div>
         </div>
 
+        <BettingPanel 
+              v-model:betAmount="betAmount"
+              :maxAmount="userStore.balance.stars_balance"
+              @place-bet="placeBet"
+          />
+
         <!-- Панель ставок -->
         <div class="betting-panel" v-if="gameState.phase === 'betting'">
-            <div class="balance-info">
-                <span>Баланс: {{ userStore.balance.stars_balance.toFixed(2) }} stars</span>
-            </div>
-            
-            <div class="bet-amount">
-                <input
-                    v-model="betAmount"
-                    type="number"
-                    placeholder="Сумма ставки"
-                    :min="1"
-                    :max="userStore.balance.stars_balance"
-                    class="bet-input"
-                />
-                <button 
-                    @click="setBetAmount(userStore.balance.stars_balance)"
-                    class="max-btn"
-                >
-                    MAX
-                </button>
-            </div>
+   
 
-            <div class="auto-cashout">
-                <label>Авто-вывод (x):</label>
-                <input
-                    v-model="autoCashout"
-                    type="number"
-                    placeholder="2.00"
-                    step="0.1"
-                    min="1.1"
-                    class="cashout-input"
-                />
-            </div>
 
-            <button
-                @click="placeBet"
-                :disabled="!canPlaceBet || isBetting"
-                class="place-bet-btn"
-                :class="{ disabled: !canPlaceBet }"
-            >
-                {{ isBetting ? 'Размещение...' : `Поставить ${betAmount || 0} stars` }}
-            </button>
+
+          
         </div>
 
         <!-- Панель игры -->

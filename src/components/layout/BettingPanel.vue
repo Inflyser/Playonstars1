@@ -43,7 +43,6 @@
     <!-- Второй блок: управление суммой ставки -->
     <div class="bet-amount-control">
       
-      
       <!-- Левая часть: сумма и быстрые кнопки -->
       <div class="amount-section">
         <div class="amount-main">
@@ -64,48 +63,135 @@
           >
             +{{ quickAmount }}
           </button>
+          <!-- Добавляем кнопку MAX -->
+          <button 
+            class="quick-btn max-btn"
+            @click="setMaxAmount"
+          >
+            MAX
+          </button>
         </div>
       </div>
 
       <!-- Правая часть: кнопка ставки -->
-      
-      <button class="place-bet-btn" @click="placeBet">
+      <button 
+        class="place-bet-btn" 
+        @click="placeBet"
+        :disabled="isDisabled"
+      >
         <span class="shine-effect"></span>
         СТАВКА
         <div class="divider-bet"></div>
       </button>
-    
     </div>
-    
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, watch, defineProps, defineEmits } from 'vue'
+
+// Props
+const props = defineProps({
+  betAmount: {
+    type: Number,
+    default: 100
+  },
+  maxAmount: {
+    type: Number,
+    default: 1000
+  }
+})
+
+// Emits
+const emit = defineEmits(['update:betAmount', 'place-bet'])
 
 // Состояния для первого блока
 const autoBet = ref(false)
 const quickBet = ref(false)
 const coefficient = ref('1.0')
 
-// Форматирование коэффициента
+// Локальная копия betAmount
+const localBetAmount = ref(props.betAmount)
+
+// Следим за изменениями извне
+watch(() => props.betAmount, (newVal) => {
+  localBetAmount.value = newVal
+})
+
+// Следим за локальными изменениями
+watch(localBetAmount, (newVal) => {
+  emit('update:betAmount', newVal)
+})
+
+// Computed свойства
+const isDisabled = computed(() => {
+  return localBetAmount.value <= 0 || localBetAmount.value > props.maxAmount
+})
+
+const quickAmounts = computed(() => {
+  // Динамические быстрые суммы на основе макс. суммы
+  const max = props.maxAmount
+  return [
+    Math.floor(max * 0.1),
+    Math.floor(max * 0.25), 
+    Math.floor(max * 0.5),
+    Math.floor(max * 0.75)
+  ].filter(amount => amount > 0)
+})
+
+// Методы
+const setMaxAmount = () => {
+  localBetAmount.value = props.maxAmount
+}
+
+const increaseAmount = () => {
+  const newAmount = localBetAmount.value + 10
+  if (newAmount <= props.maxAmount) {
+    localBetAmount.value = newAmount
+  } else {
+    localBetAmount.value = props.maxAmount
+  }
+}
+
+const decreaseAmount = () => {
+  if (localBetAmount.value > 10) {
+    localBetAmount.value -= 10
+  }
+}
+
+const addToBet = (amount: number) => {
+  const newAmount = localBetAmount.value + amount
+  if (newAmount <= props.maxAmount) {
+    localBetAmount.value = newAmount
+  } else {
+    localBetAmount.value = props.maxAmount
+  }
+}
+
+const placeBet = () => {
+  if (!isDisabled.value) {
+    emit('place-bet', {
+      amount: localBetAmount.value,
+      coefficient: coefficient.value,
+      autoBet: autoBet.value,
+      quickBet: quickBet.value
+    })
+  }
+}
+
+// Форматирование коэффициента (остается без изменений)
 const formatCoefficient = (event: Event) => {
   const target = event.target as HTMLInputElement
   let value = target.value
   
-  // Заменяем запятую на точку
   value = value.replace(',', '.')
-  
-  // Удаляем все, кроме цифр и точки
   value = value.replace(/[^\d.]/g, '')
   
-  // Удаляем лишние точки
   const parts = value.split('.')
   if (parts.length > 2) {
     value = parts[0] + '.' + parts.slice(1).join('')
   }
   
-  // Ограничиваем до 2 знаков после точки
   if (parts.length === 2) {
     value = parts[0] + '.' + parts[1].slice(0, 2)
   }
@@ -114,7 +200,6 @@ const formatCoefficient = (event: Event) => {
   coefficient.value = value
 }
 
-// Валидация при потере фокуса
 const validateCoefficient = () => {
   if (!coefficient.value) {
     coefficient.value = '1.00'
@@ -123,12 +208,10 @@ const validateCoefficient = () => {
   
   let value = coefficient.value
   
-  // Добавляем точку если её нет
   if (!value.includes('.')) {
     value += '.00'
   }
   
-  // Добавляем нули если нужно
   const parts = value.split('.')
   if (parts.length === 1) {
     value += '.00'
@@ -138,44 +221,12 @@ const validateCoefficient = () => {
     value += '00'
   }
   
-  // Убеждаемся, что значение не меньше 1.00
   const numValue = parseFloat(value)
   if (numValue < 1.00) {
     value = '1.00'
   }
   
   coefficient.value = value
-}
-// Состояния для второго блока
-const betAmount = ref(100)
-const quickAmounts = [50, 100, 200, 500]
-
-// Увеличение суммы ставки
-const increaseAmount = () => {
-  betAmount.value += 10
-}
-
-// Уменьшение суммы ставки
-const decreaseAmount = () => {
-  if (betAmount.value > 10) {
-    betAmount.value -= 10
-  }
-}
-
-// Быстрое добавление к ставке
-const addToBet = (amount: number) => {
-  betAmount.value += amount
-}
-
-// Размещение ставки
-const placeBet = () => {
-  console.log('Ставка размещена:', {
-    amount: betAmount.value,
-    coefficient: coefficient.value,
-    autoBet: autoBet.value,
-    quickBet: quickBet.value
-  })
-  // Здесь будет логика отправки ставки
 }
 </script>
 
