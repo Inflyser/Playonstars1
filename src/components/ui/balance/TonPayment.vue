@@ -1,5 +1,6 @@
 <template>
     <div class="ton-payment">
+        <TonConnectModal ref="tonConnectModal" />
         <!-- Состояние: кошелек не подключен -->
         <div v-if="!isConnected" class="connect-section">
             <div class="connect-header">
@@ -92,10 +93,12 @@ import { useWalletStore } from '@/stores/useWalletStore'
 import { useUserStore } from '@/stores/useUserStore'
 import { api } from '@/services/api'
 import { openTelegramLink, isTelegramWebApp } from '@/utils/telegram'
+import TonConnectModal from '@/components/ui/TonConnectModal.vue';
 
 const router = useRouter()
 const walletStore = useWalletStore()
 const userStore = useUserStore()
+const tonConnectModal = ref() 
 
 const { 
     isConnected, 
@@ -138,12 +141,19 @@ const createTelegramPaymentLink = (amount: number): string => {
 const connectWallet = async () => {
     try {
         error.value = ''
-        await walletStore.connect()
+        
+        // ✅ Открываем модальное окно вместо прямого вызова
+        if (isTelegramWebApp()) {
+            tonConnectModal.value?.open();
+        } else {
+            await walletStore.connect();
+        }
     } catch (err) {
         error.value = 'Ошибка подключения кошелька'
         console.error('Connection error:', err)
     }
 }
+
 
 const disconnectWallet = () => {
     walletStore.disconnect()
