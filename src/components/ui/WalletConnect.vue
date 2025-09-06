@@ -1,8 +1,5 @@
 <template>
   <div class="wallet-connect">
-    <!-- Добавляем модалку -->
-    <TonConnectModal ref="tonConnectModal" />
-    
     <!-- Состояние: кошелек не подключен -->
     <div v-if="!isConnected" class="connect-section">
       <h3>Connect TON Wallet</h3>
@@ -42,7 +39,7 @@
 import { ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useWalletStore } from '@/stores/useWalletStore';
-import { isTelegramWebApp } from '@/utils/telegram'; // ✅ Добавляем импорт
+import { isTelegramWebApp } from '@/utils/telegram';
 import TonConnectModal from '@/components/ui/TonConnectModal.vue';
 
 const walletStore = useWalletStore();
@@ -60,7 +57,6 @@ const connect = async () => {
   try {
     error.value = '';
     
-    // ✅ Используем импортированную функцию isTelegramWebApp()
     if (isTelegramWebApp()) {
       tonConnectModal.value?.open();
     } else {
@@ -76,6 +72,7 @@ const disconnect = () => {
   walletStore.disconnect();
 };
 
+defineExpose({ open, close });
 </script>
 
 <style scoped>

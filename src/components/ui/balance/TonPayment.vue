@@ -1,6 +1,7 @@
 <template>
     <div class="ton-payment">
         <TonConnectModal ref="tonConnectModal" />
+        
         <!-- Состояние: кошелек не подключен -->
         <div v-if="!isConnected" class="connect-section">
             <div class="connect-header">
@@ -86,19 +87,19 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import InputPanel from '@/components/layout/InputPanel.vue'
 import { useWalletStore } from '@/stores/useWalletStore'
 import { useUserStore } from '@/stores/useUserStore'
 import { api } from '@/services/api'
 import { openTelegramLink, isTelegramWebApp } from '@/utils/telegram'
-import TonConnectModal from '@/components/ui/TonConnectModal.vue';
+import TonConnectModal from '@/components/ui/TonConnectModal.vue'
 
 const router = useRouter()
 const walletStore = useWalletStore()
 const userStore = useUserStore()
-const tonConnectModal = ref() 
+const tonConnectModal = ref()
 
 const { 
     isConnected, 
@@ -122,36 +123,30 @@ const isValidAmount = computed(() => {
     return numAmount >= 0.1 && numAmount <= (tonBalance.value || 0)
 })
 
-// ✅ НОВЫЙ МЕТОД ДЛЯ СОЗДАНИЯ ССЫЛКИ ДЛЯ TELEGRAM
+// Метод для создания платежной ссылки
 const createTelegramPaymentLink = (amount: number): string => {
     const appWallet = appWalletAddress.value;
     const userTelegramId = userStore.user?.telegram_id;
     const comment = `deposit:${userTelegramId}`;
     
-    // Форматируем сумму в нанотонах (1 TON = 1e9 нанотон)
     const nanoAmount = Math.floor(amount * 1e9).toString();
-    
-    // Создаем deep link для Telegram Wallet
     return `tg://wallet?startapp=transfer=${appWallet}_${nanoAmount}_${encodeURIComponent(comment)}`;
 };
-
-
 
 // Методы
 const connectWallet = async () => {
     try {
+        error.value = ''
         if (isTelegramWebApp()) {
-            // ✅ Открываем модальное окно для выбора кошелька
             tonConnectModal.value?.open();
         } else {
-            // ✅ Для браузера используем стандартное подключение
             await walletStore.connect();
         }
     } catch (err) {
-        error.value = 'Ошибка подключения кошелька';
+        error.value = 'Ошибка подключения кошелька'
+        console.error('Connection error:', err)
     }
-};
-
+}
 
 const disconnectWallet = () => {
     walletStore.disconnect()
@@ -176,23 +171,17 @@ const confirmDeposit = async () => {
 
     try {
         const depositAmount = parseFloat(amount.value)
-        
-        // ✅ РАЗДЕЛЯЕМ ЛОГИКУ ДЛЯ TELEGRAM И БРАУЗЕРА
         let result: any;
         
         if (isTelegramWebApp()) {
-            // ✅ ДЛЯ TELEGRAM WEBAPP - используем deep link
-            const deepLink = createTelegramPaymentLink(depositAmount); // ✅ УБРАЛИ this
+            const deepLink = createTelegramPaymentLink(depositAmount);
             openTelegramLink(deepLink);
             
-            // Создаем pending транзакцию
             result = { 
                 boc: `pending_${Date.now()}`,
                 status: 'pending'
             };
-            
         } else {
-            // ✅ ДЛЯ БРАУЗЕРА - стандартный TonConnect
             result = await walletStore.sendTransaction(
                 appWalletAddress.value,
                 depositAmount,
@@ -200,7 +189,6 @@ const confirmDeposit = async () => {
             );
         }
 
-        // 2. Сохраняем транзакцию на бекенде
         const response = await api.post('/wallet/deposit', {
             amount: depositAmount,
             tx_hash: result.boc,
@@ -213,13 +201,11 @@ const confirmDeposit = async () => {
                 ? 'Откройте кошелек для подтверждения перевода' 
                 : 'Транзакция отправлена! Ожидайте подтверждения.';
             
-            // 3. Обновляем баланс после задержки
             setTimeout(async () => {
                 await userStore.fetchBalance();
                 await walletStore.updateBalance();
             }, 3000);
             
-            // 4. Возвращаемся назад через 2 секунды (только для браузера)
             if (!isTelegramWebApp()) {
                 setTimeout(() => {
                     router.back();
@@ -239,9 +225,9 @@ const confirmDeposit = async () => {
 
 onMounted(() => {
     walletStore.updateBalance().catch(console.error);
-    
 });
 </script>
+
 
 <style scoped>
 .ton-payment {
