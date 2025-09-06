@@ -147,6 +147,15 @@ def add_crash_bet(
 def get_wallet_by_address(db: Session, address: str):
     return db.query(Wallet).filter(Wallet.address == address).first()
 
+def get_pending_transactions(db: Session, user_id: int):
+    """Получаем pending транзакции пользователя"""
+    return db.query(Transaction).filter(
+        Transaction.wallet_id.in_(
+            db.query(Wallet.id).filter(Wallet.user_id == user_id)
+        ),
+        Transaction.status == "pending"
+    ).all()
+
 def get_wallet_by_user(db: Session, user_id: int):
     return db.query(Wallet).filter(Wallet.user_id == user_id).first()
 
