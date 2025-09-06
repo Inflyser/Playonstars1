@@ -383,8 +383,6 @@ watch(() => gameState.value.phase, (newPhase) => {
   width: 95%;
   margin: 20px 0px 20px 2.5%;
   border-bottom: 1px solid #25213C;
-  padding: 12px;
-  margin-bottom: 12px;
 }
 
 .history-list {
@@ -395,7 +393,7 @@ watch(() => gameState.value.phase, (newPhase) => {
 
 .history-item {
   border: 2px solid #4B7ED0;
-  padding: 2px 4px;
+  padding: 0px 2px;
   border-radius: 8px;
   background: #355391;
   font-weight: bold;
