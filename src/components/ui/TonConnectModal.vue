@@ -42,27 +42,34 @@ const generateQRCode = (link: string): string => {
   return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}`;
 };
 
-const open = async () => {
-  isVisible.value = true;
-  
-  // Генерируем QR код для универсальной ссылки
-  const universalLink = 'https://app.tonkeeper.com/ton-connect';
-  qrCodeUrl.value = generateQRCode(universalLink);
-};
 
-const connectWith = (walletType: 'tonkeeper' | 'telegram') => {
-  const links = {
-    tonkeeper: 'tg://resolve?domain=tonkeeper&startattach=tonconnect',
-    telegram: 'tg://wallet?startattach=tonconnect'
-  };
-  
-  openTelegramLink(links[walletType]);
-  close();
+const open = () => {
+    console.log('🚀 [TonConnectModal] Modal open() method called');
+    isVisible.value = true;
+    console.log('✅ [TonConnectModal] Modal visibility set to true');
 };
 
 const close = () => {
-  isVisible.value = false;
+    console.log('🚪 [TonConnectModal] Modal close() method called');
+    isVisible.value = false;
 };
+
+const connectWith = (walletType: 'tonkeeper' | 'telegram') => {
+    console.log(`🎯 [TonConnectModal] Connecting with: ${walletType}`);
+    
+    const links = {
+        tonkeeper: 'tg://resolve?domain=tonkeeper&startattach=tonconnect',
+        telegram: 'tg://wallet?startattach=tonconnect'
+    };
+    
+    console.log('🔗 [TonConnectModal] Opening link:', links[walletType]);
+    openTelegramLink(links[walletType]);
+    console.log('✅ [TonConnectModal] Telegram link opened');
+    
+    close();
+};
+
+
 
 defineExpose({ open, close });
 </script>

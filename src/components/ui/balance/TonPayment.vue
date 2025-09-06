@@ -135,18 +135,25 @@ const createTelegramPaymentLink = (amount: number): string => {
 
 // Методы
 const connectWallet = async () => {
+    console.log('🎯 [TonPayment] Connect wallet button clicked!');
     try {
         error.value = ''
+        console.log('📱 [TonPayment] Is Telegram environment:', isTelegramWebApp());
+        
         if (isTelegramWebApp()) {
+            console.log('📲 [TonPayment] Opening modal...');
             tonConnectModal.value?.open();
+            console.log('✅ [TonPayment] Modal opened successfully');
         } else {
+            console.log('🌐 [TonPayment] Connecting directly via wallet store...');
             await walletStore.connect();
+            console.log('✅ [TonPayment] Wallet store connect completed');
         }
     } catch (err) {
-        error.value = 'Ошибка подключения кошелька'
-        console.error('Connection error:', err)
+        console.error('💥 [TonPayment] Connection error:', err);
+        error.value = 'Ошибка подключения кошелька';
     }
-}
+};
 
 const disconnectWallet = () => {
     walletStore.disconnect()
@@ -226,6 +233,8 @@ const confirmDeposit = async () => {
 onMounted(() => {
     walletStore.updateBalance().catch(console.error);
 });
+
+
 </script>
 
 

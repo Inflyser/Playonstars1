@@ -54,22 +54,28 @@ const {
 } = storeToRefs(walletStore);
 
 const connect = async () => {
-  try {
-    error.value = '';
-    
-    if (isTelegramWebApp()) {
-      tonConnectModal.value?.open();
-    } else {
-      await walletStore.connect();
+    console.log('🎯 [WalletConnect] Connect button clicked');
+    try {
+        error.value = '';
+        console.log('📱 [WalletConnect] Is Telegram environment:', isTelegramWebApp());
+        
+        if (isTelegramWebApp()) {
+            console.log('📲 [WalletConnect] Opening modal...');
+            tonConnectModal.value?.open();
+        } else {
+            console.log('🌐 [WalletConnect] Connecting directly...');
+            await walletStore.connect();
+        }
+    } catch (err) {
+        console.error('💥 [WalletConnect] Connection error:', err);
+        error.value = 'Failed to connect wallet';
     }
-  } catch (err) {
-    error.value = 'Failed to connect wallet';
-    console.error('Connection error:', err);
-  }
 };
 
 const disconnect = () => {
-  walletStore.disconnect();
+    console.log('🚪 [WalletConnect] Disconnect button clicked');
+    walletStore.disconnect();
+    console.log('✅ [WalletConnect] Wallet disconnected');
 };
 
 defineExpose({ open, close });

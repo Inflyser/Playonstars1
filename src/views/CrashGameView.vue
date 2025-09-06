@@ -398,6 +398,7 @@ watch(() => gameState.value.phase, (newPhase) => {
   background: #355391;
   font-weight: bold;
   text-align: center;
+  font-size: 14px;
 }
 
 .betting-panel,

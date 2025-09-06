@@ -83,25 +83,32 @@ export const useWalletStore = defineStore('wallet', {
             this.isInitialized = true;
             console.log('✅ Wallet store initialized');
         },
-
+            
         async connect() {
+            console.log('🔄 [WalletStore] Connect method called');
             this.isLoading = true;
+            console.log('⏳ [WalletStore] Loading state set to true');
+            
             try {
+                console.log('📱 [WalletStore] Is Telegram environment:', isTelegramWebApp());
+                
                 if (isTelegramWebApp()) {
-                    // Для Telegram просто открываем deep link
-                    openTelegramLink('tg://wallet?startattach=tonconnect');
+                    console.log('📲 [WalletStore] Telegram env - should open modal');
+                    // Для Telegram модалка открывается из компонента
                 } else {
-                    // Для браузера используем TonConnect
+                    console.log('🌐 [WalletStore] Browser env - connecting via TonConnect...');
                     await connector.connect({
                         universalLink: 'https://app.tonkeeper.com/ton-connect',
                         bridgeUrl: 'https://bridge.tonapi.io/bridge'
                     });
+                    console.log('✅ [WalletStore] TonConnect connection successful');
                 }
             } catch (error) {
-                console.error('Connection error:', error);
+                console.error('❌ [WalletStore] Connection error:', error);
                 throw error;
             } finally {
                 this.isLoading = false;
+                console.log('⏳ [WalletStore] Loading state set to false');
             }
         },
 
