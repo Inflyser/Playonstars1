@@ -111,7 +111,7 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['update:betAmount', 'place-bet'])
+const emit = defineEmits(['update:betAmount', 'place-bet', 'cash-out'])
 
 // Состояния для первого блока
 const autoBet = ref(false)

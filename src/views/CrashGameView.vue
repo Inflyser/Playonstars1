@@ -1,7 +1,7 @@
 <template>
     <div class="home">
         <TelegramHeader />
-        <TelegramHeader2 title="Crash Game" />
+
 
 
 
@@ -19,7 +19,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- График игры -->
         <div class="game-graph">
             <img src="@/assets/images/crashfon.svg" class="graph-background">
@@ -44,7 +44,10 @@
         <BettingPanel 
           v-model:betAmount="betAmountNumber"
           :maxAmount="userStore.balance.stars_balance"
-          @place-bet="placeBet"
+          :gamePhase="gameState.phase"
+          :currentMultiplier="currentMultiplier"
+          @place-bet="handlePlaceBet"
+          @cash-out="doCashOut"
         />
 
         <!-- Панель ставок -->
@@ -156,13 +159,12 @@ import { useGameStore } from '@/stores/useGameStore'
 import { useUserStore } from '@/stores/useUserStore'
 import { useWebSocket } from '@/composables/useWebSocket'
 import TelegramHeader from '@/components/layout/TelegramHeader.vue'
-import TelegramHeader2 from '@/components/layout/TelegramHeader2.vue'
 import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 import ButtonTop from '@/components/layout/ButtonTop.vue'
 import Top10 from '@/components/ui/topCrash/Top10.vue'
 import TopAll from '@/components/ui/topCrash/TopAll.vue'
 import TopMy from '@/components/ui/topCrash/TopMy.vue'
-import BettingPanel from '@/components/layout/BettingPanel.vue'
+import BettingPanel from '@/components/layout/BettingPanel.vue' 
 
 const gameStore = useGameStore()
 const userStore = useUserStore()
@@ -187,6 +189,7 @@ const gameError = computed(() => gameStore.error)
 
 
 
+
 const totalBet = computed(() => {
     return gameState.value.players.reduce((sum: number, player: any) => sum + player.betAmount, 0)
 })
@@ -195,7 +198,7 @@ const phaseText = computed(() => {
     const phases = {
         waiting: 'Ожидание',
         betting: 'Ставки',
-        flying: 'Полет!',
+        flying: 'Игра идет!',
         crashed: 'Крах!',
         finished: 'Завершено'
     }
@@ -226,10 +229,26 @@ const placeBet = async (betData?: any) => {
     }
 }
 
+// Новый метод для обработки ставки
+const handlePlaceBet = (betData: any) => {
+    const amount = betData.amount
+    const cashoutValue = betData.coefficient ? parseFloat(betData.coefficient) : undefined
+
+    if (!amount || amount <= 0) return
+    
+    try {
+        gameStore.placeBet(amount, cashoutValue)
+        placeCrashBet(amount, cashoutValue)
+    } catch (err) {
+        console.error('Failed to place bet:', err)
+    }
+}
+
 const doCashOut = async () => {
     try {
         await gameStore.cashOut();
         cashOut();
+        
         
         // ✅ ДВОЙНАЯ ПРОВЕРКА СИНХРОНИЗАЦИИ
         setTimeout(async () => {
