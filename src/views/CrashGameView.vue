@@ -381,8 +381,9 @@ watch(() => gameState.value.phase, (newPhase) => {
 }
 
 .game-history {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  width: 95%;
+  margin: 20px 0px 20px 2.5%;
+  border-bottom: 1px solid #25213C;
   padding: 12px;
   margin-bottom: 16px;
 }
@@ -394,9 +395,10 @@ watch(() => gameState.value.phase, (newPhase) => {
 }
 
 .history-item {
-  padding: 8px 12px;
+  border: 1px solid #4479D98A;
+  padding: 4px 6px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.2);
+  background: #355391;
   font-weight: bold;
   min-width: 60px;
   text-align: center;
