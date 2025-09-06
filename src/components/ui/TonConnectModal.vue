@@ -1,13 +1,11 @@
 <template>
   <TGModal v-model="isVisible" title="Connect TON Wallet" class="ton-connect-modal">
     <div class="modal-content">
-      <div class="qr-section" v-if="showQR">
+      <!-- Упрощенная строка -->
+      <div class="qr-section" v-if="universalLink">
         <h3>Scan QR Code</h3>
         <div class="qr-code">
-          <img :src="qrCodeUrl" alt="TON Connect QR Code" v-if="qrCodeUrl">
-          <div class="qr-placeholder" v-else>
-            <span>Loading QR code...</span>
-          </div>
+          <img :src="generateQRCode(universalLink)" alt="TON Connect QR Code">
         </div>
         <p>Scan with your TON wallet app</p>
       </div>
@@ -15,12 +13,12 @@
       <div class="wallets-list">
         <h3>Connect with</h3>
         <div class="wallet-buttons">
-          <button @click="connectTonKeeper" class="wallet-btn">
+          <button @click="connectWith('tonkeeper')" class="wallet-btn">
             <img src="@/assets/images/tonkeeper-icon.svg" alt="Tonkeeper">
             <span>Tonkeeper</span>
           </button>
           
-          <button @click="connectTelegramWallet" class="wallet-btn">
+          <button @click="connectWith('telegram')" class="wallet-btn">
             <img src="@/assets/images/telegram-icon.svg" alt="Telegram Wallet">
             <span>Telegram Wallet</span>
           </button>
@@ -32,70 +30,40 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { connector } from '@/services/tonconnect';
-import { openTelegramLink, isTelegramWebApp } from '@/utils/telegram'; // ✅ Добавляем импорт
+import { openTelegramLink, isTelegramWebApp } from '@/utils/telegram';
 
 const isVisible = ref(false);
-const showQR = ref(false);
-const qrCodeUrl = ref('');
-const connectionSource = ref<any>(null);
+const universalLink = ref('https://app.tonkeeper.com/ton-connect');
 
-const open = async () => {
+const generateQRCode = (link: string): string => {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}`;
+};
+
+const open = () => {
   isVisible.value = true;
-  showQR.value = true;
-  await generateQRCode();
+};
+
+const connectWith = (walletType: 'tonkeeper' | 'telegram') => {
+  if (isTelegramWebApp()) {
+    const deepLink = walletType === 'telegram' 
+      ? 'tg://wallet?startattach=tonconnect'
+      : 'tg://resolve?domain=tonkeeper&startattach=tonconnect';
+    
+    openTelegramLink(deepLink);
+  } else {
+    window.open(
+      walletType === 'telegram' 
+        ? 'https://t.me/wallet?startattach=tonconnect'
+        : universalLink.value,
+      '_blank'
+    );
+  }
+  
+  close();
 };
 
 const close = () => {
   isVisible.value = false;
-  // Отменяем подключение если модалка закрыта
-  if (connectionSource.value) {
-    connectionSource.value.close?.();
-  }
-};
-
-const generateQRCode = async () => {
-  try {
-    console.log('🔗 Creating TonConnect connection...');
-    
-    // ✅ Создаем подключение через TonConnect
-    connectionSource.value = connector.connect({
-      jsBridgeKey: 'tonkeeper' // Ключ для Telegram WebApp
-    });
-    
-    // ✅ Получаем universal link для QR кода
-    const connection = await connectionSource.value;
-    if (connection?.universalLink) {
-      console.log('📱 Universal link for QR:', connection.universalLink);
-      // Генерируем QR код из universalLink
-      qrCodeUrl.value = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(connection.universalLink)}`;
-    }
-    
-  } catch (error) {
-    console.error('❌ Error generating QR code:', error);
-  }
-};
-
-const connectTonKeeper = () => {
-  // ✅ Используем правильный deeplink для Telegram
-  if (isTelegramWebApp()) {
-    openTelegramLink('tg://resolve?domain=tonkeeper&startattach=tonconnect');
-  } else {
-    // Для браузера
-    window.open('https://app.tonkeeper.com/ton-connect', '_blank');
-  }
-  close();
-};
-
-const connectTelegramWallet = () => {
-  // ✅ Используем правильный deeplink
-  if (isTelegramWebApp()) {
-    openTelegramLink('tg://wallet?startattach=tonconnect&ref=playonstars');
-  } else {
-    // Для браузера
-    window.open('tg://wallet?startattach=tonconnect', '_blank');
-  }
-  close();
 };
 
 defineExpose({ open, close });
