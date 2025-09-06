@@ -30,6 +30,7 @@ from datetime import datetime
 from app.services.crash_game import CrashGame
 from app.services.websocket_manager import websocket_manager
 import websockets
+from app.routers import stars
 
 from app.database.crud import (
     get_user_by_telegram_id, 
@@ -921,4 +922,5 @@ async def websocket_test():
 # Подключаем роутеры
 dp.include_router(telegram_router)
 app.include_router(wallet.router, prefix="/api")
+app.include_router(stars.router, prefix="/api")
 app.include_router(websocket.router)
