@@ -4,7 +4,8 @@
         <TelegramHeader2 title="Crash Game" />
 
         <!-- График игры -->
-        <div class="game-graph" style="background: url('crashfon.svg') no-repeat center center; background-size: cover;">
+        <div class="game-graph">
+            <img src="crashfon.svg" class="graph-background">
             <div class="multiplier-display" :class="{ growing: isGameActive }">
                 x{{ currentMultiplier.toFixed(2) }}
             </div>
@@ -319,6 +320,16 @@ watch(() => gameState.value.phase, (newPhase) => {
   border: 1px solid #4479D98A;
   margin: 20px 0px 20px 2.5%;
 
+}
+
+.graph-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -1; /* Фон должен быть позади всего контента */
 }
 
 .multiplier-display {
