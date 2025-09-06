@@ -41,24 +41,15 @@
             <div class="balance-info">
                 <span>Баланс: {{ userStore.balance.stars_balance.toFixed(2) }} stars</span>
             </div>
-            
-            <div class="bet-amount">
-                <input
-                    v-model="betAmount"
-                    type="number"
-                    placeholder="Сумма ставки"
-                    :min="1"
-                    :max="userStore.balance.stars_balance"
-                    class="bet-input"
-                />
-                <button 
-                    @click="setBetAmount(userStore.balance.stars_balance)"
-                    class="max-btn"
-                >
-                    MAX
-                </button>
-            </div>
 
+            <!-- Ваша кастомная панель ставок -->
+            <BettingPanel 
+                v-model:betAmount="betAmount"
+                :maxAmount="userStore.balance.stars_balance"
+                @place-bet="placeBet"
+            />
+
+            <!-- Авто-вывод (оставляем если нужно) -->
             <div class="auto-cashout">
                 <label>Авто-вывод (x):</label>
                 <input
@@ -70,15 +61,6 @@
                     class="cashout-input"
                 />
             </div>
-
-            <button
-                @click="placeBet"
-                :disabled="!canPlaceBet || isBetting"
-                class="place-bet-btn"
-                :class="{ disabled: !canPlaceBet }"
-            >
-                {{ isBetting ? 'Размещение...' : `Поставить ${betAmount || 0} stars` }}
-            </button>
         </div>
 
         <!-- Панель игры -->
@@ -245,17 +227,15 @@ const setBetAmount = (amount: number) => {
     betAmount.value = amount.toString()
 }
 
-const placeBet = async () => {
-    if (!betAmount.value || parseFloat(betAmount.value) <= 0) return
-    
-    const amount = parseFloat(betAmount.value)
-    const cashoutValue = autoCashout.value ? parseFloat(autoCashout.value) : undefined
+const placeBet = async (betData?: any) => {
+    // Если пришли данные из BettingPanel
+    const amount = betData?.amount || parseFloat(betAmount.value)
+    const cashoutValue = betData?.coefficient || (autoCashout.value ? parseFloat(autoCashout.value) : undefined)
 
+    if (!amount || amount <= 0) return
+    
     try {
-        // 1. Сохраняем ставку локально
         await gameStore.placeBet(amount, cashoutValue)
-        
-        // 2. Отправляем через WebSocket
         placeCrashBet(amount, cashoutValue)
     } catch (err) {
         console.error('Failed to place bet:', err)
