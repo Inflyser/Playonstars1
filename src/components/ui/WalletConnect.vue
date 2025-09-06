@@ -26,9 +26,6 @@
       </div>
       
       <div class="wallet-actions">
-        <button @click="updateBalance" class="tg-button secondary">
-          Refresh Balance
-        </button>
         <button @click="disconnect" class="tg-button danger">
           Disconnect
         </button>
@@ -79,9 +76,6 @@ const disconnect = () => {
   walletStore.disconnect();
 };
 
-const updateBalance = async () => {
-  await walletStore.updateBalance();
-};
 </script>
 
 <style scoped>

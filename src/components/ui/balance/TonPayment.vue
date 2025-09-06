@@ -84,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import InputPanel from '@/components/layout/InputPanel.vue'
@@ -132,22 +132,7 @@ const createTelegramPaymentLink = (amount: number): string => {
     return `tg://wallet?startapp=transfer=${appWallet}_${nanoAmount}_${encodeURIComponent(comment)}`;
 };
 
-// ✅ ДОБАВЛЯЕМ МЕТОД ДЛЯ ПРОВЕРКИ СТАТУСА ТРАНЗАКЦИЙ
-const checkPendingTransactions = async () => {
-    if (isTelegramWebApp()) {
-        try {
-            const response = await api.get('/wallet/check-deposits');
-            const pendingTxs = response.data.pending_transactions || [];
-            
-            if (pendingTxs.length > 0) {
-                // Показываем уведомление о pending транзакциях
-                console.log('Pending transactions:', pendingTxs);
-            }
-        } catch (err) {
-            console.error('Error checking transactions:', err);
-        }
-    }
-};
+
 
 // Методы
 const connectWallet = async () => {
@@ -247,16 +232,6 @@ const confirmDeposit = async () => {
 onMounted(() => {
     walletStore.updateBalance().catch(console.error);
     
-    // ✅ ПРОВЕРЯЕМ PENDING ТРАНЗАКЦИИ ПРИ ЗАГРУЗКЕ
-    if (isTelegramWebApp()) {
-        checkPendingTransactions();
-        
-        // Периодическая проверка каждые 30 секунд
-        const intervalId = setInterval(checkPendingTransactions, 30000);
-        
-        // Очищаем интервал при уничтожении компонента
-        onUnmounted(() => clearInterval(intervalId));
-    }
 });
 </script>
 
