@@ -75,13 +75,13 @@
 
       <!-- Правая часть: кнопка ставки -->
       <button 
-        class="place-bet-btn" 
+        :class="buttonConfig.class"
         @click="placeBet"
-        :disabled="isDisabled"
+        :disabled="buttonConfig.disabled"
       >
-        <span class="shine-effect"></span>
-        СТАВКА
-        <div class="divider-bet"></div>
+        <span class="shine-effect" :class="{ red: gamePhase === 'flying' }"></span>
+        {{ buttonConfig.text }}
+        <div class="divider-bet" :class="{ red: gamePhase === 'flying' }"></div>
       </button>
     </div>
   </div>
@@ -99,6 +99,14 @@ const props = defineProps({
   maxAmount: {
     type: Number,
     default: 1000
+  },
+  gamePhase: { // ✅ Добавляем prop для фазы игры
+    type: String as () => 'betting' | 'flying' | 'finished',
+    default: 'betting'
+  },
+  currentMultiplier: { // ✅ Текущий множитель для режима полета
+    type: Number,
+    default: 1.0
   }
 })
 
@@ -168,14 +176,38 @@ const addToBet = (amount: number) => {
   }
 }
 
+// Computed свойство для определения текста и стиля кнопки
+const buttonConfig = computed(() => {
+  if (props.gamePhase === 'flying') {
+    return {
+      text: `ЗАБРАТЬ x${props.currentMultiplier.toFixed(2)}`,
+      class: 'cashout-btn', // Красный стиль
+      disabled: false
+    }
+  }
+  
+  return {
+    text: 'СТАВКА',
+    class: 'place-bet-btn', // Зеленый стиль
+    disabled: isDisabled.value
+  }
+})
+
+// Обновляем метод placeBet
 const placeBet = () => {
-  if (!isDisabled.value) {
-    emit('place-bet', {
-      amount: localBetAmount.value,
-      coefficient: coefficient.value,
-      autoBet: autoBet.value,
-      quickBet: quickBet.value
-    })
+  if (props.gamePhase === 'flying') {
+    // Режим "Забрать ставку"
+    emit('cash-out') // ✅ Новое событие для вывода
+  } else {
+    // Режим обычной ставки
+    if (!isDisabled.value) {
+      emit('place-bet', {
+        amount: localBetAmount.value,
+        coefficient: coefficient.value,
+        autoBet: autoBet.value,
+        quickBet: quickBet.value
+      })
+    }
   }
 }
 
@@ -591,6 +623,68 @@ const validateCoefficient = () => {
   
   .quick-buttons {
     justify-content: center;
+  }
+}
+
+/* Красная кнопка для вывода */
+.cashout-btn {
+  position: relative;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #ff6b6b, #ee5a52) !important; /* Красный градиент */
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  height: 100%;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cashout-btn:hover {
+  background: linear-gradient(135deg, #e05a5a, #c44a4a) !important;
+  transform: translateY(-2px);
+}
+
+/* Красный shine эффект */
+.shine-effect.red {
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 200, 200, 0.8) 10%,
+    rgba(255, 150, 150, 0.5) 50%,
+    transparent 70%
+  ) !important;
+  box-shadow: 
+    0 0 10px rgba(255, 100, 100, 0.6),
+    0 0 20px rgba(255, 100, 100, 0.4) !important;
+}
+
+/* Красный divider */
+.divider-bet.red {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a52) !important;
+}
+
+/* Анимация пульсации для кнопки вывода */
+@keyframes pulse-red {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.cashout-btn {
+  animation: pulse-red 2s infinite;
+}
+
+/* Для мобильных устройств */
+@media (max-width: 480px) {
+  .cashout-btn {
+    padding: 30px 75px;
+    font-size: 14px; /* Чуть меньше шрифт для длинного текста */
+    min-width: 70px;
   }
 }
 </style>

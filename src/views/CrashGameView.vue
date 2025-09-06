@@ -204,6 +204,9 @@ const currentUserBet = computed(() => gameStore.userBet)
 const currentProfit = computed(() => gameStore.currentProfit)
 const gameError = computed(() => gameStore.error)
 
+
+
+
 const totalBet = computed(() => {
     return gameState.value.players.reduce((sum: number, player: any) => sum + player.betAmount, 0)
 })
