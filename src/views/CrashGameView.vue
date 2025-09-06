@@ -5,7 +5,7 @@
 
         <!-- График игры -->
         <div class="game-graph">
-            <img src="crashfon.svg" class="graph-background">
+            <img src="@/assets/images/crashfon.svg" class="graph-background">
             <div class="multiplier-display" :class="{ growing: isGameActive }">
                 x{{ currentMultiplier.toFixed(2) }}
             </div>
