@@ -163,7 +163,34 @@ async def websocket_crash(websocket: WebSocket):
     except WebSocketDisconnect:
         websocket_manager.disconnect_crash_game(websocket)
         
-        
+# Добавьте этот эндпоинт для проверки депозитов
+@app.get("/api/wallet/check-deposits")
+async def check_user_deposits(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Проверяем депозиты пользователя"""
+    telegram_id = request.session.get("telegram_id")
+    if not telegram_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    user = crud.get_user_by_telegram_id(db, telegram_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Проверяем все pending транзакции пользователя
+    pending_txs = crud.get_pending_transactions(db, user.id)
+    
+    return {
+        "pending_transactions": [
+            {
+                "tx_hash": tx.tx_hash,
+                "amount": float(tx.amount),
+                "created_at": tx.created_at.isoformat()
+            }
+            for tx in pending_txs
+        ]
+    }
         
 @app.post("/api/user/update-balance")
 async def update_user_balance(

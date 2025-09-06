@@ -14,49 +14,42 @@ class TonService:
         self.webhook_secret = os.getenv('WEBHOOK_SECRET', os.urandom(24).hex())
         self.base_url = "https://tonapi.io/v2"
     
+# ton_service.py - ЗАМЕНИТЕ текущий setup_webhook метод:
     async def setup_webhook(self):
+        """Настраиваем веб-перехватчик для TON API"""
         try:
-            webhook_url = f"{os.getenv('WEBHOOK_URL_TON', '').rstrip('/')}/api/webhook/ton"
+            if not self.api_key or not self.wallet_address:
+                print("⚠️ TON API key or wallet address not set - skipping webhook")
+                return False
+                
+            webhook_url = f"{os.getenv('WEBHOOK_URL_TON')}/api/webhook/ton"
             print(f"🔗 Registering TON webhook: {webhook_url}")
             
-            # ✅ Пробуем разные endpoints TON API
-            endpoints = [
-                f"{self.base_url}/webhooks",
-                f"{self.base_url}/webhook", 
-                "https://tonapi.io/v1/webhooks"
-            ]
+            # Правильный endpoint для tonapi.io v2
+            url = f"{self.base_url}/webhooks"
             
-            for url in endpoints:
-                try:
-                    headers = {
-                        "Authorization": f"Bearer {self.api_key}",
-                        "Content-Type": "application/json"
-                    }
-                    
-                    payload = {
-                        "url": webhook_url,
-                        "subscription_type": "account",
-                        "subscription_filter": {
-                            "account": self.wallet_address,
-                            "transaction_types": ["in"]
-                        },
-                        "secret": self.webhook_secret
-                    }
-                    
-                    print(f"📤 Trying TON webhook: {url}")
-                    response = requests.post(url, headers=headers, json=payload)
-                    
-                    if response.status_code in [200, 201]:
-                        print("✅ TON Webhook successfully registered")
-                        return True
-                    else:
-                        print(f"❌ TON Webhook failed {url}: {response.status_code}")
-                        
-                except Exception as e:
-                    print(f"Error with {url}: {e}")
-                    continue
-                    
-            return False
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "url": webhook_url,
+                "subscription_type": "account_transaction",
+                "subscription_filter": {
+                    "account": self.wallet_address,
+                    "transaction_types": ["in"]
+                }
+            }
+            
+            response = requests.post(url, headers=headers, json=payload)
+            
+            if response.status_code in [200, 201]:
+                print("✅ TON Webhook successfully registered")
+                return True
+            else:
+                print(f"❌ TON Webhook failed: {response.status_code} - {response.text}")
+                return False
                 
         except Exception as e:
             print(f"Error setting up TON webhook: {e}")
