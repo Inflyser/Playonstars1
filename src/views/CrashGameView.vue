@@ -7,7 +7,6 @@
 
         <!-- История игр -->
         <div class="game-history">
-            <h4>История</h4>
             <div class="history-list">
                 <div 
                     v-for="game in gameState.history.slice(0, 5)" 
@@ -385,7 +384,7 @@ watch(() => gameState.value.phase, (newPhase) => {
   margin: 20px 0px 20px 2.5%;
   border-bottom: 1px solid #25213C;
   padding: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .history-list {
@@ -395,18 +394,12 @@ watch(() => gameState.value.phase, (newPhase) => {
 }
 
 .history-item {
-  border: 1px solid #4479D98A;
-  padding: 4px 6px;
+  border: 2px solid #4B7ED0;
+  padding: 2px 4px;
   border-radius: 8px;
   background: #355391;
   font-weight: bold;
-  min-width: 60px;
   text-align: center;
-}
-
-.history-item.crashed {
-  background: rgba(239, 68, 68, 0.3);
-  color: #ef4444;
 }
 
 .betting-panel,
