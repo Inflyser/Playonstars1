@@ -14,7 +14,7 @@
     <input
       ref="inputRef"
       type="text"
-      :value="inputValue"
+      :value="modelValue"
       @input="handleInput"
       @focus="isFocused = true"
       @blur="isFocused = false"
@@ -38,6 +38,7 @@ import starsIcon from '@/assets/images/coin.svg'
 
 // Пропсы
 interface Props {
+  modelValue?: string
   prefixText?: string
   placeholder?: string
   maxValue?: string
@@ -45,14 +46,18 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  modelValue: '',
   prefixText: 'Сумма',
   placeholder: 'Введите сумму...',
   maxValue: '1000',
   iconType: 'ton'
 })
 
+const emit = defineEmits<{
+  'update:modelValue': [value: string]
+}>()
+
 // Состояния
-const inputValue = ref('')
 const isFocused = ref(false)
 const inputRef = ref<HTMLInputElement | null>(null)
 
@@ -70,12 +75,12 @@ const getIconUrl = computed(() => {
 // Обработчик ввода
 const handleInput = (event: Event) => {
   const target = event.target as HTMLInputElement
-  inputValue.value = target.value
+  emit('update:modelValue', target.value)
 }
 
 // Установить максимальное значение
 const setMaxValue = () => {
-  inputValue.value = props.maxValue
+  emit('update:modelValue', props.maxValue)
 }
 
 // Фокус на инпут при клике на всю панель
@@ -84,14 +89,15 @@ const focusInput = () => {
     inputRef.value.focus()
     
     // Очищаем поле при клике, если оно не пустое
-    if (inputValue.value && !isFocused.value) {
-      inputValue.value = ''
+    if (props.modelValue && !isFocused.value) {
+      emit('update:modelValue', '')
     }
   }
 }
 </script>
 
 <style scoped>
+/* Стили остаются без изменений */
 .input-panel {
   width: 95%;
   display: flex;
@@ -147,7 +153,6 @@ const focusInput = () => {
   transition: all 0.2s ease;
   flex-shrink: 0;
 }
-
 
 /* Адаптивность */
 @media (max-width: 480px) {
