@@ -4,7 +4,7 @@
         <TelegramHeader2 title="Crash Game" />
 
         <!-- График игры -->
-        <div class="game-graph">
+        <div class="game-graph" style="background: url('crashfon.svg') no-repeat center center; background-size: cover;">
             <div class="multiplier-display" :class="{ growing: isGameActive }">
                 x{{ currentMultiplier.toFixed(2) }}
             </div>
