@@ -920,5 +920,5 @@ async def websocket_test():
     
 # Подключаем роутеры
 dp.include_router(telegram_router)
-app.include_router(wallet.router)
+app.include_router(wallet.router, prefix="/api")
 app.include_router(websocket.router)
