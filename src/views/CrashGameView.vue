@@ -3,6 +3,23 @@
         <TelegramHeader />
         <TelegramHeader2 title="Crash Game" />
 
+
+
+        <!-- История игр -->
+        <div class="game-history">
+            <h4>История</h4>
+            <div class="history-list">
+                <div 
+                    v-for="game in gameState.history.slice(0, 5)" 
+                    :key="game.gameId" 
+                    class="history-item"
+                    :class="{ crashed: game.multiplier < 2 }"
+                >
+                    {{ game.multiplier.toFixed(2) }}x
+                </div>
+            </div>
+        </div>
+        
         <!-- График игры -->
         <div class="game-graph">
             <img src="@/assets/images/crashfon.svg" class="graph-background">
@@ -22,20 +39,13 @@
             </div>
         </div>
 
-        <!-- История игр -->
-        <div class="game-history">
-            <h4>История</h4>
-            <div class="history-list">
-                <div 
-                    v-for="game in gameState.history.slice(0, 5)" 
-                    :key="game.gameId" 
-                    class="history-item"
-                    :class="{ crashed: game.multiplier < 2 }"
-                >
-                    {{ game.multiplier.toFixed(2) }}x
-                </div>
-            </div>
-        </div>
+
+
+        <BettingPanel 
+          v-model:betAmount="betAmountNumber"
+          :maxAmount="userStore.balance.stars_balance"
+          @place-bet="placeBet"
+        />
 
         <!-- Панель ставок -->
         <div class="betting-panel" v-if="gameState.phase === 'betting'">
@@ -43,25 +53,6 @@
                 <span>Баланс: {{ userStore.balance.stars_balance.toFixed(2) }} stars</span>
             </div>
 
-            <!-- Ваша кастомная панель ставок -->
-            <BettingPanel 
-                v-model:betAmount="betAmountNumber"
-                :maxAmount="userStore.balance.stars_balance"
-                @place-bet="placeBet"
-            />
-
-            <!-- Авто-вывод (оставляем если нужно) -->
-            <div class="auto-cashout">
-                <label>Авто-вывод (x):</label>
-                <input
-                    v-model="autoCashout"
-                    type="number"
-                    placeholder="2.00"
-                    step="0.1"
-                    min="1.1"
-                    class="cashout-input"
-                />
-            </div>
         </div>
 
         <!-- Панель игры -->
@@ -126,18 +117,6 @@
             <div class="waiting-message">
                 <h3>Ожидание следующей игры...</h3>
                 <p>Новая игра начнется через {{ gameState.timeRemaining }} секунд</p>
-            </div>
-        </div>
-
-        <!-- Статистика игры -->
-        <div class="game-stats" v-if="isGameActive">
-            <div class="stat-item">
-                <span>Игроков:</span>
-                <span>{{ gameState.players.length }}</span>
-            </div>
-            <div class="stat-item">
-                <span>Общая ставка:</span>
-                <span>{{ totalBet }} stars</span>
             </div>
         </div>
 
@@ -329,7 +308,7 @@ watch(() => gameState.value.phase, (newPhase) => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  z-index: -1; /* Фон должен быть позади всего контента */
+  z-index: 0; /* Фон должен быть позади всего контента */
 }
 
 .multiplier-display {
