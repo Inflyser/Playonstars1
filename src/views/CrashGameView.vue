@@ -44,7 +44,7 @@
 
             <!-- Ваша кастомная панель ставок -->
             <BettingPanel 
-                v-model:betAmount="betAmount"
+                v-model:betAmount="betAmountNumber"
                 :maxAmount="userStore.balance.stars_balance"
                 @place-bet="placeBet"
             />
@@ -182,12 +182,13 @@ import ButtonTop from '@/components/layout/ButtonTop.vue'
 import Top10 from '@/components/ui/topCrash/Top10.vue'
 import TopAll from '@/components/ui/topCrash/TopAll.vue'
 import TopMy from '@/components/ui/topCrash/TopMy.vue'
+import BettingPanel from '@/components/layout/BettingPanel.vue'
 
 const gameStore = useGameStore()
 const userStore = useUserStore()
 const { connectToCrashGame, placeCrashBet, cashOut } = useWebSocket()
 
-const betAmount = ref('')
+const betAmountNumber = ref(100) // ✅ Теперь number
 const autoCashout = ref('')
 const selectedPaymentMethod = ref('top')
 const graphCanvas = ref<HTMLDivElement | null>(null)
@@ -224,12 +225,12 @@ const visiblePlayers = computed(() => {
 
 // Methods
 const setBetAmount = (amount: number) => {
-    betAmount.value = amount.toString()
+    betAmountNumber.value = amount // ✅ Просто присваиваем number
 }
 
 const placeBet = async (betData?: any) => {
-    // Если пришли данные из BettingPanel
-    const amount = betData?.amount || parseFloat(betAmount.value)
+    // ✅ Теперь betAmountNumber уже number, не нужно парсить
+    const amount = betData?.amount || betAmountNumber.value
     const cashoutValue = betData?.coefficient || (autoCashout.value ? parseFloat(autoCashout.value) : undefined)
 
     if (!amount || amount <= 0) return
@@ -267,7 +268,7 @@ watch(() => userStore.balance, (newBalance) => {
 
 const prepareNewGame = () => {
     gameStore.resetBet()
-    betAmount.value = ''
+    betAmountNumber.value = 10 // ✅ Устанавливаем число, а не строку
     autoCashout.value = ''
 }
 
