@@ -84,13 +84,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import InputPanel from '@/components/layout/InputPanel.vue'
 import { useWalletStore } from '@/stores/useWalletStore'
 import { useUserStore } from '@/stores/useUserStore'
 import { api } from '@/services/api'
+import { openTelegramLink, isTelegramWebApp } from '@/utils/telegram'
 
 const router = useRouter()
 const walletStore = useWalletStore()
@@ -117,6 +118,36 @@ const isValidAmount = computed(() => {
     const numAmount = parseFloat(amount.value || '0')
     return numAmount >= 0.1 && numAmount <= (tonBalance.value || 0)
 })
+
+// ✅ НОВЫЙ МЕТОД ДЛЯ СОЗДАНИЯ ССЫЛКИ ДЛЯ TELEGRAM
+const createTelegramPaymentLink = (amount: number): string => {
+    const appWallet = appWalletAddress.value;
+    const userTelegramId = userStore.user?.telegram_id;
+    const comment = `deposit:${userTelegramId}`;
+    
+    // Форматируем сумму в нанотонах (1 TON = 1e9 нанотон)
+    const nanoAmount = Math.floor(amount * 1e9).toString();
+    
+    // Создаем deep link для Telegram Wallet
+    return `tg://wallet?startapp=transfer=${appWallet}_${nanoAmount}_${encodeURIComponent(comment)}`;
+};
+
+// ✅ ДОБАВЛЯЕМ МЕТОД ДЛЯ ПРОВЕРКИ СТАТУСА ТРАНЗАКЦИЙ
+const checkPendingTransactions = async () => {
+    if (isTelegramWebApp()) {
+        try {
+            const response = await api.get('/wallet/check-deposits');
+            const pendingTxs = response.data.pending_transactions || [];
+            
+            if (pendingTxs.length > 0) {
+                // Показываем уведомление о pending транзакциях
+                console.log('Pending transactions:', pendingTxs);
+            }
+        } catch (err) {
+            console.error('Error checking transactions:', err);
+        }
+    }
+};
 
 // Методы
 const connectWallet = async () => {
@@ -153,53 +184,184 @@ const confirmDeposit = async () => {
     try {
         const depositAmount = parseFloat(amount.value)
         
-        // 1. Отправляем транзакцию через кошелек
-        const result = await walletStore.sendTransaction(
-            appWalletAddress.value,
-            depositAmount,
-            `deposit:${userStore.user?.telegram_id}`
-        )
+        // ✅ РАЗДЕЛЯЕМ ЛОГИКУ ДЛЯ TELEGRAM И БРАУЗЕРА
+        let result: any;
+        
+        if (isTelegramWebApp()) {
+            // ✅ ДЛЯ TELEGRAM WEBAPP - используем deep link
+            const deepLink = createTelegramPaymentLink(depositAmount); // ✅ УБРАЛИ this
+            openTelegramLink(deepLink);
+            
+            // Создаем pending транзакцию
+            result = { 
+                boc: `pending_${Date.now()}`,
+                status: 'pending'
+            };
+            
+        } else {
+            // ✅ ДЛЯ БРАУЗЕРА - стандартный TonConnect
+            result = await walletStore.sendTransaction(
+                appWalletAddress.value,
+                depositAmount,
+                `deposit:${userStore.user?.telegram_id}`
+            );
+        }
 
         // 2. Сохраняем транзакцию на бекенде
         const response = await api.post('/wallet/deposit', {
             amount: depositAmount,
             tx_hash: result.boc,
-            from_address: walletStore.walletAddress
+            from_address: walletStore.walletAddress,
+            status: result.status || 'pending'
         })
 
         if (response.data.status === 'success') {
-            successMessage.value = `Транзакция отправлена! Ожидайте подтверждения.`
+            successMessage.value = isTelegramWebApp() 
+                ? 'Откройте кошелек для подтверждения перевода' 
+                : 'Транзакция отправлена! Ожидайте подтверждения.';
             
             // 3. Обновляем баланс после задержки
             setTimeout(async () => {
-                await userStore.fetchBalance()
-                await walletStore.updateBalance()
-            }, 3000)
+                await userStore.fetchBalance();
+                await walletStore.updateBalance();
+            }, 3000);
             
-            // 4. Возвращаемся назад через 2 секунды
-            setTimeout(() => {
-                router.back()
-            }, 2000)
+            // 4. Возвращаемся назад через 2 секунды (только для браузера)
+            if (!isTelegramWebApp()) {
+                setTimeout(() => {
+                    router.back();
+                }, 2000);
+            }
         }
 
     } catch (err: any) {
-        console.error('Deposit error:', err)
+        console.error('Deposit error:', err);
         error.value = err.response?.data?.detail || 
                      err.message || 
-                     'Ошибка при отправке транзакции'
+                     'Ошибка при отправке транзакции';
     } finally {
-        isProcessing.value = false
+        isProcessing.value = false;
     }
 }
 
 onMounted(() => {
-    // Обновляем баланс при загрузке компонента
-    walletStore.updateBalance().catch(console.error)
-})
+    walletStore.updateBalance().catch(console.error);
+    
+    // ✅ ПРОВЕРЯЕМ PENDING ТРАНЗАКЦИИ ПРИ ЗАГРУЗКЕ
+    if (isTelegramWebApp()) {
+        checkPendingTransactions();
+        
+        // Периодическая проверка каждые 30 секунд
+        const intervalId = setInterval(checkPendingTransactions, 30000);
+        
+        // Очищаем интервал при уничтожении компонента
+        onUnmounted(() => clearInterval(intervalId));
+    }
+});
 </script>
 
 <style scoped>
-/* Добавляем стили для модального окна */
+.ton-payment {
+    padding: 20px;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.connect-section, .payment-section {
+    text-align: center;
+}
+
+.connect-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.ton-logo {
+    width: 32px;
+    height: 32px;
+}
+
+.wallet-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.wallet-header, .balance-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.wallet-address {
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.balance-amount {
+    font-weight: bold;
+    color: #28a745;
+}
+
+.two-buttons-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.btn {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn.primary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn.secondary {
+    background: #007bff;
+    color: white;
+}
+
+.btn.connect-btn {
+    background: #28a745;
+    color: white;
+    padding: 15px 25px;
+    font-size: 16px;
+}
+
+.disconnect-btn {
+    margin-top: 20px;
+    background: none;
+    border: 1px solid #dc3545;
+    color: #dc3545;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.disconnect-btn:hover {
+    background: #dc3545;
+    color: white;
+}
+
+/* Стили для модального окна */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -229,6 +391,7 @@ onMounted(() => {
     padding: 10px;
     border-radius: 6px;
     margin: 10px 0;
+    font-size: 12px;
 }
 
 .modal-buttons {
@@ -239,24 +402,30 @@ onMounted(() => {
 
 .btn.cancel {
     background: #6c757d;
+    color: white;
 }
 
 .btn.confirm {
     background: #28a745;
-}
-
-.disconnect-btn {
-    margin-top: 20px;
-    background: none;
-    border: 1px solid #dc3545;
-    color: #dc3545;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.disconnect-btn:hover {
-    background: #dc3545;
     color: white;
+}
+
+/* Уведомления */
+.error-message {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 10px;
+    border-radius: 6px;
+    margin-top: 15px;
+    border: 1px solid #f5c6cb;
+}
+
+.success-message {
+    background: #d4edda;
+    color: #155724;
+    padding: 10px;
+    border-radius: 6px;
+    margin-top: 15px;
+    border: 1px solid #c3e6cb;
 }
 </style>

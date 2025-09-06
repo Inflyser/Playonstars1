@@ -121,6 +121,34 @@ export const useWalletStore = defineStore('wallet', {
             }
         },
 
+        // В useWalletStore.ts добавьте:
+        async sendTransactionInTelegram(toAddress: string, amount: number, payload?: string) {
+            this.isLoading = true;
+            try {
+                if (!this.isConnected) {
+                    throw new Error('Wallet not connected');
+                }
+                
+                // Для Telegram используем deep link
+                const nanoAmount = Math.floor(amount * 1e9).toString();
+                const deepLink = `tg://wallet?startapp=transfer=${toAddress}_${nanoAmount}_${encodeURIComponent(payload || '')}`;
+                
+                openTelegramLink(deepLink);
+                
+                // Возвращаем mock результат для pending транзакции
+                return {
+                    boc: `pending_telegram_${Date.now()}`,
+                    status: 'pending'
+                };
+                
+            } catch (error) {
+                console.error('Telegram transaction error:', error);
+                throw error;
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
         async sendTransaction(toAddress: string, amount: number, payload?: string) {
             this.isLoading = true;
             try {
