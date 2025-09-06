@@ -140,19 +140,17 @@ const createTelegramPaymentLink = (amount: number): string => {
 // Методы
 const connectWallet = async () => {
     try {
-        error.value = ''
-        
-        // ✅ Открываем модальное окно вместо прямого вызова
         if (isTelegramWebApp()) {
+            // ✅ Открываем модальное окно для выбора кошелька
             tonConnectModal.value?.open();
         } else {
+            // ✅ Для браузера используем стандартное подключение
             await walletStore.connect();
         }
     } catch (err) {
-        error.value = 'Ошибка подключения кошелька'
-        console.error('Connection error:', err)
+        error.value = 'Ошибка подключения кошелька';
     }
-}
+};
 
 
 const disconnectWallet = () => {

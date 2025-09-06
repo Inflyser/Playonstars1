@@ -44,22 +44,13 @@ const open = () => {
 };
 
 const connectWith = (walletType: 'tonkeeper' | 'telegram') => {
-  if (isTelegramWebApp()) {
-    const deepLink = walletType === 'telegram' 
-      ? 'tg://wallet?startattach=tonconnect'
-      : 'tg://resolve?domain=tonkeeper&startattach=tonconnect';
+    const links = {
+        tonkeeper: 'tg://resolve?domain=tonkeeper&startattach=tonconnect',
+        telegram: 'tg://wallet?startattach=tonconnect'
+    };
     
-    openTelegramLink(deepLink);
-  } else {
-    window.open(
-      walletType === 'telegram' 
-        ? 'https://t.me/wallet?startattach=tonconnect'
-        : universalLink.value,
-      '_blank'
-    );
-  }
-  
-  close();
+    openTelegramLink(links[walletType]);
+    close();
 };
 
 const close = () => {
