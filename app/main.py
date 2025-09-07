@@ -226,6 +226,26 @@ async def save_user_wallet(
     db.commit()
     
     return {"status": "success", "wallet_id": wallet.id}
+
+@app.post("/api/webhook/ton")
+async def ton_webhook(request: Request, db: Session = Depends(get_db)):
+    """Эндпоинт для получения вебхуков от TON API"""
+    try:
+        # Логируем входящий запрос
+        print("📨 Received TON webhook request")
+        
+        # Получаем данные запроса
+        payload = await request.json()
+        print(f"📦 Webhook payload: {json.dumps(payload, indent=2)}")
+        
+        # Здесь должна быть логика обработки TON транзакций
+        # Например, проверка депозитов и обновление балансов
+        
+        return {"status": "processed", "message": "Webhook received successfully"}
+        
+    except Exception as e:
+        print(f"❌ TON webhook error: {e}")
+        return {"status": "error", "message": str(e)}
         
 @app.post("/api/user/update-balance")
 async def update_user_balance(
