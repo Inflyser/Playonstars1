@@ -380,12 +380,12 @@ const updateRocketPosition = (endX: number, endY: number) => {
   if (!graphCanvas.value) return
   
   const canvasRect = graphCanvas.value.getBoundingClientRect()
-  const scaleX = canvasRect.width / graphCanvas.value.width
-  const scaleY = canvasRect.height / graphCanvas.value.height
+  const scrollX = window.scrollX || window.pageXOffset
+  const scrollY = window.scrollY-170 || window.pageYOffset
   
   rocketPosition.value = {
-    x: canvasRect.left + (endX * scaleX),
-    y: canvasRect.top + (endY * scaleY) - 180
+    x: canvasRect.left + endX + scrollX,
+    y: canvasRect.top + endY + scrollY
   }
 }
 
@@ -558,25 +558,31 @@ watch(currentMultiplier, () => {
 
 .game-history {
   width: 95%;
-  margin: 15px 0px 15px 2.5%;
+  margin: 8px 0px 15px 2.5%;
   border-bottom: 1px solid #25213C;
 }
 
 .history-list {
   display: flex;
-  gap: 8px;
+  gap: 4px; /* Еще меньше отступ между элементами */
   overflow-x: auto;
+  padding: 2px 0; /* Минимальный падинг */
 }
 
 .history-item {
-  margin: 0px 0px 15px 0px;
-  border: 2px solid #4B7ED0;
-  border-radius: 8px;
+  margin: 0px 0px 8px 0px; /* Уменьшил нижний margin */
+  border: 1px solid #4B7ED0; /* Тоньше бордер */
+  border-radius: 6px; /* Меньше скругление */
   background: #355391;
   font-weight: bold;
   text-align: center;
-  font-size: 12px;
-  width: 20%;
+  font-size: 10px; /* Еще меньше шрифт */
+  width: 15%; /* Уже */
+  min-width: 40px; /* Уменьшил минимальную ширину */
+  padding: 2px 1px; /* Минимальный падинг */
+  box-sizing: border-box;
+  flex-shrink: 0;
+  line-height: 1.2; /* Уменьшил межстрочный интервал */
 }
 
 .betting-panel,
