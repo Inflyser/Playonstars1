@@ -381,7 +381,7 @@ const updateRocketPosition = (endX: number, endY: number) => {
   
   const canvasRect = graphCanvas.value.getBoundingClientRect()
   const scrollX = window.scrollX || window.pageXOffset
-  const scrollY = window.scrollY-170 || window.pageYOffset
+  const scrollY = window.scrollY-160 || window.pageYOffset
   
   rocketPosition.value = {
     x: canvasRect.left + endX + scrollX,
