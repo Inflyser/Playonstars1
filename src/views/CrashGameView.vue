@@ -21,25 +21,62 @@
 
         <!-- График игры -->
         <div class="game-graph">
+          <template v-if="gameState.phase !== 'finished'">
             <img src="@/assets/images/crashfon.svg" class="graph-background">
             <img src="@/assets/images/kpanel.svg" class="panels-crash">
             <div class="multiplier-display" :class="{ growing: isGameActive }">
-                x{{ currentMultiplier.toFixed(2) }}
+              x{{ currentMultiplier.toFixed(2) }}
             </div>
             <canvas ref="graphCanvas" class="graph-canvas"></canvas>
-              <img 
-                v-if="rocketPosition" 
-                :src="rocketImageSrc" 
-                class="rocket-overlay"
-                :style="{
-                  left: rocketPosition.x + 'px',
-                  top: rocketPosition.y + 'px'
-                }"
-              >
+            <img 
+              v-if="rocketPosition" 
+              :src="rocketImageSrc" 
+              class="rocket-overlay"
+              :style="{
+                left: rocketPosition.x + 'px',
+                top: rocketPosition.y + 'px'
+              }"
+            >
+          </template>
+
+          <!-- Результаты игры -->
+          <div v-else class="game-results">
+            <img src="@/assets/images/crashfon.svg" class="graph-background">
+            <div class="result-header">
+              <h3>Игра завершена!</h3>
+              <div class="final-multiplier">
+                Множитель: x{{ gameState.multiplier.toFixed(2) }}
+              </div>
+            </div>
+
+            <div class="player-result" v-if="currentUserBet">
+              <div class="result-icon" :class="{ success: (currentUserBet.profit || 0) > 0, failure: (currentUserBet.profit || 0) <= 0 }">
+                {{ (currentUserBet.profit || 0) > 0 ? '🎉' : '💥' }}
+              </div>
+              <div class="result-details">
+                <p>Ваша ставка: <strong>{{ currentUserBet.amount }} stars</strong></p>
+                <p :class="{ profit: (currentUserBet.profit || 0) > 0, loss: (currentUserBet.profit || 0) <= 0 }">
+                  Результат: <strong>{{ (currentUserBet.profit || 0) > 0 ? '+' + (currentUserBet.profit || 0).toFixed(2) : '0' }} stars</strong>
+                </p>
+                <p v-if="currentUserBet.cashoutMultiplier" class="cashout-info">
+                  Вывели на: x{{ currentUserBet.cashoutMultiplier.toFixed(2) }}
+                </p>
+                <p v-else class="cashout-info">
+                  Не успели вывести
+                </p>
+              </div>
+            </div>
+
+            <div class="no-bet" v-else>
+              <div class="result-icon">👀</div>
+              <p style="margin: -10px;">Вы не делали ставку в этой игре</p>
+            </div>
+          </div>
         </div>
 
         <!-- Статус игры -->
         <div class="game-status">
+           
             <div class="phase-badge" :class="gameState.phase">
                 {{ phaseText }}
             </div>
@@ -276,10 +313,16 @@ watch(() => userStore.balance, (newBalance) => {
     console.log('Balance changed:', newBalance);
 }, { deep: true });
 
+
 const prepareNewGame = () => {
-    gameStore.resetBet()
-    betAmountNumber.value = 10 // ✅ Устанавливаем число, а не строку
-    autoCashout.value = ''
+  gameStore.resetBet()
+  betAmountNumber.value = 10
+  autoCashout.value = ''
+  // Останавливаем анимацию графика если она идет
+  if (animationFrame.value) {
+    cancelAnimationFrame(animationFrame.value)
+    animationFrame.value = null
+  }
 }
 
 // ГРАФИК
@@ -420,6 +463,8 @@ watch(() => gameState.value.phase, (newPhase) => {
     drawGraph()
   }
 })
+
+
 
 
 // Lifecycle
@@ -782,6 +827,89 @@ watch(currentMultiplier, () => {
 .players {
     font-size: 0.8em;
     opacity: 0.8;
+}
+
+
+
+
+.game-results {
+  padding: 20px;
+  text-align: center;
+  color: white;
+}
+
+.result-header {
+  margin-bottom: 20px;
+}
+
+.result-header h3 {
+  margin: 0 0 10px 0;
+  color: #fff;
+}
+
+.final-multiplier {
+  font-size: 1.5em;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.player-result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.result-icon {
+  font-size: 3em;
+}
+
+.result-icon.success {
+  animation: bounce 0.5s infinite alternate;
+}
+
+.result-icon.failure {
+  opacity: 0.8;
+}
+
+@keyframes bounce {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
+}
+
+.result-details {
+  text-align: left;
+}
+
+.result-details p {
+  margin: 5px 0;
+}
+
+.profit {
+  color: #00ff88;
+  font-weight: bold;
+}
+
+.loss {
+  color: #ff6b6b;
+  font-weight: bold;
+}
+
+.cashout-info {
+  color: #a0a0b0;
+  font-size: 0.9em;
+}
+
+.no-bet {
+  padding: 10px;
+}
+
+.no-bet .result-icon {
+  font-size: 2.5em;
+  margin: 10px;
 }
 
 </style>
