@@ -89,6 +89,24 @@ export const useWalletStore = defineStore('wallet', {
                 return 'https://app.tonkeeper.com/ton-connect';
             }
         },
+
+        async saveWalletToDB() {
+            try {
+                if (!this.isConnected || !this.walletAddress) return;
+                
+                const response = await api.post('/api/user/wallet', {
+                    wallet_address: this.walletAddress,
+                    wallet_provider: 'tonconnect'
+                });
+                
+                console.log('✅ Wallet saved to DB:', response.data);
+                return true;
+            } catch (error) {
+                console.error('❌ Error saving wallet to DB:', error);
+                return false;
+            }
+        },
+        
         
         async connectInTelegram(walletType: 'tonkeeper' | 'telegram' = 'telegram'): Promise<boolean> {
             this.isLoading = true;
@@ -112,6 +130,12 @@ export const useWalletStore = defineStore('wallet', {
                     jsBridgeKey: 'tonkeeper',
                     universalLink: links[walletType]
                 });
+
+                if (connector.connected && connector.wallet) {
+                    this.walletAddress = connector.wallet.account.address;
+                    await this.saveWalletToDB();
+                    await this.updateBalance();
+                }
                 
                 return true;
             } catch (error) {
