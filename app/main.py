@@ -64,6 +64,8 @@ app.add_middleware(
     "https://telegram.org",              # Telegram
     "http://localhost:5173",
     "ws://localhost:5173",# Локальная разработка
+    "https://tonconnect.io",  # ✅ Добавьте это
+    "https://bridge.tonapi.io",  # ✅ И это
     os.getenv("FRONTEND_URL", "https://playonstars.netlify.app")
     ],
     allow_credentials=True,
