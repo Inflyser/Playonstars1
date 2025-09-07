@@ -334,8 +334,8 @@ watch(() => gameState.value.phase, (newPhase) => {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  width: 30%;
+  height: 20%;
   object-fit: cover;
   z-index: 1; /* Фон должен быть позади всего контента */
 }
