@@ -18,7 +18,7 @@
           <button 
             @click="connectWith('tonkeeper')" 
             class="wallet-btn" 
-            :disabled="!!isConnecting" <!-- ✅ Исправлено: преобразуем в boolean -->
+            :disabled="!!isConnecting">
           >
             <img src="@/assets/images/tonkeeper-icon.svg" alt="Tonkeeper">
             <span>Tonkeeper</span>
@@ -28,7 +28,7 @@
           <button 
             @click="connectWith('telegram')" 
             class="wallet-btn" 
-            :disabled="!!isConnecting" <!-- ✅ Исправлено: преобразуем в boolean -->
+            :disabled="!!isConnecting">
           >
             <img src="@/assets/images/telegram-icon.svg" alt="Telegram Wallet">
             <span>Telegram Wallet</span>
