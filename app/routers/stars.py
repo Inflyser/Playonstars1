@@ -1,74 +1,46 @@
-# app/routers/stars.py
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.orm import Session
-from app.database.session import get_db
-from app.database import crud
-from app.database.models import User
-import time 
+from fastapi import APIRouter, HTTPException
+import requests
 
 router = APIRouter()
 
-@router.post("/stars/purchase")
-async def purchase_stars(
-    request: Request,
-    purchase_data: dict,
-    db: Session = Depends(get_db)
-):
-    """Покупка звезд"""
+@router.post("/telegram-stars/create-invoice")
+async def create_stars_invoice(invoice_data: dict):
+    """Создаем инвойс для оплаты через Telegram Stars"""
     try:
-        telegram_id = request.session.get("telegram_id")
-        if not telegram_id:
-            raise HTTPException(status_code=401, detail="Not authenticated")
-        
-        user = crud.get_user_by_telegram_id(db, telegram_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        amount = float(purchase_data.get("amount", 0))
-        
-        # Проверяем минимальную сумму
-        if amount < 100:
-            raise HTTPException(status_code=400, detail="Minimum amount is 100 STARS")
-        
-        if amount > 5000:
-            raise HTTPException(status_code=400, detail="Maximum amount is 5000 STARS")
-        
-        # Обновляем баланс
-        user.stars_balance += amount
-        db.commit()
-        db.refresh(user)
-        
-        # Добавляем в историю транзакций
-        transaction = crud.create_transaction(
-            db=db,
-            user_id=user.id,
-            tx_hash=f"stars_purchase_{int(time.time())}",
-            amount=amount,
-            transaction_type="stars_purchase",
-            status="completed"
+        # Вызываем Telegram Bot API для создания инвойса
+        response = requests.post(
+            "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/createInvoiceLink",
+            json={
+                "title": "Пополнение Stars",
+                "description": f"Пополнение баланса на {invoice_data['amount']} Stars",
+                "payload": f"user_{invoice_data['user_id']}",
+                "provider_token": "<YOUR_PROVIDER_TOKEN>",
+                "currency": "XTR",
+                "prices": [{"label": "Stars", "amount": invoice_data['stars_amount'] * 100}],
+                "max_tip_amount": 10000,
+                "suggested_tip_amounts": [1000, 2000, 3000, 4000]
+            }
         )
         
-        return {
-            "status": "success",
-            "new_balance": user.stars_balance,
-            "purchased_amount": amount,
-            "transaction_id": transaction.id
-        }
+        return response.json()
         
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid amount format")
     except Exception as e:
-        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/stars/packages")
-async def get_star_packages():
-    """Получаем доступные пакеты звезд"""
-    return {
-        "packages": [
-            {"id": 1, "amount": 100, "price": "1.99$", "bonus": 0},
-            {"id": 2, "amount": 500, "price": "8.99$", "bonus": 50},
-            {"id": 3, "amount": 1000, "price": "15.99$", "bonus": 150},
-            {"id": 4, "amount": 5000, "price": "69.99$", "bonus": 1000}
-        ]
-    }
+    
+# @router.post("/telegram-stars/webhook")
+# async def stars_webhook(update: dict):
+#     """Webhook для получения подтверждений платежей от Telegram"""
+#     try:
+#         if 'pre_checkout_query' in update:
+#             # Подтверждаем платеж
+#             user_id = update['pre_checkout_query']['from']['id']
+#             amount = update['pre_checkout_query']['total_amount'] / 100
+            
+#             # Зачисляем звезды пользователю
+#             await credit_user_stars(user_id, amount)
+            
+#             return {"ok": True}
+            
+#     except Exception as e:
+#         print(f"Webhook error: {e}")
+#         return {"ok": False}
