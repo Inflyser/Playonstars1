@@ -1,22 +1,11 @@
 <template>
     <header class="header-secondary">
       <div class="header-content">
-        <!-- Кнопка/адрес кошелька слева -->
-        <div class="wallet-section">
-          <button 
-            v-if="!walletStore.isConnected" 
-            @click="connectWallet"
-            class="action-button"
-            :disabled="walletStore.isLoading"
-          >
-            <img src="@/assets/images/wallet-icon.svg" alt="Кошелек" class="button-icon" />
-            {{ walletStore.isLoading ? 'Подключение...' : 'Подключить кошелёк' }}
-          </button>
-          
-          <div v-else class="wallet-address">
-            {{ walletStore.shortAddress }}
-          </div>
-        </div>
+        <!-- Кнопка слева с иконкой -->
+        <button class="action-button">
+          <img src="@/assets/images/wallet-icon.svg" alt="Кошелек" class="button-icon" />
+          Подключить кошелёк
+        </button>
       
         <!-- Правая часть: юзернейм + баланс + аватар -->
         <div class="user-section">
@@ -45,32 +34,11 @@
 <script setup lang="ts">
 import TGButton from '@/components/ui/TGButton.vue'
 import { useUserStore } from '@/stores/useUserStore';
-import { useWalletStore } from '@/stores/useWalletStore'; // Импортируем хранилище кошелька
-import { onMounted } from 'vue';
-
 const userStore = useUserStore();
-const walletStore = useWalletStore();
-
-// Инициализируем кошелек при монтировании компонента
-onMounted(async () => {
-  if (!walletStore.isInitialized) {
-    await walletStore.init();
-  }
-});
-
-const connectWallet = async () => {
-  try {
-    await walletStore.connect();
-    // После подключения можно обновить баланс
-    await userStore.fetchBalance();
-  } catch (error) {
-    console.error('Ошибка подключения кошелька:', error);
-  }
-};
 </script>
 
 <style scoped>
-/* Стили остаются без изменений */
+/* Второй хедер */
 .header-secondary {
   padding: 5px 16px 14px 16px;
   margin-bottom: 22px;
@@ -80,10 +48,11 @@ const connectWallet = async () => {
 .header-secondary .header-content {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: center; /* ← ВАЖНО: выравнивание по центру вертикально */
   gap: 20px;
 }
 
+/* Кнопка слева с иконкой */
 .action-button {
   margin: 10px 0px 0px 0px;
   background: #00A6FC;
@@ -98,30 +67,19 @@ const connectWallet = async () => {
   gap: 10px;
   transition: all 0.3s ease;
   white-space: nowrap;
-  height: 38px;
+  height: 38px; /* ← Фиксированная высота для выравнивания */
   box-sizing: border-box;
 }
 
-.wallet-address {
-  margin: 10px 0px 0px 0px;
-  padding: 0px 20px;
-  color: #00A6FC;
-  font-weight: bold;
-  font-size: 14px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  background: rgba(0, 166, 252, 0.1);
-  border-radius: 25px;
-}
-
+/* Правая секция - выравнивание по центру */
 .user-section {
   display: flex;
-  align-items: center;
+  align-items: center; /* ← Выравнивание по центру */
   gap: 12px;
   height: 100%;
 }
 
+/* Остальные стили остаются без изменений */
 .user-text-info {
   display: flex;
   flex-direction: column;
@@ -154,6 +112,8 @@ const connectWallet = async () => {
   display: flex;
   gap: 4px;
 }
+
+
 
 .avatar img {
   margin: 0px 0px -10px 0px;
