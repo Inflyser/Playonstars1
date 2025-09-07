@@ -30,26 +30,20 @@ export const useWalletStore = defineStore('wallet', {
             this.isLoading = true;
             try {
                 console.log('📱 Connecting wallet in Telegram...');
-            
-                // ✅ Правильный способ: используем стандартные deep links
-                const deepLink = isTelegramWebApp() 
-                    ? 'tg://wallet?startattach=tonconnect'
-                    : 'https://app.tonkeeper.com/ton-connect';
-            
-                console.log('🔗 Using deep link:', deepLink);
-            
-                // Открываем ссылку
-                if (isTelegramWebApp()) {
-                    openTelegramLink(deepLink);
-                } else {
-                    window.open(deepLink, '_blank');
-                }
-            
-                // ✅ Просто инициируем подключение (без ожидания universalLink)
-                connector.connect({
-                    jsBridgeKey: 'tonkeeper'
+                
+                // Генерируем ссылку для подключения
+                const universalLink = connector.connect({
+                    universalLink: 'https://t.me/wallet',
+                    bridgeUrl: 'https://bridge.tonapi.io/bridge'
                 });
-            
+                
+                // Открываем в Telegram
+                if (isTelegramWebApp()) {
+                    openTelegramLink(`https://t.me/wallet?startattach=tonconnect`);
+                } else {
+                    window.open(universalLink, '_blank');
+                }
+                
                 return true;
             } catch (error) {
                 console.error('❌ Telegram connection error:', error);

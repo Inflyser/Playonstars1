@@ -145,7 +145,25 @@ watch(() => userStore.user, (newUser) => {
 
 let originalHashChangeHandler: ((event: HashChangeEvent) => void) | null = null;
 
+const handleWalletReturn = () => {
+    // Проверяем параметры возврата из кошелька
+    const urlParams = new URLSearchParams(window.location.search);
+    const tonconnectReturn = urlParams.get('tonconnect');
+    
+    if (tonconnectReturn) {
+        console.log('🔄 Handling wallet return...');
+        // Очищаем URL параметры
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // Даем время на обработку возврата
+        setTimeout(() => {
+            walletStore.init();
+        }, 1000);
+    }
+};
+
 onMounted(async () => {
+    handleWalletReturn();
     // ✅ Сохраняем оригинальный обработчик через присваивание функции
     originalHashChangeHandler = window.onhashchange ? 
         (event: HashChangeEvent) => {
