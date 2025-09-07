@@ -100,18 +100,19 @@ export const useWalletStore = defineStore('wallet', {
                     telegram: 'tg://wallet?startattach=tonconnect'
                 };
                 
-                // Открываем deep link
-                if (isTelegramWebApp()) {
-                    openTelegramLink(links[walletType]);
-                } else {
+                // Добавляем задержку и альтернативные методы открытия
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Пробуем разные методы открытия deep link
+                try {
+                    window.location.href = links[walletType];
+                } catch (e) {
+                    console.log('Primary method failed, trying alternative...');
                     window.open(links[walletType], '_blank');
                 }
                 
-                // Инициируем подключение через TonConnect
-                await connector.connect({
-                    jsBridgeKey: 'tonkeeper',
-                    universalLink: links[walletType]
-                });
+                // Даем время на переход в кошелек
+                await new Promise(resolve => setTimeout(resolve, 2000));
                 
                 return true;
             } catch (error) {

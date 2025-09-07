@@ -17,26 +17,31 @@ export const isTonConnectReturn = (): boolean => {
 };
 
 export const handleTonConnectReturn = async (): Promise<boolean> => {
-    if (!isTonConnectReturn()) return false;
+    // Добавляем более надежную проверку возврата
+    const isReturn = window.location.href.includes('tonconnect') || 
+                    window.location.hash.includes('tonconnect') ||
+                    window.location.search.includes('tonconnect');
+    
+    if (!isReturn) return false;
 
     try {
         console.log('🔄 Processing TonConnect return...');
         
-        // Даем время TonConnect обработать URL
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Увеличиваем задержку для обработки
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Восстанавливаем соединение - этот метод не возвращает boolean!
+        // Восстанавливаем соединение
         await connector.restoreConnection();
         
-        // Очищаем URL
+        // Очищаем URL только если мы точно обработали возврат
         const cleanUrl = window.location.origin + window.location.pathname;
         window.history.replaceState({}, document.title, cleanUrl);
         
-        // Проверяем статус подключения через свойство connector.connected
-        console.log('✅ TonConnect return processed, connected:', connector.connected);
+        console.log('✅ TonConnect return processed');
         return connector.connected;
     } catch (error) {
         console.error('❌ Failed to process TonConnect return:', error);
+        // Не очищаем URL при ошибке, чтобы не потерять данные
         return false;
     }
 };
