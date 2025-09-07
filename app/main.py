@@ -194,58 +194,6 @@ async def check_user_deposits(
             for tx in pending_txs
         ]
     }
-    
-@app.post("/api/user/wallet")
-async def save_user_wallet(
-    request: Request,
-    wallet_data: dict,
-    db: Session = Depends(get_db)
-):
-    """Сохраняем адрес кошелька пользователя"""
-    telegram_id = request.session.get("telegram_id")
-    if not telegram_id:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    user = crud.get_user_by_telegram_id(db, telegram_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Обновляем или создаем запись кошелька
-    wallet = crud.get_wallet_by_user(db, user.id)
-    if wallet:
-        wallet.address = wallet_data.get("wallet_address")
-        wallet.wallet_provider = wallet_data.get("wallet_provider", "tonconnect")
-    else:
-        wallet = crud.create_wallet(
-            db, 
-            user.id, 
-            wallet_data.get("wallet_address"), 
-            wallet_data.get("wallet_provider", "tonconnect")
-        )
-    
-    db.commit()
-    
-    return {"status": "success", "wallet_id": wallet.id}
-
-@app.post("/api/webhook/ton")
-async def ton_webhook(request: Request, db: Session = Depends(get_db)):
-    """Эндпоинт для получения вебхуков от TON API"""
-    try:
-        # Логируем входящий запрос
-        print("📨 Received TON webhook request")
-        
-        # Получаем данные запроса
-        payload = await request.json()
-        print(f"📦 Webhook payload: {json.dumps(payload, indent=2)}")
-        
-        # Здесь должна быть логика обработки TON транзакций
-        # Например, проверка депозитов и обновление балансов
-        
-        return {"status": "processed", "message": "Webhook received successfully"}
-        
-    except Exception as e:
-        print(f"❌ TON webhook error: {e}")
-        return {"status": "error", "message": str(e)}
         
 @app.post("/api/user/update-balance")
 async def update_user_balance(

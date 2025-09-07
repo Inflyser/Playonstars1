@@ -22,16 +22,8 @@ class TonService:
                 print("⚠️ TON API key or wallet address not set - skipping webhook")
                 return False
                 
-            # Убедитесь что URL правильный - должен вести на /api/webhook/ton
             webhook_url = f"{os.getenv('WEBHOOK_URL_TON')}/api/webhook/ton"
             print(f"🔗 Registering TON webhook: {webhook_url}")
-            
-            # Проверьте что URL доступен
-            try:
-                response = requests.head(webhook_url, timeout=5)
-                print(f"🔍 Webhook URL check: {response.status_code}")
-            except Exception as e:
-                print(f"⚠️ Webhook URL check failed: {e}")
             
             # Правильный endpoint для tonapi.io v2
             url = f"{self.base_url}/webhooks"
@@ -50,12 +42,10 @@ class TonService:
                 }
             }
             
-            print(f"📤 Sending webhook registration to: {url}")
-            response = requests.post(url, headers=headers, json=payload, timeout=10)
+            response = requests.post(url, headers=headers, json=payload)
             
             if response.status_code in [200, 201]:
                 print("✅ TON Webhook successfully registered")
-                print(f"📋 Response: {response.text}")
                 return True
             else:
                 print(f"❌ TON Webhook failed: {response.status_code} - {response.text}")
