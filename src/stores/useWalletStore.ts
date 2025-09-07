@@ -3,8 +3,7 @@ import { connector } from '@/services/tonconnect';
 import { api } from '@/services/api';
 import { 
   openTelegramLink, 
-  isTelegramWebApp,
-  createTelegramDeepLink 
+  isTelegramWebApp
 } from '@/utils/telegram';
 
 interface WalletState {
@@ -25,34 +24,6 @@ export const useWalletStore = defineStore('wallet', {
     }),
 
     actions: {
-
-        async connectInTelegram() {
-            this.isLoading = true;
-            try {
-                console.log('📱 Connecting wallet in Telegram...');
-                
-                // Генерируем ссылку для подключения
-                const universalLink = connector.connect({
-                    universalLink: 'https://t.me/wallet',
-                    bridgeUrl: 'https://bridge.tonapi.io/bridge'
-                });
-                
-                // Открываем в Telegram
-                if (isTelegramWebApp()) {
-                    openTelegramLink(`https://t.me/wallet?startattach=tonconnect`);
-                } else {
-                    window.open(universalLink, '_blank');
-                }
-                
-                return true;
-            } catch (error) {
-                console.error('❌ Telegram connection error:', error);
-                throw error;
-            } finally {
-                this.isLoading = false;
-            }
-        },
-
         async init() {
             if (this.isInitialized) {
                 console.log('✅ Wallet store already initialized');
@@ -81,7 +52,6 @@ export const useWalletStore = defineStore('wallet', {
         async connect() {
             console.log('🔄 [WalletStore] Connect method called');
             this.isLoading = true;
-            console.log('⏳ [WalletStore] Loading state set to true');
             
             try {
                 console.log('📱 [WalletStore] Is Telegram environment:', isTelegramWebApp());
@@ -102,7 +72,53 @@ export const useWalletStore = defineStore('wallet', {
                 throw error;
             } finally {
                 this.isLoading = false;
-                console.log('⏳ [WalletStore] Loading state set to false');
+            }
+        },
+
+        async generateConnectionLink(): Promise<string> {
+            try {
+                // Создаем подключение и получаем универсальную ссылку
+                const universalLink = await connector.connect({
+                    universalLink: 'https://t.me/wallet',
+                    bridgeUrl: 'https://bridge.tonapi.io/bridge'
+                });
+                
+                return universalLink;
+            } catch (error) {
+                console.error('Error generating connection link:', error);
+                return 'https://app.tonkeeper.com/ton-connect';
+            }
+        },
+        
+        async connectInTelegram(walletType: 'tonkeeper' | 'telegram' = 'telegram'): Promise<boolean> {
+            this.isLoading = true;
+            try {
+                console.log('📱 Connecting wallet in Telegram...', walletType);
+                
+                const links = {
+                    tonkeeper: 'tg://resolve?domain=tonkeeper&startattach=tonconnect',
+                    telegram: 'tg://wallet?startattach=tonconnect'
+                };
+                
+                // Открываем deep link
+                if (isTelegramWebApp()) {
+                    openTelegramLink(links[walletType]);
+                } else {
+                    window.open(links[walletType], '_blank');
+                }
+                
+                // Инициируем подключение через TonConnect
+                await connector.connect({
+                    jsBridgeKey: 'tonkeeper',
+                    universalLink: links[walletType]
+                });
+                
+                return true;
+            } catch (error) {
+                console.error('❌ Telegram connection error:', error);
+                throw error;
+            } finally {
+                this.isLoading = false;
             }
         },
 
@@ -134,7 +150,6 @@ export const useWalletStore = defineStore('wallet', {
             }
         },
 
-        // В useWalletStore.ts добавьте:
         async sendTransactionInTelegram(toAddress: string, amount: number, payload?: string) {
             this.isLoading = true;
             try {
@@ -162,7 +177,6 @@ export const useWalletStore = defineStore('wallet', {
             }
         },
 
-        
         async waitForTransactionConfirmation(txHash: string, timeout: number = 60000) {
             const startTime = Date.now();
             
@@ -190,10 +204,6 @@ export const useWalletStore = defineStore('wallet', {
             });
         },
 
-        // ✅ УДАЛЯЕМ дублирующиеся методы - используем импортированные
-        // createTelegramDeepLink() - УДАЛЯЕМ, используем импортированную
-        // isTelegramWebApp() - УДАЛЯЕМ, используем импортированную
-
         disconnect() {
             connector.disconnect();
             this.isConnected = false;
@@ -213,7 +223,7 @@ export const useWalletStore = defineStore('wallet', {
             }
         }
 
-    }, // ← ЗАКРЫВАЕМ actions
+    },
 
     getters: {
         shortAddress: (state) => {
@@ -222,4 +232,4 @@ export const useWalletStore = defineStore('wallet', {
         },
         formattedBalance: (state) => state.tonBalance.toFixed(2)
     }
-}); // ← ЗАКРЫВАЕМ defineStore
+});

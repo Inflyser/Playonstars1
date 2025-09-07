@@ -86,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import InputPanel from '@/components/layout/InputPanel.vue'
@@ -229,9 +229,41 @@ const confirmDeposit = async () => {
         isProcessing.value = false;
     }
 }
+const handleWalletReturn = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const hasTonConnect = urlParams.has('tonconnect') || window.location.hash.includes('tonconnect');
+  
+  if (hasTonConnect) {
+    console.log('🔄 Handling wallet return...');
+    
+    // Очищаем URL
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+    
+    // Обновляем статус кошелька
+    setTimeout(async () => {
+      await walletStore.init();
+      await walletStore.updateBalance();
+    }, 1000);
+  }
+};
 
 onMounted(() => {
-    walletStore.updateBalance().catch(console.error);
+  handleWalletReturn();
+  walletStore.updateBalance().catch(console.error);
+  
+  // Слушаем изменения статуса кошелька
+  const unsubscribe = walletStore.$onAction(({ name, after }) => {
+    if (name === 'init') {
+      after(() => {
+        console.log('✅ Wallet store updated');
+      });
+    }
+  });
+  
+  onUnmounted(() => {
+    unsubscribe();
+  });
 });
 
 
