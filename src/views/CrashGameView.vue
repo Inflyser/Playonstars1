@@ -22,6 +22,7 @@
         <!-- График игры -->
         <div class="game-graph">
             <img src="@/assets/images/crashfon.svg" class="graph-background">
+            <img src="@/assets/images/kpanel.svg" class="panels-crash">
             <div class="multiplier-display" :class="{ growing: isGameActive }">
                 x{{ currentMultiplier.toFixed(2) }}
             </div>
@@ -316,6 +317,7 @@ watch(() => gameState.value.phase, (newPhase) => {
   height: 350px;
   border: 1px solid #4479D98A;
   margin: 20px 0px 20px 2.5%;
+  z-index: 2;
 
 }
 
@@ -327,6 +329,15 @@ watch(() => gameState.value.phase, (newPhase) => {
   height: 100%;
   object-fit: cover;
   z-index: 0; /* Фон должен быть позади всего контента */
+}
+.panels-crash {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1; /* Фон должен быть позади всего контента */
 }
 
 .multiplier-display {
