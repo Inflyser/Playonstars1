@@ -26,7 +26,16 @@
             <div class="multiplier-display" :class="{ growing: isGameActive }">
                 x{{ currentMultiplier.toFixed(2) }}
             </div>
-            <div class="graph-canvas" ref="graphCanvas"></div>
+            <canvas ref="graphCanvas" class="graph-canvas"></canvas>
+              <img 
+                v-if="rocketPosition" 
+                :src="rocketImageSrc" 
+                class="rocket-overlay"
+                :style="{
+                  left: rocketPosition.x + 'px',
+                  top: rocketPosition.y + 'px'
+                }"
+              >
         </div>
 
         <!-- Статус игры -->
@@ -173,7 +182,6 @@ const { connectToCrashGame, placeCrashBet, cashOut } = useWebSocket()
 const betAmountNumber = ref(100) // ✅ Теперь number
 const autoCashout = ref('')
 const selectedPaymentMethod = ref('top')
-const graphCanvas = ref<HTMLDivElement | null>(null)
 
 // Computed properties
 const gameState = computed(() => gameStore.crashGame)
@@ -274,22 +282,166 @@ const prepareNewGame = () => {
     autoCashout.value = ''
 }
 
-// Lifecycle
+// ГРАФИК
+
+import rocketImageSrc from '@/assets/images/space-monkey-character.svg'
+
+// Переменные
+const graphCanvas = ref<HTMLCanvasElement | null>(null)
+const graphContext = ref<CanvasRenderingContext2D | null>(null)
+const rocketPosition = ref<{x: number; y: number} | null>(null)
+const animationFrame = ref<number | null>(null)
+
+// Инициализация графика
+const initGraph = () => {
+  if (!graphCanvas.value) return
+  
+  graphCanvas.value.width = graphCanvas.value.offsetWidth
+  graphCanvas.value.height = graphCanvas.value.offsetHeight
+  
+  graphContext.value = graphCanvas.value.getContext('2d')
+  drawGraph()
+}
+
+// Функция отрисовки графика
+const drawGraph = () => {
+  if (!graphContext.value || !graphCanvas.value) return
+  
+  const ctx = graphContext.value
+  const width = graphCanvas.value.width
+  const height = graphCanvas.value.height
+  
+  // Очистка canvas
+  ctx.clearRect(0, 0, width, height)
+  
+  // Параметры графика
+  const freezeMultiplier = 2.5
+  const freezePointX = width * 0.67
+  
+  // Вычисляем прогресс
+  let progress = currentMultiplier.value / freezeMultiplier
+  let renderProgress = Math.min(progress, 1)
+  
+  // Координаты
+  const baseStartY = height * 0.9
+  const startY = baseStartY - (baseStartY * 0.3 * renderProgress)
+  const endX = freezePointX * renderProgress
+  const endY = startY - (startY * renderProgress * renderProgress * 0.7)
+  
+  // Градиент для области
+  const gradient = ctx.createLinearGradient(0, 0, 0, height)
+  gradient.addColorStop(0.0, '#534081B2')
+  gradient.addColorStop(1.0, '#2C214330')
+  
+  // Рисуем область под графиком
+  ctx.beginPath()
+  ctx.fillStyle = gradient
+  ctx.moveTo(0, baseStartY)
+  
+  const points = 20
+  for (let i = 1; i <= points; i++) {
+    const t = i / points
+    const x = endX * t
+    const y = startY - (startY * t * t * renderProgress * 0.7)
+    ctx.lineTo(x, y)
+  }
+  
+  ctx.lineTo(endX, baseStartY)
+  ctx.lineTo(0, baseStartY)
+  ctx.closePath()
+  ctx.fill()
+  
+  // Рисуем линию графика
+  ctx.beginPath()
+  ctx.lineWidth = 2
+  ctx.strokeStyle = '#534081'
+  ctx.moveTo(0, startY)
+  
+  for (let i = 1; i <= points; i++) {
+    const t = i / points
+    const x = endX * t
+    const y = startY - (startY * t * t * renderProgress * 0.7)
+    ctx.lineTo(x, y)
+  }
+  
+  ctx.stroke()
+  
+  // Обновляем позицию ракеты
+  updateRocketPosition(endX, endY)
+  
+  // Продолжаем анимацию если игра активна
+  if (isGameActive.value) {
+    animationFrame.value = requestAnimationFrame(drawGraph)
+  }
+}
+
+// Функция обновления позиции ракеты
+const updateRocketPosition = (endX: number, endY: number) => {
+  if (!graphCanvas.value) return
+  
+  const canvasRect = graphCanvas.value.getBoundingClientRect()
+  const scaleX = canvasRect.width / graphCanvas.value.width
+  const scaleY = canvasRect.height / graphCanvas.value.height
+  
+  rocketPosition.value = {
+    x: canvasRect.left + (endX * scaleX),
+    y: canvasRect.top + (endY * scaleY) - 180
+  }
+}
+
+// Загрузка при монтировании
 onMounted(async () => {
-    try {
-        await connectToCrashGame()
-        await gameStore.loadGameHistory()
-    } catch (err) {
-        console.error('Failed to initialize crash game:', err)
-    }
+  try {
+    await connectToCrashGame()
+    await gameStore.loadGameHistory()
+    initGraph()
+  } catch (err) {
+    console.error('Failed to initialize crash game:', err)
+  }
 })
 
-// Watch for game phase changes
-watch(() => gameState.value.phase, (newPhase) => {
-    if (newPhase === 'finished') {
-        setTimeout(prepareNewGame, 5000)
-    }
+// Следим за изменением множителя
+watch(currentMultiplier, () => {
+  if (isGameActive.value && !animationFrame.value) {
+    animationFrame.value = requestAnimationFrame(drawGraph)
+  }
 })
+
+// Следим за фазой игры
+watch(() => gameState.value.phase, (newPhase) => {
+  if (newPhase === 'finished') {
+    setTimeout(prepareNewGame, 5000)
+  } else if (newPhase === 'waiting' || newPhase === 'betting') {
+    if (animationFrame.value) {
+      cancelAnimationFrame(animationFrame.value)
+      animationFrame.value = null
+    }
+    rocketPosition.value = null
+    drawGraph()
+  }
+})
+
+
+// Lifecycle
+
+onMounted(async () => {
+  try {
+    await connectToCrashGame()
+    await gameStore.loadGameHistory()
+    
+    // Инициализация графика
+    initGraph()
+  } catch (err) {
+    console.error('Failed to initialize crash game:', err)
+  }
+})
+
+// Перерисовываем график при изменении множителя
+watch(currentMultiplier, () => {
+  drawGraph()
+})
+
+
 </script>
 
 <style scoped>
@@ -314,34 +466,46 @@ watch(() => gameState.value.phase, (newPhase) => {
   margin-bottom: 16px;
   width: 95%;
   position: relative;
-  height: 350px;
+  height: 35vh;
   border: 1px solid #4479D98A;
   margin: 20px 0px 20px 2.5%;
   z-index: 2;
 
 }
 
+.rocket-overlay {
+  position: absolute;
+  width: 124px;
+  height: 124px;
+  z-index: 1000; /* Очень высокий z-index поверх всего */
+  pointer-events: none; /* Чтобы не мешала кликам */
+  transform: translate(-50%, -50%); /* Центрирование */
+}
+
 .graph-background {
+  border-radius: 16px;
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  z-index: 0; /* Фон должен быть позади всего контента */
+  z-index: -2; /* Фон должен быть позади всего контента */
 }
 .panels-crash {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 30%;
-  height: 20%;
-  object-fit: cover;
-  z-index: 1; /* Фон должен быть позади всего контента */
+  top: -1.5%;
+  left: 10%;
+  width: 80%;
+  height: 25%;
+  z-index: -1; /* Фон должен быть позади всего контента */
 }
 
 .multiplier-display {
-  font-size: 2.5em;
+  position: absolute;
+  left: 39%;
+  top: 1%;
+  font-size: 1.9em;
   font-weight: bold;
   text-align: center;
   margin-bottom: 20px;
@@ -359,24 +523,26 @@ watch(() => gameState.value.phase, (newPhase) => {
 }
 
 .graph-canvas {
+  position: absolute;
+  left: 0%;
+  top: 32%;
   width: 100%;
-  height: 100px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
+  height: 25vh;
+  border-radius: 15px;
 }
 
 .game-status {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin: 15px;
 }
 
 .phase-badge {
-  padding: 8px 16px;
   border-radius: 20px;
   font-weight: bold;
   background: #6366f1;
+  width: 25%;
 }
 
 .phase-badge.betting { background: #f59e0b; }
@@ -392,7 +558,7 @@ watch(() => gameState.value.phase, (newPhase) => {
 
 .game-history {
   width: 95%;
-  margin: 20px 0px 20px 2.5%;
+  margin: 15px 0px 15px 2.5%;
   border-bottom: 1px solid #25213C;
 }
 
@@ -403,13 +569,14 @@ watch(() => gameState.value.phase, (newPhase) => {
 }
 
 .history-item {
+  margin: 0px 0px 15px 0px;
   border: 2px solid #4B7ED0;
-  padding: 0px 2px;
   border-radius: 8px;
   background: #355391;
   font-weight: bold;
   text-align: center;
   font-size: 12px;
+  width: 20%;
 }
 
 .betting-panel,
