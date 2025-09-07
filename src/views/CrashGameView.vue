@@ -385,7 +385,7 @@ const updateRocketPosition = (endX: number, endY: number) => {
   
   rocketPosition.value = {
     x: canvasRect.left + endX + scrollX,
-    y: canvasRect.top + endY + scrollY
+    y: canvasRect.top + endY + scrollY + 10
   }
 }
 
@@ -510,7 +510,6 @@ watch(currentMultiplier, () => {
   text-align: center;
   margin-bottom: 20px;
   color: #ffffff;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.76);
 }
 
 .multiplier-display.growing {
