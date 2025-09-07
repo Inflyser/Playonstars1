@@ -90,30 +90,36 @@ export const useWalletStore = defineStore('wallet', {
             }
         },
         
+        async saveWalletToDB() {
+            try {
+                if (!this.isConnected || !this.walletAddress) return;
+
+                const response = await api.post('/api/user/wallet', {
+                    wallet_address: this.walletAddress,
+                    wallet_provider: 'tonconnect'
+                });
+
+                console.log('✅ Wallet saved to DB:', response.data);
+                return true;
+            } catch (error) {
+                console.error('❌ Error saving wallet to DB:', error);
+                return false;
+            }
+        },
+
+        // И обновите метод connectInTelegram:
         async connectInTelegram(walletType: 'tonkeeper' | 'telegram' = 'telegram'): Promise<boolean> {
             this.isLoading = true;
             try {
-                console.log('📱 Connecting wallet in Telegram...', walletType);
-                
-                const links = {
-                    tonkeeper: 'tg://resolve?domain=tonkeeper&startattach=tonconnect',
-                    telegram: 'tg://wallet?startattach=tonconnect'
-                };
-                
-                // Добавляем задержку и альтернативные методы открытия
-                await new Promise(resolve => setTimeout(resolve, 100));
-                
-                // Пробуем разные методы открытия deep link
-                try {
-                    window.location.href = links[walletType];
-                } catch (e) {
-                    console.log('Primary method failed, trying alternative...');
-                    window.open(links[walletType], '_blank');
+                // ... существующий код подключения ...
+
+                // После успешного подключения сохраняем в БД
+                if (connector.connected && connector.wallet) {
+                    this.walletAddress = connector.wallet.account.address;
+                    await this.saveWalletToDB();
+                    await this.updateBalance();
                 }
-                
-                // Даем время на переход в кошелек
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
+
                 return true;
             } catch (error) {
                 console.error('❌ Telegram connection error:', error);
