@@ -8,8 +8,7 @@ from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 from app.database.session import SessionLocal
 import os
-
-
+from app.database import crud  # ✅ Добавляем импорт crud
 
 def webapp_builder():
     builder = InlineKeyboardBuilder()
@@ -24,7 +23,6 @@ bot = Bot(
     default=DefaultBotProperties(parse_mode=ParseMode.HTML)
 )
 
-
 @asynccontextmanager
 async def get_db_session():
     db = SessionLocal()
@@ -33,17 +31,48 @@ async def get_db_session():
     finally:
         db.close()
 
-
-# Правильная реализация middleware для aiogram
 class DBSessionMiddleware:
     async def __call__(self, handler, event, data):
         async with get_db_session() as db:
             data["db"] = db
             return await handler(event, data)
 
-# Создаем хранилище для FSM
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
+dp.update.outer_middleware(DBSessionMiddleware())
 
-# Правильное добавление middleware
-dp.update.outer_middleware(DBSessionMiddleware())  # ← ИСПРАВЛЕНО
+# ✅ Добавляем функцию обработки рефералов
+async def process_referral(new_user_id: int, referrer_id: int, db: Session):
+    """Обработка нового реферала"""
+    try:
+        print(f"🎯 Новый реферал: user {new_user_id} от referrer {referrer_id}")
+        
+        # Проверяем существует ли реферер
+        referrer = crud.get_user_by_telegram_id(db, referrer_id)
+        if not referrer:
+            print(f"❌ Реферер {referrer_id} не найден")
+            return False
+        
+        # Проверяем существует ли новый пользователь
+        new_user = crud.get_user_by_telegram_id(db, new_user_id)
+        if not new_user:
+            print(f"❌ Новый пользователь {new_user_id} не найден")
+            return False
+        
+        # Обновляем реферальную статистику
+        if hasattr(referrer, 'referrals_count'):
+            referrer.referrals_count += 1
+            referrer.active_referrals += 1
+        
+        # Устанавливаем реферера для нового пользователя
+        if hasattr(new_user, 'referrer_id'):
+            new_user.referrer_id = referrer_id
+        
+        db.commit()
+        print(f"✅ Реферал успешно обработан: {new_user_id} -> {referrer_id}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Ошибка обработки реферала: {e}")
+        db.rollback()
+        return False

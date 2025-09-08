@@ -71,10 +71,10 @@ def update_referrer_stats(db: Session, referrer_id: int):
 def update_user_balance(
     db: Session, 
     telegram_id: int, 
-    currency: str,  # ✅ Добавляем параметр валюты
+    currency: str, 
     amount: float
 ) -> Optional[User]:
-    """Обновляем баланс пользователя с указанием валюты"""
+    """Обновляем баланс пользователя"""
     user = get_user_by_telegram_id(db, telegram_id)
     if not user:
         return None
@@ -83,8 +83,6 @@ def update_user_balance(
         user.ton_balance += amount
     elif currency == 'stars':
         user.stars_balance += amount
-    else:
-        raise ValueError(f"Unknown currency: {currency}")
     
     db.commit()
     db.refresh(user)
@@ -123,38 +121,32 @@ def add_crash_bet(
     user_id: int,
     telegram_id: int,
     bet_amount: float,
+    crash_coefficient: Optional[float] = None,
+    win_amount: float = 0.0,
     status: str = 'pending'
 ) -> CrashBetHistory:
     """Добавляем запись о ставке в crash игру"""
-    print(f"🎯 [CRUD] Adding crash bet: user_id={user_id}, amount={bet_amount}")
+    # Получаем последний номер ставки для пользователя
+    last_bet = db.query(CrashBetHistory).filter(
+        CrashBetHistory.user_id == user_id
+    ).order_by(CrashBetHistory.bet_number.desc()).first()
     
-    try:
-        # Получаем последний номер ставки для пользователя
-        last_bet = db.query(CrashBetHistory).filter(
-            CrashBetHistory.user_id == user_id
-        ).order_by(CrashBetHistory.bet_number.desc()).first()
-        
-        next_bet_number = (last_bet.bet_number + 1) if last_bet else 1
-        
-        bet = CrashBetHistory(
-            user_id=user_id,
-            telegram_id=telegram_id,
-            bet_number=next_bet_number,
-            bet_amount=bet_amount,
-            status=status
-        )
-        
-        db.add(bet)
-        db.commit()
-        db.refresh(bet)
-        
-        print(f"✅ [CRUD] Bet saved: ID {bet.id}, Number {bet.bet_number}")
-        return bet
-        
-    except Exception as e:
-        print(f"❌ [CRUD] Error adding crash bet: {e}")
-        db.rollback()
-        raise
+    next_bet_number = (last_bet.bet_number + 1) if last_bet else 1
+    
+    bet = CrashBetHistory(
+        user_id=user_id,
+        telegram_id=telegram_id,
+        bet_number=next_bet_number,
+        bet_amount=bet_amount,
+        crash_coefficient=crash_coefficient,
+        win_amount=win_amount,
+        status=status
+    )
+    
+    db.add(bet)
+    db.commit()
+    db.refresh(bet)
+    return bet
 
 
 def get_user_crash_bet_history(db: Session, user_id: int, limit: int = 50):

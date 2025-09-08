@@ -35,24 +35,68 @@ def get_language_inline_keyboard():
 
 @router.message(CommandStart())
 async def cmd_start(message: Message, db: Session):
-    # Получаем или создаем пользователя
-    user = get_user(db, message.from_user.id)  # ← Теперь работает!
+    # ✅ Извлекаем параметры из команды /start
+    args = message.text.split()
+    referrer_id = None
+    
+    if user:
+        update_fields = False
+    
+    if message.from_user.username != user.username:
+        user.username = message.from_user.username
+        update_fields = True
+        
+    if message.from_user.first_name != user.first_name:
+        user.first_name = message.from_user.first_name
+        update_fields = True
+        
+    if message.from_user.last_name != user.last_name:
+        user.last_name = message.from_user.last_name
+        update_fields = True
+        
+    if update_fields:
+        db.commit()
+        print(f"✅ Обновлены данные пользователя {user.id}")
+    
+    # Ищем реферальный параметр (формат: /start ref_11)
+    if len(args) > 1 and args[1].startswith('ref_'):
+        try:
+            referrer_id = int(args[1].split('_')[1])
+            print(f"🎯 Обнаружен реферальный код: {referrer_id}")
+        except (IndexError, ValueError):
+            print("❌ Неверный формат реферального кода")
+    
+    # Получаем или создаем пользователя с данными из Telegram
+    user = get_user(db, message.from_user.id)
     if not user:
-        user = create_user(db, message.from_user.id, message.from_user.username)
+        user = create_user(
+            db=db,
+            telegram_id=message.from_user.id,
+            username=message.from_user.username,
+            first_name=message.from_user.first_name,  # ✅ Сохраняем имя
+            last_name=message.from_user.last_name     # ✅ Сохраняем фамилию
+        )
+        
+        # ✅ Если это новый пользователь и есть реферальный код
+        if referrer_id:
+            from app.bot.bot import process_referral
+            await process_referral(message.from_user.id, referrer_id, db)
     
-    # Приветствие на текущем языке пользователя (или русском по умолчанию)
-    lang = user.language if user and user.language else 'ru'
-    greeting = {
-        'ru': f"Привет, {user.username or 'друг'}! 👋",
-        'en': f"Hello, {user.username or 'friend'}! 👋",
-        'zh': f"你好, {user.username or '朋友'}! 👋"
-    }[lang]
-    
-    await message.answer(greeting)
-    await message.answer(
-        "Выберите язык / Choose language / 选择语言:",
-        reply_markup=get_language_inline_keyboard()
-    )
+    # ✅ Проверяем, есть ли уже выбранный язык
+    if user.language:
+        # Используем сохраненный язык
+        lang = user.language
+        greeting = generate_greeting(user, lang)
+        
+        await message.answer(greeting)
+        await message.answer(
+            get_continue_message(lang),
+            reply_markup=webapp_builder()
+        )
+    else:
+        # Язык не выбран, показываем выбор языка
+        await message.answer("Выберите язык / Choose language / 选择语言:",
+                           reply_markup=get_language_inline_keyboard())
 
 @router.callback_query(lambda c: c.data.startswith('lang_'))
 async def process_language_callback(callback: CallbackQuery, db: Session):
@@ -92,3 +136,46 @@ async def process_language_callback(callback: CallbackQuery, db: Session):
     except Exception as e:
         print(f"Unexpected error: {e}")
         await callback.answer("Произошла ошибка / An error occurred / 发生错误")
+        
+        
+def generate_greeting(user, lang: str) -> str:
+    """Генерируем приветствие с учетом имени пользователя"""
+    name_parts = []
+    
+    if user.first_name:
+        name_parts.append(user.first_name)
+    if user.last_name:
+        name_parts.append(user.last_name)
+    
+    if name_parts:
+        # Есть имя и/или фамилия
+        full_name = " ".join(name_parts)
+        greetings = {
+            'ru': f"С возвращением, {full_name}! 👋",
+            'en': f"Welcome back, {full_name}! 👋",
+            'zh': f"欢迎回来, {full_name}! 👋"
+        }
+    else:
+        # Используем username или общее обращение
+        username = user.username or {
+            'ru': 'друг',
+            'en': 'friend', 
+            'zh': '朋友'
+        }[lang]
+        
+        greetings = {
+            'ru': f"С возвращением, {username}! 👋",
+            'en': f"Welcome back, {username}! 👋",
+            'zh': f"欢迎回来, {username}! 👋"
+        }
+    
+    return greetings[lang]
+
+def get_continue_message(lang: str) -> str:
+    """Получаем сообщение о продолжении на нужном языке"""
+    messages = {
+        'ru': "Рады снова вас видеть! Чем займемся сегодня? 🎮",
+        'en': "Glad to see you again! What shall we do today? 🎮",
+        'zh': "很高兴再次见到你！今天我们要做什么？🎮"
+    }
+    return messages[lang]
