@@ -6,22 +6,17 @@
 
 
         <!-- История игр -->
-        <div class="game-history">
-          <div class="history-list">
-            <div 
-              v-for="game in gameState.history.slice(0, 5)" 
-              :key="game.gameId" 
-              class="history-item"
-              :class="{
-                'multiplier-low': game.multiplier < 2,
-                'multiplier-medium': game.multiplier >= 2 && game.multiplier <= 2.99,
-                'multiplier-high': game.multiplier > 7,
-                'crashed': game.multiplier < 2
-              }"
-            >
-              {{ game.multiplier.toFixed(2) }}x
-            </div>
-          </div>
+        <div 
+          v-for="(game, index) in gameState.history" 
+          :key="index"
+          class="history-item"
+          :class="{
+            'multiplier-low': game.multiplier < 2,
+            'multiplier-medium': game.multiplier >= 2 && game.multiplier < 3,
+            'multiplier-high': game.multiplier >= 7
+          }"
+        >
+          {{ game.multiplier.toFixed(2) }}x
         </div>
 
         <!-- График игры -->
@@ -150,6 +145,26 @@ const selectedPaymentMethod = ref('top')
 const firstBetAmount = ref(100)
 const secondBetAmount = ref(50) // Можно задать разное начальное значение
 
+interface CrashGameHistory {
+  id: number
+  game_id: number
+  multiplier: number
+  crashed_at: number
+  total_players: number
+  total_bet: number
+  total_payout: number
+  timestamp: string
+}
+
+interface CrashGameState {
+  // ... другие поля ...
+  history: CrashGameHistory[]
+}
+
+const crashGame = ref<CrashGameState>({
+  // ... другие поля ...
+  history: []
+})
 
 // Computed properties
 const gameState = computed(() => gameStore.crashGame)
@@ -417,12 +432,13 @@ const updateRocketPosition = (endX: number, endY: number) => {
 onMounted(async () => {
   try {
     await connectToCrashGame()
-    await gameStore.loadGameHistory()
+    await gameStore.loadGameHistory(15)
     initGraph()
   } catch (err) {
     console.error('Failed to initialize crash game:', err)
   }
 })
+
 
 // Следим за изменением множителя
 watch(currentMultiplier, () => {

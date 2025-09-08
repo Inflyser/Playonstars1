@@ -215,17 +215,20 @@ export const useGameStore = defineStore('game', () => {
             }
         ]
     }
+    
 
-    const loadGameHistory = async (limit: number = 50) => {
-        try {
-            // ✅ ЗАГЛУШКА - потом заменим на реальный API
-            crashGame.value.history = generateFallbackHistory();
-        } catch (err) {
-            console.error('Failed to load game history:', err);
-            crashGame.value.history = generateFallbackHistory();
-        }
+    const loadGameHistory = async (limit: number = 5): Promise<void> => {
+      try {
+        const response = await api.get('/crash/history', { 
+          params: { limit } 
+        })
+        crashGame.value.history = response.data
+      } catch (error) {
+        console.error('Failed to load game history:', error)
+        crashGame.value.history = []
+      }
     }
-
+    
     const getPlayerById = (userId: number) => {
         return crashGame.value.players.find(player => player.userId === userId)
     }
