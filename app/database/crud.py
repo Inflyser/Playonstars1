@@ -144,6 +144,32 @@ def add_crash_bet(
     db.refresh(bet)
     return bet
 
+
+def get_user_crash_bet_history(db: Session, user_id: int, limit: int = 50):
+    """Получаем историю ставок пользователя"""
+    return db.query(CrashBetHistory).filter(
+        CrashBetHistory.user_id == user_id
+    ).order_by(
+        CrashBetHistory.created_at.desc()
+    ).limit(limit).all()
+
+def get_all_crash_bet_history(db: Session, limit: int = 100):
+    """Получаем всю историю ставок"""
+    return db.query(CrashBetHistory).order_by(
+        CrashBetHistory.created_at.desc()
+    ).limit(limit).all()
+
+def get_crash_bet_by_id(db: Session, bet_id: int):
+    """Получаем ставку по ID"""
+    return db.query(CrashBetHistory).filter(CrashBetHistory.id == bet_id).first()
+
+def get_user_active_crash_bets(db: Session, user_id: int):
+    """Получаем активные ставки пользователя"""
+    return db.query(CrashBetHistory).filter(
+        CrashBetHistory.user_id == user_id,
+        CrashBetHistory.status == 'pending'
+    ).all()
+
 def get_wallet_by_address(db: Session, address: str):
     return db.query(Wallet).filter(Wallet.address == address).first()
 

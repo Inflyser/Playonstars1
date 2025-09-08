@@ -956,6 +956,45 @@ async def get_crash_history(
     ]
 
 
+@app.get("/api/crash/bet-history")
+async def get_crash_bet_history(
+    request: Request,
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db)
+):
+    """Получаем историю ставок краш-игры"""
+    try:
+        telegram_id = request.session.get("telegram_id")
+        if not telegram_id:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        user = crud.get_user_by_telegram_id(db, telegram_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Получаем всю историю ставок
+        bets = crud.get_all_crash_bet_history(db, limit)
+        
+        return {
+            "bets": [
+                {
+                    "id": bet.id,
+                    "bet_number": bet.bet_number,
+                    "user_id": bet.user_id,
+                    "telegram_id": bet.telegram_id,
+                    "bet_amount": float(bet.bet_amount),
+                    "crash_coefficient": float(bet.crash_coefficient) if bet.crash_coefficient else None,
+                    "win_amount": float(bet.win_amount),
+                    "status": bet.status,
+                    "created_at": bet.created_at.isoformat(),
+                    "ended_at": bet.ended_at.isoformat() if bet.ended_at else None
+                }
+                for bet in bets
+            ]
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ----------------------------- ОСТАЛЬНЫЕ -------------------------------------

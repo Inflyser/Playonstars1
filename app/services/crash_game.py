@@ -169,7 +169,8 @@ class CrashGame:
                 db=db,
                 user_id=user_id,
                 telegram_id=user.telegram_id,
-                amount=amount
+                bet_amount=amount,
+                status='pending'
             )
             
             # Сохраняем в активные ставки
@@ -198,5 +199,3 @@ class CrashGame:
         bet_data['cashed_out'] = True
         bet_data['cashout_multiplier'] = cashout_multiplier
         bet_data['profit'] = bet_data['amount'] * cashout_multiplier
-        
-        # Обновляем в БД будет при сохранении результатов игры
