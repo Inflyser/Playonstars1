@@ -11,8 +11,8 @@
               :key="index"
               class="history-item"
               :class="{
-                'multiplier-low': game.multiplier < 2,
-                'multiplier-medium': game.multiplier >= 2 && game.multiplier < 7,
+                'multiplier-low': game.multiplier < 2.9,
+                'multiplier-medium': game.multiplier >= 2.9 && game.multiplier < 7,
                 'multiplier-high': game.multiplier >= 7
               }"
             >
@@ -147,6 +147,7 @@ import Top10 from '@/components/ui/topCrash/Top10.vue'
 import TopAll from '@/components/ui/topCrash/TopAll.vue'
 import TopMy from '@/components/ui/topCrash/TopMy.vue'
 import BettingPanel from '@/components/layout/BettingPanel.vue' 
+
 
 const gameStore = useGameStore()
 const userStore = useUserStore()
