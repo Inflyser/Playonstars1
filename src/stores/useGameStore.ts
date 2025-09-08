@@ -217,7 +217,7 @@ export const useGameStore = defineStore('game', () => {
     }
     
 
-    const loadGameHistory = async (limit: number = 5): Promise<void> => {
+    const loadGameHistory = async (limit: number = 10): Promise<void> => {
       try {
         const response = await api.get('/crash/history', { 
           params: { limit } 
@@ -228,12 +228,12 @@ export const useGameStore = defineStore('game', () => {
         crashGame.value.history = []
       }
     }
-    
+
     const getPlayerById = (userId: number) => {
         return crashGame.value.players.find(player => player.userId === userId)
     }
 
-    const getTopPlayers = (limit: number = 10) => {
+    const getTopPlayers = (limit: number = 15) => {
         return [...crashGame.value.players]
             .sort((a, b) => (b.profit || 0) - (a.profit || 0))
             .slice(0, limit)
