@@ -37,11 +37,11 @@
     <h2 style="color: white; margin: 15px;">Рефералы</h2>
 
     <InfoPanel
-      title="Новичек"
-      iconText="5% от чистого дохода"
-      leftText="Бронза"
-      rightText="15%"
-      :progress="15"
+      :title="referralInfo.title"
+      :iconText="referralInfo.iconText"
+      :leftText="referralInfo.level"
+      :rightText="referralInfo.percent"
+      :progress="referralInfo.progress"
     />
 
     <h3 style="color: white; margin: 15px; text-align: center; font-weight: 400;">Уровни реферальной системы</h3>
@@ -49,23 +49,22 @@
     <div class="icons-row">
       <div class="icon-block">
         <img src="@/assets/images/icon1.svg" alt="Icon 1" class="icon">
-        <p class="icon-title">0</p>
+        <p class="icon-title">{{ referralData.referrals_count || 0 }}</p>
         <p class="icon-subtext">Всего</p>
         <p class="icon-subtext">рефералов</p>
       </div>
       <div class="icon-block">
         <img src="@/assets/images/icon2.svg" alt="Icon 2" class="icon">
-        <p class="icon-title">0</p>
-        <p class="icon-subtext">Активность</p>
+        <p class="icon-title">{{ referralData.active_referrals || 0 }}</p>
+        <p class="icon-subtext">Активных</p>
       </div>
       <div class="icon-block">
         <img src="@/assets/images/icon3.svg" alt="Icon 3" class="icon">
-        <p class="icon-title">0</p>
+        <p class="icon-title">{{ formatAmount(referralData.referral_earnings_usd || 0) }}</p>
         <p class="icon-subtext">Всего</p>
         <p class="icon-subtext">заработано</p>
       </div>
     </div>
-
 
     <p style="color: #6A717B; font-size: 14px; margin: 15px;">
       Приглашайте друзей и получайте процент с чистого дохода от их игры! Чем больше
@@ -75,8 +74,8 @@
     <h2 style="color: white; margin: 30px 15px 15px 15px;">Реферальная ссылка</h2>
 
     <div class="panel">
-      <span class="panel-text">t.me/234233424389348934893</span>
-      <button class="copy-button" aria-label="Копировать">
+      <span class="panel-text">{{ referralLink }}</span>
+      <button class="copy-button" @click="copyReferralLink" aria-label="Копировать">
         <img src="@/assets/images/copy-icon.svg" alt="Копировать" class="icon-img">
       </button>
     </div>
@@ -87,7 +86,7 @@
           <div class="texts">
             <div class="main-text">Доступный баланс</div>
             <div class="value-with-icon">
-              <span class="icon-title">0</span>
+              <span class="icon-title">{{ formatAmount(referralData.stars_earned_from_refs || 0) }}</span>
               <img src="@/assets/images/coin.svg" alt="Иконка 1" class="icon1">
             </div>
           </div>
@@ -99,7 +98,7 @@
           <div class="texts">
             <div class="main-text">Всего потрачено</div>
             <div class="value-with-icon">
-              <span class="icon-title">0</span>
+              <span class="icon-title">{{ formatAmount(referralData.stars_spent_by_refs || 0) }}</span>
               <img src="@/assets/images/coin.svg" alt="Иконка 2" class="icon1">
             </div>
           </div>
@@ -111,7 +110,7 @@
           <div class="texts">
             <div class="main-text">Всего заработано</div>
             <div class="value-with-icon">
-              <span class="icon-title">0</span>
+              <span class="icon-title">{{ formatAmount(referralData.total_refs_balance || 0) }}</span>
               <img src="@/assets/images/coin.svg" alt="Иконка 3" class="icon1">
             </div>
           </div>
@@ -119,52 +118,177 @@
       </div>
     </div>
 
-    <div class="icon-text-row">
+    <div class="icon-text-row" v-if="referralData.stars_earned_from_refs > 0">
+      <img src="@/assets/images/depicon.svg" alt="Иконка" class="icon-before" />
+      <span class="text-after-icon">Доступно для вывода: {{ formatAmount(referralData.stars_earned_from_refs) }} stars</span>
+    </div>
+
+    <div class="icon-text-row" v-else>
       <img src="@/assets/images/depicon.svg" alt="Иконка" class="icon-before" />
       <span class="text-after-icon">Нет доступного баланса</span>
     </div>
 
     <p style="color: #A2A2A2; text-align: center; font-size: 14px;">Зарабатывай, приглашая друзей!</p>
 
-
-
     <h2 style="color: white; margin: 30px 15px 15px 15px;">История транзакций</h2>
 
-    <div class="icon-wrapper">
-      <div class="circle-icon-container">
-        <img src="@/assets/images/smallicon.svg" alt="Иконка" class="circle-icon" />
+    <div v-if="transactions.length > 0">
+      <div v-for="transaction in transactions" :key="transaction.id" class="transaction-item">
+        <div class="transaction-info">
+          <div class="transaction-type">{{ getTransactionType(transaction.action_type) }}</div>
+          <div class="transaction-amount" :class="{ profit: transaction.reward_amount > 0 }">
+            {{ transaction.reward_amount > 0 ? '+' : '' }}{{ formatAmount(transaction.reward_amount) }} stars
+          </div>
+        </div>
+        <div class="transaction-date">{{ formatDate(transaction.created_at) }}</div>
       </div>
     </div>
 
-    <div class="icon-text-row"><span class="text-after-icon">Нет транзакций</span></div>
-    <p style="color: #A2A2A2; text-align: center; font-size: 14px; margin: 0 0 40px 0;">Ваши транзакции появятся здесь</p>
-    
+    <div v-else>
+      <div class="icon-wrapper">
+        <div class="circle-icon-container">
+          <img src="@/assets/images/smallicon.svg" alt="Иконка" class="circle-icon" />
+        </div>
+      </div>
+      <div class="icon-text-row"><span class="text-after-icon">Нет транзакций</span></div>
+      <p style="color: #A2A2A2; text-align: center; font-size: 14px; margin: 0 0 40px 0;">Ваши транзакции появятся здесь</p>
+    </div>
 
-
-    <!-- Плавающая панель навигации -->
     <BottomNavigation />
   </div>
 </template>
 
-
 <script setup lang="ts">
-import { useUserStore } from '@/stores/useUserStore';
+import { ref, onMounted, computed } from 'vue'
+import { useUserStore } from '@/stores/useUserStore'
+import { api } from '@/services/api'
+import { useRouter } from 'vue-router'
 import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 import TelegramHeader from '@/components/layout/TelegramHeader.vue'
 import TelegramHeader2 from '@/components/layout/TelegramHeader2.vue'
 import InfoPanel from '@/components/layout/InfoPanel.vue'
 
-import { useRouter } from 'vue-router'
-
-const userStore = useUserStore();
-
+const userStore = useUserStore()
 const router = useRouter()
+
+const referralData = ref({
+  referrals_count: 0,
+  active_referrals: 0,
+  referral_earnings_usd: 0,
+  stars_earned_from_refs: 0,
+  stars_spent_by_refs: 0,
+  total_refs_balance: 0
+})
+
+const transactions = ref([])
+const loading = ref(false)
+
+// Вычисляем уровень реферальной системы
+const referralInfo = computed(() => {
+  const refCount = referralData.value.referrals_count || 0
+  const activeRefs = referralData.value.active_referrals || 0
+  
+  let level = 'Новичок'
+  let percent = '5%'
+  let progress = 0
+  let title = 'Начинающий'
+  let iconText = '5% от чистого дохода'
+
+  if (refCount >= 10 && activeRefs >= 5) {
+    level = 'Эксперт'
+    percent = '15%'
+    progress = 100
+    title = 'Эксперт'
+    iconText = '15% от чистого дохода'
+  } else if (refCount >= 5 && activeRefs >= 3) {
+    level = 'Профи'
+    percent = '10%'
+    progress = 66
+    title = 'Профи'
+    iconText = '10% от чистого дохода'
+  } else if (refCount >= 3 && activeRefs >= 1) {
+    level = 'Любитель'
+    percent = '7%'
+    progress = 33
+    title = 'Любитель'
+    iconText = '7% от чистого дохода'
+  } else {
+    progress = Math.min((refCount / 3) * 33, 33)
+  }
+
+  return { level, percent, progress, title, iconText }
+})
+
+const referralLink = computed(() => {
+  const baseUrl = 'https://t.me/your_bot?start=ref_'
+  const userId = userStore.user?.id || userStore.telegramUser?.id
+  return userId ? `${baseUrl}${userId}` : 'Загрузка...'
+})
+
+const formatAmount = (amount: number) => {
+  return new Intl.NumberFormat('ru-RU').format(amount)
+}
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+}
+
+const getTransactionType = (type: string) => {
+  const types = {
+    'registration': 'Регистрация',
+    'deposit': 'Депозит',
+    'bet': 'Ставка',
+    'reward': 'Награда'
+  }
+  return types[type] || type
+}
+
+const copyReferralLink = async () => {
+  try {
+    await navigator.clipboard.writeText(referralLink.value)
+    alert('Ссылка скопирована в буфер обмена!')
+  } catch (err) {
+    console.error('Ошибка копирования:', err)
+  }
+}
+
+const loadReferralData = async () => {
+  try {
+    loading.value = true
+    const response = await api.get('/api/user/referral-info')
+    referralData.value = response.data
+  } catch (error) {
+    console.error('Ошибка загрузки реферальных данных:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadTransactions = async () => {
+  try {
+    const response = await api.get('/api/user/referral-transactions')
+    transactions.value = response.data.transactions
+  } catch (error) {
+    console.error('Ошибка загрузки транзакций:', error)
+  }
+}
 
 const navigateToBalance = () => {
   router.push('/balance')
 }
-</script>
 
+onMounted(async () => {
+  await loadReferralData()
+  await loadTransactions()
+  
+  // Обновляем данные каждые 30 секунд
+  setInterval(loadReferralData, 30000)
+})
+</script>
 
 
 <style scoped>

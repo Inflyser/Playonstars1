@@ -26,7 +26,7 @@
         </div>
         
         <div class="bet-multiplier-panel">
-          {{ bet.crash_coefficient ? bet.crash_coefficient.toFixed(2) + 'x' : '-' }}
+          {{ bet.crash_coefficient ? bet.crash_coefficient.toFixed(2) + 'x' : 'x' }}
         </div>
         
         <div class="bet-profit-section" :class="{ 
