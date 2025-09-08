@@ -33,7 +33,6 @@
       </button>
     </div>
 
-
     <h2 style="color: white; margin: 15px;">Рефералы</h2>
 
     <InfoPanel
@@ -132,27 +131,14 @@
 
     <h2 style="color: white; margin: 30px 15px 15px 15px;">История транзакций</h2>
 
-    <div v-if="transactions.length > 0">
-      <div v-for="transaction in transactions" :key="transaction.id" class="transaction-item">
-        <div class="transaction-info">
-          <div class="transaction-type">{{ getTransactionType(transaction.action_type) }}</div>
-          <div class="transaction-amount" :class="{ profit: transaction.reward_amount > 0 }">
-            {{ transaction.reward_amount > 0 ? '+' : '' }}{{ formatAmount(transaction.reward_amount) }} stars
-          </div>
-        </div>
-        <div class="transaction-date">{{ formatDate(transaction.created_at) }}</div>
+    <div class="icon-wrapper">
+      <div class="circle-icon-container">
+        <img src="@/assets/images/smallicon.svg" alt="Иконка" class="circle-icon" />
       </div>
     </div>
-
-    <div v-else>
-      <div class="icon-wrapper">
-        <div class="circle-icon-container">
-          <img src="@/assets/images/smallicon.svg" alt="Иконка" class="circle-icon" />
-        </div>
-      </div>
-      <div class="icon-text-row"><span class="text-after-icon">Нет транзакций</span></div>
-      <p style="color: #A2A2A2; text-align: center; font-size: 14px; margin: 0 0 40px 0;">Ваши транзакции появятся здесь</p>
-    </div>
+    <div class="icon-text-row"><span class="text-after-icon">Нет транзакций</span></div>
+    <p style="color: #A2A2A2; text-align: center; font-size: 14px; margin: 0 0 40px 0;">Ваши транзакции появятся здесь</p>
+  
 
     <BottomNavigation />
   </div>
@@ -180,7 +166,6 @@ const referralData = ref({
   total_refs_balance: 0
 })
 
-const transactions = ref([])
 const loading = ref(false)
 
 // Вычисляем уровень реферальной системы
@@ -229,24 +214,6 @@ const formatAmount = (amount: number) => {
   return new Intl.NumberFormat('ru-RU').format(amount)
 }
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
-}
-
-const getTransactionType = (type: string) => {
-  const types = {
-    'registration': 'Регистрация',
-    'deposit': 'Депозит',
-    'bet': 'Ставка',
-    'reward': 'Награда'
-  }
-  return types[type] || type
-}
-
 const copyReferralLink = async () => {
   try {
     await navigator.clipboard.writeText(referralLink.value)
@@ -268,22 +235,12 @@ const loadReferralData = async () => {
   }
 }
 
-const loadTransactions = async () => {
-  try {
-    const response = await api.get('/api/user/referral-transactions')
-    transactions.value = response.data.transactions
-  } catch (error) {
-    console.error('Ошибка загрузки транзакций:', error)
-  }
-}
-
 const navigateToBalance = () => {
   router.push('/balance')
 }
 
 onMounted(async () => {
   await loadReferralData()
-  await loadTransactions()
   
   // Обновляем данные каждые 30 секунд
   setInterval(loadReferralData, 30000)
