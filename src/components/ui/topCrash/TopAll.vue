@@ -46,27 +46,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useUserStore } from '@/stores/useUserStore'
+import { useBetHistory } from '@/composables/useBetHistory'
 import { api } from '@/services/api'
-
-interface BetHistoryItem {
-  id: number
-  bet_number: number
-  user_id: number
-  telegram_id: number
-  bet_amount: number
-  crash_coefficient: number | null
-  win_amount: number
-  status: string
-  created_at: string
-  ended_at: string | null
-}
+import { useWebSocket } from '@/composables/useWebSocket'
 
 const userStore = useUserStore()
-const betHistory = ref<BetHistoryItem[]>([])
-const loading = ref(false)
+const { betHistory, loading, addNewBet, setBetHistory } = useBetHistory()
 const error = ref<string | null>(null)
+const betsList = ref<HTMLElement | null>(null)
+
+// Подключаем WebSocket и передаем callback функции
+const { connectToCrashGame } = useWebSocket({
+  onNewBet: addNewBet,
+  onBetHistory: setBetHistory
+})
 
 const formatAmount = (amount: number) => {
   return new Intl.NumberFormat('ru-RU').format(amount)
@@ -96,7 +91,7 @@ const loadBetHistory = async () => {
       params: { limit: 100 }
     })
     
-    betHistory.value = response.data.bets
+    setBetHistory(response.data.bets)
   } catch (err: any) {
     console.error('Failed to load bet history:', err)
     error.value = err.response?.data?.detail || 'Ошибка загрузки истории'
@@ -109,17 +104,17 @@ const refreshHistory = () => {
   loadBetHistory()
 }
 
-// Автоматическая прокрутка к новым ставкам
-const betsList = ref<HTMLElement | null>(null)
-
 const scrollToTop = () => {
-  if (betsList.value) {
-    betsList.value.scrollTop = 0
-  }
+  nextTick(() => {
+    if (betsList.value) {
+      betsList.value.scrollTop = 0
+    }
+  })
 }
 
-onMounted(() => {
-  loadBetHistory()
+onMounted(async () => {
+  await loadBetHistory()
+  await connectToCrashGame() // Подключаемся к WebSocket каналу краш-игры
   
   // Обновляем историю каждые 30 секунд
   setInterval(loadBetHistory, 30000)
@@ -127,6 +122,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Стили остаются такими же как в предыдущем примере */
 .top-all-container {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 16px;

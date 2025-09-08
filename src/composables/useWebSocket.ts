@@ -3,20 +3,22 @@ import { useUserStore } from '@/stores/useUserStore'
 import { useWalletStore } from '@/stores/useWalletStore'
 import { useGameStore } from '@/stores/useGameStore'
 
-export const useWebSocket = () => {
+interface WebSocketCallbacks {
+  onNewBet?: (betData: any) => void
+  onBetHistory?: (historyData: any[]) => void
+}
+
+export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
     const socket = ref<WebSocket | null>(null)
     const isConnected = ref(false)
     const reconnectAttempts = ref(0)
     const maxReconnectAttempts = 5
 
-    // ✅ Функция для получения WebSocket URL с fallback
     const getWebSocketUrl = (): string => {
         const envUrl = import.meta.env.VITE_WS_URL
         if (envUrl && envUrl !== 'wss://your-websocket-url') {
             return envUrl
         }
-
-        // Fallback: автоматически определяем URL на основе текущего хоста
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
         const host = window.location.host
         return `${protocol}//${host}/ws`
@@ -69,6 +71,53 @@ export const useWebSocket = () => {
             return false
         }
     }
+
+    const handleWebSocketMessage = (data: any) => {
+        const userStore = useUserStore();
+        const walletStore = useWalletStore();
+        const gameStore = useGameStore();
+
+        switch (data.type) {
+            case 'crash_update':
+                gameStore.setCrashGameState({
+                    ...data.data,
+                    players: data.data.players || [],
+                    bets: data.data.bets || []
+                });
+                break;
+
+            case 'crash_result':
+                gameStore.processCrashResult(data.data);
+                setTimeout(() => {
+                    userStore.fetchBalance();
+                }, 2000);
+                break;
+
+            case 'balance_update':
+                userStore.setBalance(data.balance);
+                break;
+
+            // ✅ ОБРАБОТКА СТАВОК ЧЕРЕЗ CALLBACK
+            case 'new_bet':
+                if (callbacks.onNewBet) {
+                    callbacks.onNewBet(data.data);
+                }
+                break;
+
+            case 'bet_history':
+                if (callbacks.onBetHistory) {
+                    callbacks.onBetHistory(data.data);
+                }
+                break;
+
+            case 'ping':
+                send({ type: 'pong', timestamp: data.timestamp });
+                break;
+
+            default:
+                console.log('Unknown WebSocket message type:', data.type);
+        }
+    };
 
     // ✅ Добавляем методы для краш-игры
     const connectToCrashGame = async (): Promise<boolean> => {
@@ -161,40 +210,7 @@ export const useWebSocket = () => {
         return setInterval(poll, interval)
     }
 
-    const handleWebSocketMessage = (data: any) => {
-        const userStore = useUserStore();
-        const walletStore = useWalletStore();
-        const gameStore = useGameStore();
-
-        switch (data.type) {
-            case 'crash_update':
-                // Обновляем состояние краш-игры с реальными данными
-                gameStore.setCrashGameState({
-                    ...data.data,
-                    // Добавляем недостающие поля
-                    players: data.data.players || [],
-                    bets: data.data.bets || []
-                });
-                break;
-
-            case 'crash_result':
-                // Обрабатываем результат игры
-                gameStore.processCrashResult(data.data);
-
-                // Автоматически обновляем баланс после игры
-                setTimeout(() => {
-                    userStore.fetchBalance();
-                }, 2000);
-                break;
-
-            case 'balance_update':
-                // Синхронизируем баланс с сервером
-                userStore.setBalance(data.balance);
-                break;
-
-            // ... остальные cases
-        }
-    };
+    
 
     onUnmounted(() => {
         disconnect()
@@ -207,8 +223,6 @@ export const useWebSocket = () => {
         disconnect,
         send,
         startPolling,
-        
-        // Методы для краш-игры
         connectToCrashGame,
         connectToGeneral,
         connectToUserChannel,
