@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, HTTPException, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from dotenv import load_dotenv
@@ -12,7 +12,7 @@ from app.database.crud import get_user_by_telegram_id
 from app.database.session import get_db
 from sqlalchemy.orm import Session
 from fastapi import Depends
-from app.database.models import User
+from app.database.models import User, CrashGameResult
 from urllib.parse import parse_qs
 import secrets
 import hmac
@@ -952,6 +952,31 @@ async def save_user_wallet(
     db.commit()
     
     return {"status": "success", "wallet_id": wallet.id}
+
+# Пример FastAPI endpoint
+@app.get("/history")
+async def get_crash_history(
+    limit: int = Query(5, ge=1, le=20),
+    db: Session = Depends(get_db)
+):
+    history = db.query(CrashGameResult)\
+        .order_by(CrashGameResult.timestamp.desc())\
+        .limit(limit)\
+        .all()
+    
+    return [
+        {
+            "id": game.id,
+            "game_id": game.game_id,
+            "multiplier": float(game.multiplier),
+            "crashed_at": float(game.crashed_at),
+            "total_players": game.total_players,
+            "total_bet": float(game.total_bet),
+            "total_payout": float(game.total_payout),
+            "timestamp": game.timestamp.isoformat()
+        }
+        for game in history
+    ]
     
 # Подключаем роутеры
 dp.include_router(telegram_router)
