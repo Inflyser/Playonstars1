@@ -19,7 +19,19 @@
               {{ game.multiplier.toFixed(2) }}x
             </div>
           </div>
+
+          <!-- Фиксированная панелька справа -->
+          <div class="history-scroll-indicator">
+            <div class="indicator-icon">
+              <img src="@/assets/images/clock.svg" alt="scroll">
+            </div>
+            <div class="indicator-shadow"></div>
+          </div>
         </div>
+
+
+
+
         <!-- График игры -->
         <div class="game-graph">
           <template v-if="gameState.phase !== 'finished'">
@@ -609,6 +621,7 @@ watch(currentMultiplier, () => {
 }
 
 .game-history {
+  position: relative;
   width: 95%;
   margin: 8px 0px 15px 2.5%;
   border-bottom: 1px solid #25213C;
@@ -619,9 +632,61 @@ watch(currentMultiplier, () => {
   -ms-overflow-style: none;
 }
 
-/* Скрываем скроллбар */
 .game-history::-webkit-scrollbar {
   display: none;
+}
+
+.history-list {
+  display: inline-flex;
+  gap: 4px;
+  padding: 5px 45px 5px 5px; /* Увеличили отступ справа для панельки */
+}
+
+.history-scroll-indicator {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.indicator-icon {
+  width: 30px;
+  height: 30px;
+  background: #241D49;
+  border: 1px solid #100D1F;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+.indicator-icon img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  filter: brightness(1.2);
+}
+
+.indicator-shadow {
+  position: absolute;
+  left: -15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 30px;
+  background: linear-gradient(90deg, 
+    #100D1F 0%, 
+    #100D1F4A 100% /* 29% прозрачности в HEX = 4A */
+  );
+  filter: blur(10px);
+  z-index: 1;
+  border-radius: 4px 0 0 4px;
 }
 
 .history-list {
@@ -634,18 +699,19 @@ watch(currentMultiplier, () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 45px;
-  height: 45px;
-  border: 2px solid #4B7ED0; /* Синий по умолчанию */
-  border-radius: 8px;
-  background: #355391; /* Синий по умолчанию */
+  min-width: 40px;        /* Уменьшили ширину */
+  height: 35px;           /* Уменьшили высоту */
+  border: 1px solid #4B7ED0; /* Тоньше бордер */
+  border-radius: 6px;     /* Меньше скругление */
+  background: #355391;
   font-weight: bold;
   text-align: center;
-  font-size: 11px;
+  font-size: 10px;        /* Уменьшили шрифт */
   flex-shrink: 0;
   padding: 0;
   color: white;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  margin: 0 2px;          /* Добавили отступ между элементами */
 }
 
 /* Коэффициент меньше 2 - синий */
