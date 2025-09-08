@@ -168,43 +168,32 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
         }
     }
 
-    const placeCrashBet = async (amount: number, autoCashout?: number) => {
+    const placeCrashBet = (amount: number, autoCashout?: number) => {
         try {
             const userStore = useUserStore();
             const userId = userStore.user?.id;
 
             if (!userId) {
-                console.error("User ID not available");
+                console.error("❌ [Frontend] User ID not available for bet");
                 return;
             }
 
-            // ✅ Отправляем ставку через WebSocket
-            send({
+            const betData = {
                 type: "place_bet",
                 user_id: userId,
                 amount: amount,
                 auto_cashout: autoCashout,
                 currency: "stars"
-            });
+            };
 
-            // ✅ Дублируем через HTTP API для надежности
-            try {
-                const response = await api.post("/api/games/crash/bet", {
-                    amount: amount,
-                    currency: "stars",
-                    auto_cashout: autoCashout
-                });
-
-                console.log("✅ Bet saved via HTTP API:", response.data);
-            } catch (httpError) {
-                console.warn("HTTP bet save failed, relying on WebSocket only");
-            }
+            console.log("🎯 [Frontend] Sending WebSocket message:", betData);
+            send(betData);
 
         } catch (error) {
-            console.error("Failed to place bet:", error);
+            console.error("❌ [Frontend] Failed to send bet:", error);
         }
     };
-
+    
     const cashOut = () => {
         send({
             type: 'cash_out'
