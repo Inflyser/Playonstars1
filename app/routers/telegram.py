@@ -39,25 +39,6 @@ async def cmd_start(message: Message, db: Session):
     args = message.text.split()
     referrer_id = None
     
-    if user:
-        update_fields = False
-    
-    if message.from_user.username != user.username:
-        user.username = message.from_user.username
-        update_fields = True
-        
-    if message.from_user.first_name != user.first_name:
-        user.first_name = message.from_user.first_name
-        update_fields = True
-        
-    if message.from_user.last_name != user.last_name:
-        user.last_name = message.from_user.last_name
-        update_fields = True
-        
-    if update_fields:
-        db.commit()
-        print(f"✅ Обновлены данные пользователя {user.id}")
-    
     # Ищем реферальный параметр (формат: /start ref_11)
     if len(args) > 1 and args[1].startswith('ref_'):
         try:
@@ -97,6 +78,25 @@ async def cmd_start(message: Message, db: Session):
         # Язык не выбран, показываем выбор языка
         await message.answer("Выберите язык / Choose language / 选择语言:",
                            reply_markup=get_language_inline_keyboard())
+        
+    if user:
+        update_fields = False
+    
+    if message.from_user.username != user.username:
+        user.username = message.from_user.username
+        update_fields = True
+        
+    if message.from_user.first_name != user.first_name:
+        user.first_name = message.from_user.first_name
+        update_fields = True
+        
+    if message.from_user.last_name != user.last_name:
+        user.last_name = message.from_user.last_name
+        update_fields = True
+        
+    if update_fields:
+        db.commit()
+        print(f"✅ Обновлены данные пользователя {user.id}")
 
 @router.callback_query(lambda c: c.data.startswith('lang_'))
 async def process_language_callback(callback: CallbackQuery, db: Session):
