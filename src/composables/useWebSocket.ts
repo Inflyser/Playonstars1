@@ -2,6 +2,7 @@ import { ref, onUnmounted } from 'vue'
 import { useUserStore } from '@/stores/useUserStore'
 import { useWalletStore } from '@/stores/useWalletStore'
 import { useGameStore } from '@/stores/useGameStore'
+import { api } from '@/services/api'
 
 interface WebSocketCallbacks {
   onNewBet?: (betData: any) => void
@@ -167,15 +168,42 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
         }
     }
 
-    // ✅ Методы для краш-игры
-    const placeCrashBet = (amount: number, autoCashout?: number) => {
-        send({
-            type: 'place_bet',
-            amount: amount,
-            auto_cashout: autoCashout,
-            currency: 'stars'
-        })
-    }
+    const placeCrashBet = async (amount: number, autoCashout?: number) => {
+        try {
+            const userStore = useUserStore();
+            const userId = userStore.user?.id;
+
+            if (!userId) {
+                console.error("User ID not available");
+                return;
+            }
+
+            // ✅ Отправляем ставку через WebSocket
+            send({
+                type: "place_bet",
+                user_id: userId,
+                amount: amount,
+                auto_cashout: autoCashout,
+                currency: "stars"
+            });
+
+            // ✅ Дублируем через HTTP API для надежности
+            try {
+                const response = await api.post("/api/games/crash/bet", {
+                    amount: amount,
+                    currency: "stars",
+                    auto_cashout: autoCashout
+                });
+
+                console.log("✅ Bet saved via HTTP API:", response.data);
+            } catch (httpError) {
+                console.warn("HTTP bet save failed, relying on WebSocket only");
+            }
+
+        } catch (error) {
+            console.error("Failed to place bet:", error);
+        }
+    };
 
     const cashOut = () => {
         send({
