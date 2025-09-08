@@ -644,7 +644,7 @@ watch(currentMultiplier, () => {
 
 .history-scroll-indicator {
   position: absolute;
-  right: 10px;
+  right: 5px;
   top: 35%;
   transform: translateY(-50%);
   width: 30px;
