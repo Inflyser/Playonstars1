@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from app.database.session import SessionLocal
 from app.database import crud
+from app.database.models import User
 
 class CrashGame:
     def __init__(self, ws_manager):
@@ -159,42 +160,44 @@ class CrashGame:
 
     async def place_bet(self, user_id: int, amount: float, auto_cashout: float = None):
         """Размещение ставки с сохранением в БД"""
+        print(f"🎯 [CrashGame] place_bet called: user_id={user_id}, amount={amount}")
+
         db = SessionLocal()
         try:
-            # ✅ Используем get_user_by_id которую добавим в crud.py
-            user = crud.get_user_by_id(db, user_id)
+            # ✅ Важно: user_id должен быть ID из БД, а не telegram_id!
+            user = db.query(User).filter(User.id == user_id).first()
             if not user:
-                print(f"❌ User {user_id} not found in DB")
+                print(f"❌ [CrashGame] User {user_id} not found by ID")
                 return False
-            
+
+            print(f"✅ [CrashGame] User found: ID {user.id}, Telegram ID {user.telegram_id}")
+
             # Создаем запись о ставке в БД
             bet = crud.add_crash_bet(
                 db=db,
-                user_id=user_id,
-                telegram_id=user.telegram_id,
+                user_id=user.id,  # ✅ ID из БД
+                telegram_id=user.telegram_id,  # ✅ Telegram ID
                 bet_amount=amount,
                 status='pending'
             )
-            
-            # ✅ ВАЖНО: КОММИТИМ ИЗМЕНЕНИЯ!
-            db.commit()
-            db.refresh(bet)
-            
+
             # Сохраняем в активные ставки
-            self.bets[user_id] = {
+            self.bets[user.id] = {
                 "amount": amount,
                 "auto_cashout": auto_cashout,
                 "placed_at": datetime.now(),
                 "cashed_out": False,
                 "profit": 0,
-                "bet_id": bet.id  # Сохраняем ID ставки из БД
+                "bet_id": bet.id  # ✅ Сохраняем ID ставки
             }
-            
-            print(f"✅ Ставка сохранена в БД: ID {bet.id}, User {user_id}, Amount {amount}")
+
+            print(f"✅ [CrashGame] Bet added to active bets: {bet.id}")
             return True
-            
+
         except Exception as e:
-            print(f"❌ Ошибка сохранения ставки: {e}")
+            print(f"❌ [CrashGame] Error in place_bet: {e}")
+            import traceback
+            traceback.print_exc()
             db.rollback()
             return False
         finally:

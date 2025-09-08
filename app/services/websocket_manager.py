@@ -118,48 +118,32 @@ class WebSocketManager:
         for websocket in disconnected:
             self.disconnect_crash_game(websocket)
             
+
     async def handle_crash_bet(self, websocket: WebSocket, data: dict):
         """Обработка ставок в краш-игре"""
         try:
+            print(f"🎯 [WebSocket] Received bet data: {data}")
+            
             user_id = data.get("user_id")
             amount = data.get("amount")
             auto_cashout = data.get("auto_cashout")
-
+            
+            # ✅ ВАЖНО: Проверяем, что user_id - это ID из БД, а не telegram_id
             if not all([user_id, amount]):
-                await self.send_personal_message({"error": "Missing required fields"}, websocket)
+                print("❌ [WebSocket] Missing required fields")
                 return
-
-            # ✅ Сохраняем ставку в БД через crash_game
-            success = await self.crash_game.place_bet(user_id, float(amount), auto_cashout)
-
+            
+            # ✅ Сохраняем ставку в БД
+            print(f"🎯 [WebSocket] Calling place_bet for user {user_id}, amount {amount}")
+            success = await self.crash_game.place_bet(int(user_id), float(amount), auto_cashout)
+            
             if success:
-                await self.send_personal_message({
-                    "type": "bet_placed",
-                    "status": "success",
-                    "amount": amount
-                }, websocket)
-
-                # ✅ Рассылаем обновление всем клиентам
-                await self.broadcast_crash_game({
-                    "type": "new_bet",
-                    "user_id": user_id,
-                    "amount": amount,
-                    "timestamp": datetime.now().isoformat()
-                })
+                print(f"✅ [WebSocket] Bet successfully processed")
             else:
-                await self.send_personal_message({
-                    "type": "bet_placed", 
-                    "status": "error",
-                    "message": "Failed to place bet"
-                }, websocket)
-
+                print(f"❌ [WebSocket] Failed to process bet")
+                
         except Exception as e:
-            print(f"Error handling bet: {e}")
-            await self.send_personal_message({
-                "type": "bet_placed",
-                "status": "error", 
-                "message": str(e)
-            }, websocket)
+            print(f"❌ [WebSocket] Error handling bet: {e}")
 
     async def connect_crash_game(self, websocket: WebSocket):
         await websocket.accept()

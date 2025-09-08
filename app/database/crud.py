@@ -123,32 +123,38 @@ def add_crash_bet(
     user_id: int,
     telegram_id: int,
     bet_amount: float,
-    crash_coefficient: Optional[float] = None,
-    win_amount: float = 0.0,
     status: str = 'pending'
 ) -> CrashBetHistory:
     """Добавляем запись о ставке в crash игру"""
-    # Получаем последний номер ставки для пользователя
-    last_bet = db.query(CrashBetHistory).filter(
-        CrashBetHistory.user_id == user_id
-    ).order_by(CrashBetHistory.bet_number.desc()).first()
+    print(f"🎯 [CRUD] Adding crash bet: user_id={user_id}, amount={bet_amount}")
     
-    next_bet_number = (last_bet.bet_number + 1) if last_bet else 1
-    
-    bet = CrashBetHistory(
-        user_id=user_id,
-        telegram_id=telegram_id,
-        bet_number=next_bet_number,
-        bet_amount=bet_amount,
-        crash_coefficient=crash_coefficient,
-        win_amount=win_amount,
-        status=status
-    )
-    
-    db.add(bet)
-    db.commit()
-    db.refresh(bet)
-    return bet
+    try:
+        # Получаем последний номер ставки для пользователя
+        last_bet = db.query(CrashBetHistory).filter(
+            CrashBetHistory.user_id == user_id
+        ).order_by(CrashBetHistory.bet_number.desc()).first()
+        
+        next_bet_number = (last_bet.bet_number + 1) if last_bet else 1
+        
+        bet = CrashBetHistory(
+            user_id=user_id,
+            telegram_id=telegram_id,
+            bet_number=next_bet_number,
+            bet_amount=bet_amount,
+            status=status
+        )
+        
+        db.add(bet)
+        db.commit()
+        db.refresh(bet)
+        
+        print(f"✅ [CRUD] Bet saved: ID {bet.id}, Number {bet.bet_number}")
+        return bet
+        
+    except Exception as e:
+        print(f"❌ [CRUD] Error adding crash bet: {e}")
+        db.rollback()
+        raise
 
 
 def get_user_crash_bet_history(db: Session, user_id: int, limit: int = 50):
