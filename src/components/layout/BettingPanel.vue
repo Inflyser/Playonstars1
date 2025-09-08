@@ -552,15 +552,7 @@ const validateCoefficient = () => {
 }
 
 /* Анимация пульсации для кнопки вывода */
-@keyframes pulse-red {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
 
-.cashout-btn {
-  animation: pulse-red 2s infinite;
-}
 
 /* Адаптивность */
 
