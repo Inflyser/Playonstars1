@@ -346,6 +346,9 @@ async def auth_telegram(request: Request, db: Session = Depends(get_db)):
 @app.post("/telegram")
 async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
     try:
+        # ✅ Очищаем сессию перед обработкой Telegram webhook
+        request.session.clear()
+        
         data = await request.json()
         update = Update(**data)  
         
@@ -359,11 +362,32 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
         else:
             user_id = None
         
-        # Сохраняем в сессию (ИСПРАВЛЕННАЯ СТРОКА)
+        # ✅ Сохраняем только примитивные данные
         if user_id:
             request.session["user_id"] = user_id
-            # Используем model_dump() вместо to_python()
-            request.session["telegram_data"] = update.model_dump()
+            
+            # ❌ УДАЛЯЕМ эту строку (она вызывает ошибку):
+            # request.session["telegram_data"] = update.model_dump()
+            
+            # ✅ Вместо этого сохраняем только минимальные нужные данные:
+            telegram_data = {}
+            if update.message:
+                telegram_data = {
+                    "update_id": update.update_id,
+                    "message_id": update.message.message_id,
+                    "text": update.message.text,
+                    "from_id": update.message.from_user.id if update.message.from_user else None,
+                    "chat_id": update.message.chat.id if update.message.chat else None
+                }
+            elif update.callback_query:
+                telegram_data = {
+                    "update_id": update.update_id,
+                    "callback_query_id": update.callback_query.id,
+                    "data": update.callback_query.data,
+                    "from_id": update.callback_query.from_user.id if update.callback_query.from_user else None
+                }
+            
+            request.session["telegram_data"] = telegram_data
         
         await dp.feed_update(bot, update)
         return {"status": "ok"}
