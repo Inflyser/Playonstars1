@@ -124,7 +124,6 @@ onMounted(async () => {
 <style scoped>
 /* Стили остаются такими же как в предыдущем примере */
 .top-all-container {
-  background: rgba(255, 255, 255, 0.05);
   border-radius: 16px;
   padding: 16px;
   margin: 16px 0;
@@ -193,12 +192,13 @@ onMounted(async () => {
   grid-template-columns: 45px 1fr 70px 90px 55px;
   gap: 10px;
   align-items: center;
-  padding: 10px 12px;
+  padding: 8px 12px;
   margin-bottom: 6px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
   transition: all 0.2s ease;
   border: none; /* Убираем бордер */
+  border: 1px solid #6C4DB1;
 }
 
 /* СТИЛЬ ДЛЯ ВЫИГРЫШНОЙ СТАВКИ */
@@ -212,16 +212,13 @@ onMounted(async () => {
 }
 
 /* СТИЛЬ ДЛЯ СТАВКИ В ПРОЦЕССЕ */
-.bet-item.pending {
-  background: rgba(255, 255, 255, 0.05);
-  border-left: 3px solid #f59e0b;
-}
+
 
 /* НОМЕР СТАВКИ */
 .bet-number {
   font-size: 14px;
   font-weight: 600;
-  color: #a0a0b0;
+  color: #ffffff;
   text-align: center;
 }
 
@@ -246,7 +243,7 @@ onMounted(async () => {
   padding: 5px 8px;
   text-align: center;
   font-weight: 600;
-  color: #6366f1;
+  color: #ffffff;
   font-size: 12px;
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
@@ -262,14 +259,6 @@ onMounted(async () => {
 .bet-profit {
   font-weight: 600;
   font-size: 13px;
-}
-
-.bet-profit-section.profit .bet-profit {
-  color: #00ff88;
-}
-
-.bet-profit-section.loss .bet-profit {
-  color: #ff6b6b;
 }
 
 /* ИКОНКА ВАЛЮТЫ */
