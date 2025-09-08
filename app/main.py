@@ -954,10 +954,10 @@ async def save_user_wallet(
     return {"status": "success", "wallet_id": wallet.id}
 
 # Пример FastAPI endpoint
-@app.get("/history")
+@app.get("/crash/history")
 async def get_crash_history(
     limit: int = Query(5, ge=1, le=20),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db)  # ← ДОБАВЬТЕ ЭТУ СТРОЧКУ
 ):
     history = db.query(CrashGameResult)\
         .order_by(CrashGameResult.timestamp.desc())\
@@ -966,14 +966,13 @@ async def get_crash_history(
     
     return [
         {
-            "id": game.id,
-            "game_id": game.game_id,
+            "gameId": game.game_id,
             "multiplier": float(game.multiplier),
-            "crashed_at": float(game.crashed_at),
-            "total_players": game.total_players,
-            "total_bet": float(game.total_bet),
-            "total_payout": float(game.total_payout),
-            "timestamp": game.timestamp.isoformat()
+            "crashedAt": float(game.crashed_at),
+            "timestamp": game.timestamp.isoformat(),
+            "playersCount": game.total_players,
+            "totalBet": float(game.total_bet),
+            "totalPayout": float(game.total_payout)
         }
         for game in history
     ]
