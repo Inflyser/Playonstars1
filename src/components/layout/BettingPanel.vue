@@ -509,7 +509,61 @@ const validateCoefficient = () => {
     0 0 20px rgba(255, 255, 255, 0.3);
 }
 
+/* Красная кнопка для вывода */
+.cashout-btn {
+  position: relative;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #ff6b6b, #ee5a52) !important;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  height: 100%;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cashout-btn:hover {
+  background: linear-gradient(135deg, #e05a5a, #c44a4a) !important;
+  transform: translateY(-2px);
+}
+
+/* Красный shine эффект */
+.shine-effect.red {
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 200, 200, 0.8) 10%,
+    rgba(255, 150, 150, 0.5) 50%,
+    transparent 70%
+  ) !important;
+  box-shadow: 
+    0 0 10px rgba(255, 100, 100, 0.6),
+    0 0 20px rgba(255, 100, 100, 0.4) !important;
+}
+
+/* Красный divider */
+.divider-bet.red {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a52) !important;
+}
+
+/* Анимация пульсации для кнопки вывода */
+@keyframes pulse-red {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.cashout-btn {
+  animation: pulse-red 2s infinite;
+}
+
 /* Адаптивность */
+
 @media (max-width: 768px) {
   .amount-value {
     min-width: 70%;
@@ -550,6 +604,14 @@ const validateCoefficient = () => {
     font-size: 10px;
     flex: 1;
  
+  }
+
+  
+  .cashout-btn {
+    width: auto; /* ← Убираем width: 100% */
+    height: 100%; /* ← Оставляем */
+    padding: 26px 55px; /* ← Корректируем padding */
+    min-width: 80px; /* ← Добавляем минимальную ширину */
   }
   
   .place-bet-btn {
@@ -607,6 +669,14 @@ const validateCoefficient = () => {
     white-space: nowrap; /* ← Запрещаем перенос текста */
     height: 100%;
   }
+
+  .cashout-btn {
+    padding: 30px 75px; /* ← Корректируем padding */
+    font-size: 16px; /* ← Уменьшаем шрифт */
+    min-width: 70px; /* ← Минимальная ширина */
+    white-space: nowrap; /* ← Запрещаем перенос текста */
+    height: 100%;
+  }
 }
 
 /* Добавляем дополнительный медиа-запрос для очень маленьких экранов */
@@ -620,63 +690,15 @@ const validateCoefficient = () => {
     width: 100%;
     height: auto;
   }
+
+  .cashout-btn {
+    width: 100%;
+    height: auto;
+  }
   
   .quick-buttons {
     justify-content: center;
   }
-}
-
-/* Красная кнопка для вывода */
-.cashout-btn {
-  position: relative;
-  padding: 10px 12px;
-  background: linear-gradient(135deg, #ff6b6b, #ee5a52) !important; /* Красный градиент */
-  border: none;
-  border-radius: 10px;
-  color: white;
-  font-weight: 600;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  height: 100%;
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cashout-btn:hover {
-  background: linear-gradient(135deg, #e05a5a, #c44a4a) !important;
-  transform: translateY(-2px);
-}
-
-/* Красный shine эффект */
-.shine-effect.red {
-  background: radial-gradient(
-    circle at center,
-    rgba(255, 200, 200, 0.8) 10%,
-    rgba(255, 150, 150, 0.5) 50%,
-    transparent 70%
-  ) !important;
-  box-shadow: 
-    0 0 10px rgba(255, 100, 100, 0.6),
-    0 0 20px rgba(255, 100, 100, 0.4) !important;
-}
-
-/* Красный divider */
-.divider-bet.red {
-  background: linear-gradient(135deg, #ff6b6b, #ee5a52) !important;
-}
-
-/* Анимация пульсации для кнопки вывода */
-@keyframes pulse-red {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-.cashout-btn {
-  animation: pulse-red 2s infinite;
 }
 
 /* Для мобильных устройств */
