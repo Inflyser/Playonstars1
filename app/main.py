@@ -74,7 +74,11 @@ app.add_middleware(
 )
 
 # Создайте экземпляр игры с передачей websocket_manager
-crash_game = CrashGame(websocket_manager)  # ✅ Передаем менеджер
+crash_game = CrashGame(websocket_manager)
+websocket_manager.set_crash_game(crash_game)  # ✅ Устанавливаем ссылку
+
+# Запускаем health check
+asyncio.create_task(websocket_manager.check_connection_health())
 
 
 
@@ -421,14 +425,33 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         websocket_manager.disconnect(websocket, "general")
 
-@app.websocket("/ws/crash")  
-async def websocket_crash(websocket: WebSocket):
+@app.websocket("/ws/crash")
+async def websocket_crash(websocket: WebSocket, db: Session = Depends(get_db)):
     await websocket_manager.connect_crash_game(websocket)
     try:
         while True:
             data = await websocket.receive_text()
-            # Обработка ставок краш-игры
+            print(f"📨 [WebSocket] Received message: {data}")
+            
+            try:
+                message = json.loads(data)
+                print(f"📨 [WebSocket] Parsed message: {message}")
+                
+                if message.get("type") == "place_bet":
+                    print("🎯 [WebSocket] Processing place_bet message")
+                    await websocket_manager.handle_crash_bet(websocket, message)
+                elif message.get("type") == "ping":
+                    # Обрабатываем ping
+                    await websocket.send_json({
+                        "type": "pong",
+                        "timestamp": message.get("timestamp")
+                    })
+                    
+            except json.JSONDecodeError as e:
+                print(f"❌ [WebSocket] JSON decode error: {e}")
+                
     except WebSocketDisconnect:
+        print("🔌 [WebSocket] Client disconnected from crash game")
         websocket_manager.disconnect_crash_game(websocket)
         
         
