@@ -4,21 +4,22 @@
 
 
 
-
-        <!-- История игр -->
-        <div 
-          v-for="(game, index) in gameState.history" 
-          :key="index"
-          class="history-item"
-          :class="{
-            'multiplier-low': game.multiplier < 2,
-            'multiplier-medium': game.multiplier >= 2 && game.multiplier < 3,
-            'multiplier-high': game.multiplier >= 7
-          }"
-        >
-          {{ game.multiplier.toFixed(2) }}x
+        <div class="game-history">
+          <div class="history-list">
+            <div
+              v-for="(game, index) in gameState.history" 
+              :key="index"
+              class="history-item"
+              :class="{
+                'multiplier-low': game.multiplier < 2,
+                'multiplier-medium': game.multiplier >= 2 && game.multiplier < 3,
+                'multiplier-high': game.multiplier >= 7
+              }"
+            >
+              {{ game.multiplier.toFixed(2) }}x
+            </div>
+          </div>
         </div>
-
         <!-- График игры -->
         <div class="game-graph">
           <template v-if="gameState.phase !== 'finished'">
