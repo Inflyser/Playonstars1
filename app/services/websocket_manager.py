@@ -96,6 +96,13 @@ class WebSocketManager:
             "type": "crash_result", 
             "data": data
         })
+        
+    async def send_bet_update(self, bet_data: dict):
+        """Отправляем обновление о новой ставке"""
+        await self.broadcast_crash_game({
+            "type": "new_bet",
+            "data": bet_data
+        })
 
     async def broadcast_crash_game(self, message: dict):
         """Трансляция сообщений для краш-игры"""
