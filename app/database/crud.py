@@ -71,10 +71,10 @@ def update_referrer_stats(db: Session, referrer_id: int):
 def update_user_balance(
     db: Session, 
     telegram_id: int, 
-    currency: str, 
+    currency: str,  # ✅ Добавляем параметр валюты
     amount: float
 ) -> Optional[User]:
-    """Обновляем баланс пользователя"""
+    """Обновляем баланс пользователя с указанием валюты"""
     user = get_user_by_telegram_id(db, telegram_id)
     if not user:
         return None
@@ -83,6 +83,8 @@ def update_user_balance(
         user.ton_balance += amount
     elif currency == 'stars':
         user.stars_balance += amount
+    else:
+        raise ValueError(f"Unknown currency: {currency}")
     
     db.commit()
     db.refresh(user)

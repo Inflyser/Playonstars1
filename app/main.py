@@ -888,11 +888,7 @@ async def get_crash_history(limit: int = 50, db: Session = Depends(get_db)):
 
 
 @app.post("/api/games/crash/bet")
-async def make_crash_bet(
-    request: Request,
-    bet_data: dict,
-    db: Session = Depends(get_db)
-):
+async def make_crash_bet(request: Request, bet_data: dict, db: Session = Depends(get_db)):
     """Делаем ставку в crash игру"""
     telegram_id = request.session.get("telegram_id")
     user_id = request.session.get("user_id")
@@ -914,7 +910,7 @@ async def make_crash_bet(
         elif currency == "ton" and user.ton_balance < amount:
             raise HTTPException(status_code=400, detail="Insufficient ton balance")
         
-        # Списываем средства
+        # ✅ ИСПРАВЛЯЕМ ВЫЗОВ ФУНКЦИИ:
         user = update_user_balance(db, telegram_id, currency, -amount)
         
         # Создаем запись о ставке
@@ -927,8 +923,11 @@ async def make_crash_bet(
             "new_balance": user.stars_balance if currency == "stars" else user.ton_balance
         }
         
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid amount")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     
     
 # Пример FastAPI endpoint
