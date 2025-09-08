@@ -12,7 +12,7 @@ from app.database.crud import get_user_by_telegram_id
 from app.database.session import get_db
 from sqlalchemy.orm import Session
 from fastapi import Depends
-from app.database.models import User, CrashGameResult
+from app.database.models import User, CrashGameResult, ReferralAction
 from urllib.parse import parse_qs
 import secrets
 import hmac
@@ -852,10 +852,92 @@ async def get_referral_info(
         "stars_earned_from_refs": user.stars_earned_from_refs,
         "stars_spent_by_refs": user.stars_spent_by_refs,
         "total_refs_balance": user.total_refs_balance,
-        "referral_link": f"https://t.me/your_bot?start=ref_{user.id}"
+        "referral_link": f"https://t.me/Playonstars_bot?start=ref_{user.id}"
     }
     
 
+@app.get("/api/user/referral-transactions")
+async def get_referral_transactions(
+    request: Request,
+    limit: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """Получаем историю реферальных транзакций"""
+    try:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        # Получаем транзакции реферальной системы
+        transactions = db.query(ReferralAction).filter(
+            ReferralAction.referrer_id == user_id
+        ).order_by(
+            ReferralAction.created_at.desc()
+        ).limit(limit).all()
+        
+        return {
+            "transactions": [
+                {
+                    "id": transaction.id,
+                    "action_type": transaction.action_type,
+                    "action_amount": float(transaction.action_amount),
+                    "reward_amount": float(transaction.reward_amount),
+                    "created_at": transaction.created_at.isoformat(),
+                    "referral_id": transaction.referral_id
+                }
+                for transaction in transactions
+            ]
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/api/user/referral-withdraw")
+async def withdraw_referral_earnings(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Вывод реферальных earnings"""
+    try:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        if user.stars_earned_from_refs <= 0:
+            raise HTTPException(status_code=400, detail="No earnings to withdraw")
+        
+        # Добавляем earnings к основному балансу
+        user.stars_balance += user.stars_earned_from_refs
+        
+        # Создаем запись о выводе
+        withdrawal = ReferralAction(
+            referrer_id=user_id,
+            referral_id=user_id,  # self-reference для вывода
+            action_type='withdrawal',
+            action_amount=user.stars_earned_from_refs,
+            reward_amount=user.stars_earned_from_refs
+        )
+        
+        # Обнуляем earned amount
+        user.stars_earned_from_refs = 0
+        
+        db.add(withdrawal)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "withdrawn_amount": user.stars_earned_from_refs,
+            "new_balance": user.stars_balance
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    
 
 @app.get("/api/user/language")
 async def get_user_language_api(
