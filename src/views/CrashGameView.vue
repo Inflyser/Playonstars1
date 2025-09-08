@@ -699,19 +699,19 @@ watch(currentMultiplier, () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 40px;        /* Уменьшили ширину */
-  height: 35px;           /* Уменьшили высоту */
-  border: 1px solid #4B7ED0; /* Тоньше бордер */
-  border-radius: 6px;     /* Меньше скругление */
+  min-width: 38px;        /* Уменьшили ширину */
+  height: 28px;           /* Сильно уменьшили высоту */
+  border: 1px solid #4B7ED0;
+  border-radius: 6px;
   background: #355391;
   font-weight: bold;
   text-align: center;
-  font-size: 10px;        /* Уменьшили шрифт */
+  font-size: 9px;         /* Уменьшили шрифт */
   flex-shrink: 0;
   padding: 0;
   color: white;
   transition: all 0.2s ease;
-  margin: 0 2px;          /* Добавили отступ между элементами */
+  margin: 0 1px;          /* Уменьшили отступ между элементами */
 }
 
 /* Коэффициент меньше 2 - синий */
