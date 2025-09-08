@@ -654,10 +654,10 @@ watch(currentMultiplier, () => {
 }
 
 .indicator-icon {
-  width: 30px;
-  height: 30px;
+  width: 35px;
+  height: 35px;
   background: #241D49;
-  border: 1px solid #100D1F;
+  border: 4px solid #100D1F;
   border-radius: 8px;
   display: flex;
   align-items: center;
