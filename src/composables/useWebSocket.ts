@@ -167,33 +167,42 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
             socket.value.send(JSON.stringify(data))
         }
     }
-
+    
     const placeCrashBet = (amount: number, autoCashout?: number) => {
         try {
             const userStore = useUserStore();
-            const userId = userStore.user?.id;
-
+            
+            // ✅ ВАЖНО: Проверяем, что отправляем ID из БД, а не telegram_id
+            const userId = userStore.user?.id; // Это ID из БД
+            const telegramId = userStore.user?.telegram_id; // Это telegram_id
+            
+            console.log("🎯 [Frontend] User data:", {
+                db_id: userId, 
+                telegram_id: telegramId,
+                amount: amount
+            });
+            
             if (!userId) {
-                console.error("❌ [Frontend] User ID not available for bet");
+                console.error("❌ [Frontend] User ID not available");
                 return;
             }
-
+            
             const betData = {
                 type: "place_bet",
-                user_id: userId,
+                user_id: userId, // ✅ Отправляем ID из БД
                 amount: amount,
                 auto_cashout: autoCashout,
                 currency: "stars"
             };
-
-            console.log("🎯 [Frontend] Sending WebSocket message:", betData);
+            
+            console.log("🎯 [Frontend] Sending bet:", betData);
             send(betData);
-
+            
         } catch (error) {
             console.error("❌ [Frontend] Failed to send bet:", error);
         }
     };
-    
+
     const cashOut = () => {
         send({
             type: 'cash_out'
