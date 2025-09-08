@@ -12,7 +12,7 @@
               class="history-item"
               :class="{
                 'multiplier-low': game.multiplier < 2,
-                'multiplier-medium': game.multiplier >= 2 && game.multiplier < 3,
+                'multiplier-medium': game.multiplier >= 2 && game.multiplier < 7,
                 'multiplier-high': game.multiplier >= 7
               }"
             >
@@ -644,7 +644,7 @@ watch(currentMultiplier, () => {
 
 .history-scroll-indicator {
   position: absolute;
-  right: 5px;
+  right: 3.5px;
   top: 35%;
   transform: translateY(-50%);
   width: 30px;
