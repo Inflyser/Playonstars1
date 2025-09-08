@@ -96,58 +96,59 @@ class CrashGame:
                 total_payout=total_payout
             )
             
+            db.commit()
+            db.refresh(game_result)
+            
             # Обрабатываем каждую ставку
             for user_id, bet_data in self.bets.items():
+                # ✅ Используем get_user_by_id которую сейчас добавим в crud.py
                 user = crud.get_user_by_id(db, user_id)
                 if not user:
+                    print(f"❌ User {user_id} not found in DB")
                     continue
                 
-                # Находим активную ставку пользователя
-                active_bets = crud.get_user_active_crash_bets(db, user_id)
-                for active_bet in active_bets:
-                    if active_bet.bet_amount == bet_data['amount']:
-                        # Определяем результат ставки
-                        if bet_data.get('cashed_out', False):
-                            # Пользователь вывел деньги
-                            cashout_multiplier = bet_data.get('cashout_multiplier', 1.0)
-                            win_amount = active_bet.bet_amount * cashout_multiplier
-                            status = 'won'
-                        elif final_multiplier >= (bet_data.get('auto_cashout', 0) or 0):
-                            # Сработал авто-вывод
-                            win_amount = active_bet.bet_amount * bet_data['auto_cashout']
-                            status = 'won'
-                        else:
-                            # Проигрыш
-                            win_amount = 0
-                            status = 'lost'
-                        
-                        # Обновляем ставку в БД
-                        crud.update_crash_bet_result(
+                # ✅ Используем bet_id который сохранили при размещении ставки
+                if 'bet_id' in bet_data:
+                    # Определяем результат ставки
+                    if bet_data.get('cashed_out', False):
+                        cashout_multiplier = bet_data.get('cashout_multiplier', 1.0)
+                        win_amount = bet_data['amount'] * cashout_multiplier
+                        status = 'won'
+                    elif final_multiplier >= (bet_data.get('auto_cashout', 0) or 0):
+                        win_amount = bet_data['amount'] * bet_data['auto_cashout']
+                        status = 'won'
+                    else:
+                        win_amount = 0
+                        status = 'lost'
+                    
+                    # Обновляем ставку в БД
+                    crud.update_crash_bet_result(
+                        db=db,
+                        bet_id=bet_data['bet_id'],
+                        crash_coefficient=final_multiplier,
+                        win_amount=win_amount,
+                        status=status
+                    )
+                    
+                    # Обновляем баланс пользователя если выигрыш
+                    if win_amount > 0:
+                        crud.update_user_balance(
                             db=db,
-                            bet_id=active_bet.id,
-                            crash_coefficient=final_multiplier,
-                            win_amount=win_amount,
-                            status=status
+                            telegram_id=user.telegram_id,
+                            currency='stars',
+                            amount=win_amount
                         )
-                        
-                        # Обновляем баланс пользователя если выигрыш
-                        if win_amount > 0:
-                            crud.update_user_balance(
-                                db=db,
-                                telegram_id=user.telegram_id,
-                                currency='stars',
-                                amount=win_amount
-                            )
-                        
-                        total_payout += win_amount
-                        break
+                    
+                    total_payout += win_amount
             
             # Обновляем общий выигрыш в результате игры
             game_result.total_payout = total_payout
             db.commit()
             
+            print(f"✅ Результаты игры сохранены: Game ID {self.game_id}")
+            
         except Exception as e:
-            print(f"Error saving game results: {e}")
+            print(f"❌ Ошибка сохранения результатов игры: {e}")
             db.rollback()
         finally:
             db.close()
@@ -160,9 +161,11 @@ class CrashGame:
         """Размещение ставки с сохранением в БД"""
         db = SessionLocal()
         try:
+            # ✅ Используем get_user_by_id которую добавим в crud.py
             user = crud.get_user_by_id(db, user_id)
             if not user:
-                raise Exception("User not found")
+                print(f"❌ User {user_id} not found in DB")
+                return False
             
             # Создаем запись о ставке в БД
             bet = crud.add_crash_bet(
@@ -173,6 +176,10 @@ class CrashGame:
                 status='pending'
             )
             
+            # ✅ ВАЖНО: КОММИТИМ ИЗМЕНЕНИЯ!
+            db.commit()
+            db.refresh(bet)
+            
             # Сохраняем в активные ставки
             self.bets[user_id] = {
                 "amount": amount,
@@ -180,13 +187,16 @@ class CrashGame:
                 "placed_at": datetime.now(),
                 "cashed_out": False,
                 "profit": 0,
-                "bet_id": bet.id  # ✅ Сохраняем ID ставки из БД
+                "bet_id": bet.id  # Сохраняем ID ставки из БД
             }
             
+            print(f"✅ Ставка сохранена в БД: ID {bet.id}, User {user_id}, Amount {amount}")
+            return True
+            
         except Exception as e:
-            print(f"Error placing bet: {e}")
+            print(f"❌ Ошибка сохранения ставки: {e}")
             db.rollback()
-            raise
+            return False
         finally:
             db.close()
 
