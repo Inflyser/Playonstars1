@@ -7,16 +7,21 @@
 
         <!-- История игр -->
         <div class="game-history">
-            <div class="history-list">
-                <div 
-                    v-for="game in gameState.history.slice(0, 5)" 
-                    :key="game.gameId" 
-                    class="history-item"
-                    :class="{ crashed: game.multiplier < 2 }"
-                >
-                    {{ game.multiplier.toFixed(2) }}x
-                </div>
+          <div class="history-list">
+            <div 
+              v-for="game in gameState.history.slice(0, 5)" 
+              :key="game.gameId" 
+              class="history-item"
+              :class="{
+                'multiplier-low': game.multiplier < 2,
+                'multiplier-medium': game.multiplier >= 2 && game.multiplier <= 2.99,
+                'multiplier-high': game.multiplier > 7,
+                'crashed': game.multiplier < 2
+              }"
+            >
+              {{ game.multiplier.toFixed(2) }}x
             </div>
+          </div>
         </div>
 
         <!-- График игры -->
@@ -83,15 +88,26 @@
         </div>
 
 
-
+     
         <BettingPanel 
-          v-model:betAmount="betAmountNumber"
+          v-model:betAmount="firstBetAmount"
           :maxAmount="userStore.balance.stars_balance"
           :gamePhase="gameState.phase"
           :currentMultiplier="currentMultiplier"
-          @place-bet="handlePlaceBet"
-          @cash-out="doCashOut"
+          @place-bet="handleFirstBet"
+          @cash-out="doFirstCashOut"
         />
+
+        <!-- Вторая панель ставок -->
+        <BettingPanel 
+          v-model:betAmount="secondBetAmount"
+          :maxAmount="userStore.balance.stars_balance"
+          :gamePhase="gameState.phase"
+          :currentMultiplier="currentMultiplier"
+          @place-bet="handleSecondBet"
+          @cash-out="doSecondCashOut"
+        />
+     
 
 
         <div class="divider"></div>
@@ -131,6 +147,9 @@ const { connectToCrashGame, placeCrashBet, cashOut } = useWebSocket()
 const betAmountNumber = ref(100) // ✅ Теперь number
 const autoCashout = ref('')
 const selectedPaymentMethod = ref('top')
+const firstBetAmount = ref(100)
+const secondBetAmount = ref(50) // Можно задать разное начальное значение
+
 
 // Computed properties
 const gameState = computed(() => gameStore.crashGame)
@@ -144,7 +163,57 @@ const currentProfit = computed(() => gameStore.currentProfit)
 const gameError = computed(() => gameStore.error)
 
 
+const handleFirstBet = (betData: any) => {
+  console.log('Ставка с первой панели:', betData)
+  // Ваша логика обработки ставки
+  const amount = betData.amount
+  const cashoutValue = betData.coefficient ? parseFloat(betData.coefficient) : undefined
+  
+  if (!amount || amount <= 0) return
+  
+  try {
+    gameStore.placeBet(amount, cashoutValue)
+    placeCrashBet(amount, cashoutValue)
+  } catch (err) {
+    console.error('Failed to place bet from first panel:', err)
+  }
+}
 
+const handleSecondBet = (betData: any) => {
+  console.log('Ставка со второй панели:', betData)
+  // Можно добавить разную логику для второй панели
+  const amount = betData.amount
+  const cashoutValue = betData.coefficient ? parseFloat(betData.coefficient) : undefined
+  
+  if (!amount || amount <= 0) return
+  
+  try {
+    gameStore.placeBet(amount, cashoutValue)
+    placeCrashBet(amount, cashoutValue)
+  } catch (err) {
+    console.error('Failed to place bet from second panel:', err)
+  }
+}
+
+const doFirstCashOut = async () => {
+  try {
+    await gameStore.cashOut();
+    cashOut();
+    // Дополнительная логика для первой панели
+  } catch (error) {
+    console.error('Failed to cash out from first panel:', error);
+  }
+};
+
+const doSecondCashOut = async () => {
+  try {
+    await gameStore.cashOut();
+    cashOut();
+    // Дополнительная логика для второй панели
+  } catch (error) {
+    console.error('Failed to cash out from second panel:', error);
+  }
+};
 
 
 const totalBet = computed(() => {
@@ -526,29 +595,71 @@ watch(currentMultiplier, () => {
   width: 95%;
   margin: 8px 0px 15px 2.5%;
   border-bottom: 1px solid #25213C;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 10px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Скрываем скроллбар */
+.game-history::-webkit-scrollbar {
+  display: none;
 }
 
 .history-list {
-  display: flex;
-  gap: 4px; /* Еще меньше отступ между элементами */
-  overflow-x: auto;
-  padding: 2px 0; /* Минимальный падинг */
+  display: inline-flex;
+  gap: 6px;
+  padding: 5px 0;
 }
 
 .history-item {
-  margin: 0px 0px 8px 0px; /* Уменьшил нижний margin */
-  border: 1px solid #4B7ED0; /* Тоньше бордер */
-  border-radius: 6px; /* Меньше скругление */
-  background: #355391;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 45px;
+  height: 45px;
+  border: 2px solid #4B7ED0; /* Синий по умолчанию */
+  border-radius: 8px;
+  background: #355391; /* Синий по умолчанию */
   font-weight: bold;
   text-align: center;
-  font-size: 10px; /* Еще меньше шрифт */
-  width: 15%; /* Уже */
-  min-width: 40px; /* Уменьшил минимальную ширину */
-  padding: 2px 1px; /* Минимальный падинг */
-  box-sizing: border-box;
+  font-size: 11px;
   flex-shrink: 0;
-  line-height: 1.2; /* Уменьшил межстрочный интервал */
+  padding: 0;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+/* Коэффициент меньше 2 - синий */
+.history-item.multiplier-low {
+  border-color: #4B7ED0;
+  background: #355391;
+}
+
+/* Коэффициент от 2 до 2.99 - фиолетовый */
+.history-item.multiplier-medium {
+  border-color: #764BD0;
+  background: #5A3A9E;
+}
+
+/* Коэффициент больше 7 - зеленый */
+.history-item.multiplier-high {
+  border-color: #83CE38;
+  background: #67A32B;
+}
+
+/* Индикатор прокрутки */
+.game-history:after {
+  content: '';
+  position: absolute;
+  right: 2.5%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(90deg, transparent, #1B152F);
+  pointer-events: none;
 }
 
 .betting-panel,
