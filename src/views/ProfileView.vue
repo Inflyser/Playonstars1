@@ -205,7 +205,7 @@ const referralInfo = computed(() => {
 })
 
 const referralLink = computed(() => {
-  const baseUrl = 'https://t.me/your_bot?start=ref_'
+  const baseUrl = 'https://t.me/Playonstars_bot?start=ref_'
   const userId = userStore.user?.id || userStore.telegramUser?.id
   return userId ? `${baseUrl}${userId}` : 'Загрузка...'
 })
