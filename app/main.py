@@ -73,15 +73,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# Добавляем роутер
-
-
-# Добавляем функцию для краш-игры
-
-
 # Создайте экземпляр игры с передачей websocket_manager
 crash_game = CrashGame(websocket_manager)  # ✅ Передаем менеджер
+
+
+
+# ----------------------------- ЗАПУСК -------------------------------------
+
+
 
 @app.on_event("startup")
 async def startup():
@@ -116,304 +115,6 @@ async def startup():
     except ImportError:
         print("❌ WebSocket support: wsproto library missing")
 
-@app.get("/api/websocket/status")
-async def websocket_status():
-    """Проверка статуса WebSocket"""
-    try:
-        import websockets
-        import wsproto
-        return {
-            "websockets_installed": True,
-            "wsproto_installed": True,
-            "crash_connections": len(websocket_manager.crash_game_connections),
-            "total_connections": sum(len(conns) for conns in websocket_manager.active_connections.values())
-        }
-    except ImportError:
-        return {
-            "websockets_installed": False,
-            "wsproto_installed": False,
-            "error": "WebSocket libraries not installed"
-        }
-
-async def run_crash_game():
-    """Фоновая задача для управления краш-игрой"""
-    while True:
-        try:
-            await crash_game.run_game_cycle()  # ✅ Используем существующий экземпляр
-            # Пауза между играми
-            await asyncio.sleep(10)
-        except Exception as e:
-            print(f"Error in crash game: {e}")
-            await asyncio.sleep(10)
-            
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket_manager.connect(websocket, "general")
-    try:
-        while True:
-            data = await websocket.receive_text()
-            # Обработка сообщений
-    except WebSocketDisconnect:
-        websocket_manager.disconnect(websocket, "general")
-
-@app.websocket("/ws/crash")  
-async def websocket_crash(websocket: WebSocket):
-    await websocket_manager.connect_crash_game(websocket)
-    try:
-        while True:
-            data = await websocket.receive_text()
-            # Обработка ставок краш-игры
-    except WebSocketDisconnect:
-        websocket_manager.disconnect_crash_game(websocket)
-        
-# Добавьте этот эндпоинт для проверки депозитов
-@app.get("/api/wallet/check-deposits")
-async def check_user_deposits(
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    """Проверяем депозиты пользователя"""
-    telegram_id = request.session.get("telegram_id")
-    if not telegram_id:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    user = crud.get_user_by_telegram_id(db, telegram_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Проверяем все pending транзакции пользователя
-    pending_txs = crud.get_pending_transactions(db, user.id)
-    
-    return {
-        "pending_transactions": [
-            {
-                "tx_hash": tx.tx_hash,
-                "amount": float(tx.amount),
-                "created_at": tx.created_at.isoformat()
-            }
-            for tx in pending_txs
-        ]
-    }
-        
-@app.post("/api/user/update-balance")
-async def update_user_balance(
-    request: Request,
-    balance_data: dict,
-    db: Session = Depends(get_db)
-):
-    """Обновляем баланс пользователя"""
-    try:
-        telegram_id = request.session.get("telegram_id")
-        if not telegram_id:
-            raise HTTPException(status_code=401, detail="Not authenticated")
-        
-        user = crud.get_user_by_telegram_id(db, telegram_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        currency = balance_data.get("currency")
-        amount = float(balance_data.get("amount", 0))
-        operation = balance_data.get("operation", "add")  # add или set
-        
-        if currency == "stars":
-            if operation == "add":
-                user.stars_balance += amount
-            else:  # set
-                user.stars_balance = amount
-        elif currency == "ton":
-            if operation == "add":
-                user.ton_balance += amount
-            else:  # set
-                user.ton_balance = amount
-        
-        db.commit()
-        db.refresh(user)
-        
-        return {
-            "status": "success",
-            "balance": {
-                "stars_balance": user.stars_balance,
-                "ton_balance": user.ton_balance
-            }
-        }
-        
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/user/sync-balance")
-async def sync_user_balance(
-    request: Request,
-    balance_data: dict,
-    db: Session = Depends(get_db)
-):
-    """Синхронизация баланса с клиентом"""
-    try:
-        telegram_id = request.session.get("telegram_id")
-        if not telegram_id:
-            raise HTTPException(status_code=401, detail="Not authenticated")
-        
-        user = crud.get_user_by_telegram_id(db, telegram_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        # Просто возвращаем актуальный баланс из БД
-        return {
-            "stars_balance": user.stars_balance,
-            "ton_balance": user.ton_balance
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
-@app.get("/games/crash/history")
-async def get_crash_history(limit: int = 50, db: Session = Depends(get_db)):
-    """Получить историю краш-игр из базы данных"""
-    try:
-        results = crud.get_crash_game_history(db, limit)
-        return {
-            "history": [
-                {
-                    "game_id": result.game_id,
-                    "multiplier": float(result.multiplier),
-                    "crashed_at": float(result.crashed_at),
-                    "total_players": result.total_players,
-                    "total_bet": float(result.total_bet),
-                    "total_payout": float(result.total_payout),
-                    "timestamp": result.timestamp.isoformat()
-                }
-                for result in results
-            ]
-        }
-    except Exception as e:
-        print(f"Error getting crash history: {e}")
-        return {"history": []}
-    
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket_manager.connect(websocket, "general")
-    try:
-        while True:
-            data = await websocket.receive_text()
-            # Обработка сообщений
-            try:
-                message = json.loads(data)
-                if message.get("type") == "ping":
-                    await websocket.send_json({"type": "pong", "timestamp": message.get("timestamp")})
-            except json.JSONDecodeError:
-                pass
-    except WebSocketDisconnect:
-        websocket_manager.disconnect(websocket, "general")
-
-@app.websocket("/ws/crash")
-async def websocket_crash_endpoint(websocket: WebSocket):
-    await websocket_manager.connect_crash_game(websocket)
-    try:
-        while True:
-            data = await websocket.receive_text()
-            # Обработка ставок краш-игры
-            try:
-                message = json.loads(data)
-                if message.get("type") == "place_bet":
-                    # Здесь логика обработки ставки
-                    user_id = message.get("user_id")
-                    amount = message.get("amount")
-                    auto_cashout = message.get("auto_cashout")
-                    
-                    # Сохраняем ставку
-                    if user_id and amount:
-                        crash_game.bets[user_id] = {
-                            "amount": amount,
-                            "auto_cashout": auto_cashout,
-                            "placed_at": datetime.now()
-                        }
-                        
-            except json.JSONDecodeError:
-                pass
-    except WebSocketDisconnect:
-        websocket_manager.disconnect_crash_game(websocket)
-
-@app.websocket("/ws/user/{user_id}")
-async def websocket_user_endpoint(websocket: WebSocket, user_id: int):
-    await websocket_manager.connect(websocket, f"user_{user_id}")
-    try:
-        while True:
-            data = await websocket.receive_text()
-            # Персональные сообщения для пользователя
-    except WebSocketDisconnect:
-        websocket_manager.disconnect(websocket, f"user_{user_id}")
-    
-    
-async def check_deposits_periodically():
-    """Периодическая проверка депозитов (fallback)"""
-    while True:
-        try:
-            db = SessionLocal()
-            deposits = await ton_service.check_deposits_to_wallet()
-            
-            for deposit in deposits:
-                # Проверяем не обрабатывали ли уже эту транзакцию
-                existing_tx = crud.get_transaction_by_hash(db, deposit['tx_hash'])
-                if not existing_tx:
-                    print(f"New deposit detected: {deposit}")
-                    # Здесь логика обработки депозита
-                    
-            db.close()
-            await asyncio.sleep(300)  # Проверяем каждые 5 минут (вместо 1)
-            
-        except Exception as e:
-            print(f"Error in deposit check: {e}")
-            await asyncio.sleep(300)
-
-@app.post("/api/webhook/ton")
-async def ton_webhook(request: Request):
-    """Эндпоинт для получения веб-перехватчиков от TON API"""
-    try:
-        payload = await request.json()
-        return await ton_service.process_webhook(request, payload)
-    except Exception as e:
-        print(f"TON webhook error: {e}")
-        return {"status": "error", "message": str(e)}
-    
-@app.get("/api/ton/status")
-async def ton_status():
-    """Проверка статуса TON интеграции"""
-    return {
-        "ton_api_connected": bool(os.getenv("TON_API_KEY")),
-        "wallet_address": os.getenv("TON_WALLET_ADDRESS"),
-        "webhook_url": f"{os.getenv('WEBHOOK_URL_TON')}/api/webhook/ton",
-        "has_wallet_secret": bool(os.getenv("TON_WALLET_SECRET"))
-    }
-
-        
-@app.post("/telegram")
-async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
-    try:
-        data = await request.json()
-        update = Update(**data)  
-        
-        # Получаем user_id из Telegram update
-        if update.message:
-            user_id = update.message.from_user.id
-        elif update.callback_query:
-            user_id = update.callback_query.from_user.id
-        elif update.inline_query:
-            user_id = update.inline_query.from_user.id
-        else:
-            user_id = None
-        
-        # Сохраняем в сессию (ИСПРАВЛЕННАЯ СТРОКА)
-        if user_id:
-            request.session["user_id"] = user_id
-            # Используем model_dump() вместо to_python()
-            request.session["telegram_data"] = update.model_dump()
-        
-        await dp.feed_update(bot, update)
-        return {"status": "ok"}
-        
-    except Exception as e:
-        print(f"Error in telegram webhook: {e}")
-        return {"status": "error", "message": str(e)}
 
 @app.post("/login")
 async def login_from_webapp(request: Request, data: dict, db: Session = Depends(get_db)):
@@ -439,49 +140,14 @@ async def login_from_webapp(request: Request, data: dict, db: Session = Depends(
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-@app.get("/api/user/language")
-async def get_user_language_api(
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    try:
-        user_id = request.session.get("user_id")
-        if not user_id:
-            return {"error": "Not authenticated"}
-        
-        # Получаем пользователя и его язык
-        user = get_user_by_telegram_id(db, user_id)
-        language = user.language if user else 'ru'
-        
-        return {"language": language}
-        
-    except Exception as e:
-        return {"error": str(e)}
 
-@app.get("/api/user/data")
-async def get_user_data(request: Request, db: Session = Depends(get_db)):
-    try:
-        telegram_id = request.session.get("telegram_id")  # ← Используем telegram_id
-        if not telegram_id:
-            return {"error": "Not authenticated"}
-        
-        # Получаем данные из БД, а не из сессии
-        user = get_user_by_telegram_id(db, telegram_id)
-        if not user:
-            return {"error": "User not found"}
-        
-        return {
-            "user_data": {
-                "id": user.telegram_id,
-                "username": user.username,
-                "first_name": user.first_name,
-                "last_name": user.last_name
-            }
-        }
-        
-    except Exception as e:
-        return {"error": str(e)}
-
+@app.get("/api/debug/session")
+async def debug_session(request: Request):
+    return {
+        "session": dict(request.session),
+        "headers": dict(request.headers)
+    }
+    
 @app.get("/")
 async def root():
     return {"message": "Bot is running"}
@@ -671,6 +337,393 @@ async def auth_telegram(request: Request, db: Session = Depends(get_db)):
         print(f"Auth error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+
+@app.post("/telegram")
+async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
+    try:
+        data = await request.json()
+        update = Update(**data)  
+        
+        # Получаем user_id из Telegram update
+        if update.message:
+            user_id = update.message.from_user.id
+        elif update.callback_query:
+            user_id = update.callback_query.from_user.id
+        elif update.inline_query:
+            user_id = update.inline_query.from_user.id
+        else:
+            user_id = None
+        
+        # Сохраняем в сессию (ИСПРАВЛЕННАЯ СТРОКА)
+        if user_id:
+            request.session["user_id"] = user_id
+            # Используем model_dump() вместо to_python()
+            request.session["telegram_data"] = update.model_dump()
+        
+        await dp.feed_update(bot, update)
+        return {"status": "ok"}
+        
+    except Exception as e:
+        print(f"Error in telegram webhook: {e}")
+        return {"status": "error", "message": str(e)}
+    
+    
+    
+
+# ----------------------------- Веб-сокет -------------------------------------
+
+
+
+@app.get("/api/websocket/status")
+async def websocket_status():
+    """Проверка статуса WebSocket"""
+    try:
+        import websockets
+        import wsproto
+        return {
+            "websockets_installed": True,
+            "wsproto_installed": True,
+            "crash_connections": len(websocket_manager.crash_game_connections),
+            "total_connections": sum(len(conns) for conns in websocket_manager.active_connections.values())
+        }
+    except ImportError:
+        return {
+            "websockets_installed": False,
+            "wsproto_installed": False,
+            "error": "WebSocket libraries not installed"
+        }
+
+async def run_crash_game():
+    """Фоновая задача для управления краш-игрой"""
+    while True:
+        try:
+            await crash_game.run_game_cycle()  # ✅ Используем существующий экземпляр
+            # Пауза между играми
+            await asyncio.sleep(10)
+        except Exception as e:
+            print(f"Error in crash game: {e}")
+            await asyncio.sleep(10)
+        
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket_manager.connect(websocket, "general")
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Обработка сообщений
+            try:
+                message = json.loads(data)
+                if message.get("type") == "ping":
+                    await websocket.send_json({"type": "pong", "timestamp": message.get("timestamp")})
+            except json.JSONDecodeError:
+                pass
+    except WebSocketDisconnect:
+        websocket_manager.disconnect(websocket, "general")
+
+@app.websocket("/ws/crash")  
+async def websocket_crash(websocket: WebSocket):
+    await websocket_manager.connect_crash_game(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Обработка ставок краш-игры
+    except WebSocketDisconnect:
+        websocket_manager.disconnect_crash_game(websocket)
+        
+        
+@app.websocket("/ws/user/{user_id}")
+async def websocket_user_endpoint(websocket: WebSocket, user_id: int):
+    await websocket_manager.connect(websocket, f"user_{user_id}")
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Персональные сообщения для пользователя
+    except WebSocketDisconnect:
+        websocket_manager.disconnect(websocket, f"user_{user_id}")
+    
+    
+async def check_deposits_periodically():
+    """Периодическая проверка депозитов (fallback)"""
+    while True:
+        try:
+            db = SessionLocal()
+            deposits = await ton_service.check_deposits_to_wallet()
+            
+            for deposit in deposits:
+                # Проверяем не обрабатывали ли уже эту транзакцию
+                existing_tx = crud.get_transaction_by_hash(db, deposit['tx_hash'])
+                if not existing_tx:
+                    print(f"New deposit detected: {deposit}")
+                    # Здесь логика обработки депозита
+                    
+            db.close()
+            await asyncio.sleep(300)  # Проверяем каждые 5 минут (вместо 1)
+            
+        except Exception as e:
+            print(f"Error in deposit check: {e}")
+            await asyncio.sleep(300)
+            
+
+
+@app.websocket("/ws/crash")
+async def websocket_crash_endpoint(websocket: WebSocket):
+    await websocket_manager.connect_crash_game(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Обработка ставок краш-игры
+            try:
+                message = json.loads(data)
+                if message.get("type") == "place_bet":
+                    # Здесь логика обработки ставки
+                    user_id = message.get("user_id")
+                    amount = message.get("amount")
+                    auto_cashout = message.get("auto_cashout")
+                    
+                    # Сохраняем ставку
+                    if user_id and amount:
+                        crash_game.bets[user_id] = {
+                            "amount": amount,
+                            "auto_cashout": auto_cashout,
+                            "placed_at": datetime.now()
+                        }
+                        
+            except json.JSONDecodeError:
+                pass
+    except WebSocketDisconnect:
+        websocket_manager.disconnect_crash_game(websocket)
+
+        
+
+
+@app.get("/api/ws/test")
+async def websocket_test():
+    return {
+        "websocket_enabled": True,
+        "crash_connections": len(websocket_manager.crash_game_connections),
+        "allowed_origins": [
+            "https://playonstars.netlify.app",
+            "https://web.telegram.org"
+        ]
+    }
+    
+        
+        
+# ----------------------------- Кошелек -------------------------------------
+      
+      
+        
+# Добавьте этот эндпоинт для проверки депозитов
+@app.get("/api/wallet/check-deposits")
+async def check_user_deposits(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Проверяем депозиты пользователя"""
+    telegram_id = request.session.get("telegram_id")
+    if not telegram_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    user = crud.get_user_by_telegram_id(db, telegram_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Проверяем все pending транзакции пользователя
+    pending_txs = crud.get_pending_transactions(db, user.id)
+    
+    return {
+        "pending_transactions": [
+            {
+                "tx_hash": tx.tx_hash,
+                "amount": float(tx.amount),
+                "created_at": tx.created_at.isoformat()
+            }
+            for tx in pending_txs
+        ]
+    }
+        
+@app.post("/api/wallet/deposit")
+async def create_deposit(
+    request: Request,
+    deposit_data: dict,
+    db: Session = Depends(get_db)
+):
+    """Создаем запись о депозите"""
+    try:
+        telegram_id = request.session.get("telegram_id")
+        if not telegram_id:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        user = crud.get_user_by_telegram_id(db, telegram_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Создаем pending транзакцию
+        transaction = crud.create_transaction(
+            db=db,
+            user_id=user.id,
+            tx_hash=deposit_data.get("tx_hash"),
+            amount=float(deposit_data.get("amount", 0)),
+            transaction_type="deposit",
+            status="pending"
+        )
+        
+        return {
+            "status": "success",
+            "transaction_id": transaction.id,
+            "message": "Transaction created, waiting for confirmation"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+
+@app.get("/api/wallet/transaction/{tx_hash}")
+async def get_transaction_status(
+    tx_hash: str,
+    db: Session = Depends(get_db)
+):
+    """Проверяем статус транзакции"""
+    transaction = crud.get_transaction_by_hash(db, tx_hash)
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    return {
+        "tx_hash": transaction.tx_hash,
+        "status": transaction.status,
+        "amount": float(transaction.amount),
+        "created_at": transaction.created_at.isoformat()
+    }
+
+
+
+@app.post("/api/webhook/ton")
+async def ton_webhook(request: Request):
+    """Эндпоинт для получения веб-перехватчиков от TON API"""
+    try:
+        payload = await request.json()
+        return await ton_service.process_webhook(request, payload)
+    except Exception as e:
+        print(f"TON webhook error: {e}")
+        return {"status": "error", "message": str(e)}
+    
+@app.get("/api/ton/status")
+async def ton_status():
+    """Проверка статуса TON интеграции"""
+    return {
+        "ton_api_connected": bool(os.getenv("TON_API_KEY")),
+        "wallet_address": os.getenv("TON_WALLET_ADDRESS"),
+        "webhook_url": f"{os.getenv('WEBHOOK_URL_TON')}/api/webhook/ton",
+        "has_wallet_secret": bool(os.getenv("TON_WALLET_SECRET"))
+    }
+
+
+
+
+# ----------------------------- USER API -------------------------------------
+
+
+
+@app.post("/api/user/sync-balance")
+async def sync_user_balance(
+    request: Request,
+    balance_data: dict,
+    db: Session = Depends(get_db)
+):
+    """Синхронизация баланса с клиентом"""
+    try:
+        telegram_id = request.session.get("telegram_id")
+        if not telegram_id:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        user = crud.get_user_by_telegram_id(db, telegram_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Просто возвращаем актуальный баланс из БД
+        return {
+            "stars_balance": user.stars_balance,
+            "ton_balance": user.ton_balance
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    
+@app.post("/api/user/update-balance")
+async def update_user_balance(
+    request: Request,
+    balance_data: dict,
+    db: Session = Depends(get_db)
+):
+    """Обновляем баланс пользователя"""
+    try:
+        telegram_id = request.session.get("telegram_id")
+        if not telegram_id:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        user = crud.get_user_by_telegram_id(db, telegram_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        currency = balance_data.get("currency")
+        amount = float(balance_data.get("amount", 0))
+        operation = balance_data.get("operation", "add")  # add или set
+        
+        if currency == "stars":
+            if operation == "add":
+                user.stars_balance += amount
+            else:  # set
+                user.stars_balance = amount
+        elif currency == "ton":
+            if operation == "add":
+                user.ton_balance += amount
+            else:  # set
+                user.ton_balance = amount
+        
+        db.commit()
+        db.refresh(user)
+        
+        return {
+            "status": "success",
+            "balance": {
+                "stars_balance": user.stars_balance,
+                "ton_balance": user.ton_balance
+            }
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    
+@app.get("/api/user/data")
+async def get_user_data(request: Request, db: Session = Depends(get_db)):
+    try:
+        telegram_id = request.session.get("telegram_id")  # ← Используем telegram_id
+        if not telegram_id:
+            return {"error": "Not authenticated"}
+        
+        # Получаем данные из БД, а не из сессии
+        user = get_user_by_telegram_id(db, telegram_id)
+        if not user:
+            return {"error": "User not found"}
+        
+        return {
+            "user_data": {
+                "id": user.telegram_id,
+                "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name
+            }
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}
+    
+    
 @app.get("/api/user/balance")
 async def get_balance(request: Request, db: Session = Depends(get_db)):
     """Получаем баланс пользователя"""
@@ -722,6 +775,118 @@ async def make_deposit(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid amount")
 
+    
+@app.post("/api/user/wallet")
+async def save_user_wallet(
+    request: Request,
+    wallet_data: dict,
+    db: Session = Depends(get_db)
+):
+    """Сохраняем адрес кошелька пользователя"""
+    telegram_id = request.session.get("telegram_id")
+    if not telegram_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    user = crud.get_user_by_telegram_id(db, telegram_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Обновляем или создаем запись кошелька
+    wallet = crud.get_wallet_by_user(db, user.id)
+    if wallet:
+        wallet.address = wallet_data.get("wallet_address")
+        wallet.wallet_provider = wallet_data.get("wallet_provider", "tonconnect")
+    else:
+        wallet = crud.create_wallet(
+            db, 
+            user.id, 
+            wallet_data.get("wallet_address"), 
+            wallet_data.get("wallet_provider", "tonconnect")
+        )
+    
+    db.commit()
+    
+    return {"status": "success", "wallet_id": wallet.id}
+
+@app.get("/api/user/referral-info")
+async def get_referral_info(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Получаем реферальную информацию"""
+    user_id = request.session.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "referrals_count": user.referrals_count,
+        "active_referrals": user.active_referrals,
+        "referral_earnings_usd": user.referral_earnings_usd,
+        "stars_earned_from_refs": user.stars_earned_from_refs,
+        "stars_spent_by_refs": user.stars_spent_by_refs,
+        "total_refs_balance": user.total_refs_balance,
+        "referral_link": f"https://t.me/your_bot?start=ref_{user.id}"
+    }
+    
+
+
+@app.get("/api/user/language")
+async def get_user_language_api(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    try:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return {"error": "Not authenticated"}
+        
+        # Получаем пользователя и его язык
+        user = get_user_by_telegram_id(db, user_id)
+        language = user.language if user else 'ru'
+        
+        return {"language": language}
+        
+    except Exception as e:
+        return {"error": str(e)}
+
+
+
+    
+    
+# ----------------------------- КРАШ ИГРА -------------------------------------
+
+
+
+    
+@app.get("/games/crash/history")
+async def get_crash_history(limit: int = 50, db: Session = Depends(get_db)):
+    """Получить историю краш-игр из базы данных"""
+    try:
+        results = crud.get_crash_game_history(db, limit)
+        return {
+            "history": [
+                {
+                    "game_id": result.game_id,
+                    "multiplier": float(result.multiplier),
+                    "crashed_at": float(result.crashed_at),
+                    "total_players": result.total_players,
+                    "total_bet": float(result.total_bet),
+                    "total_payout": float(result.total_payout),
+                    "timestamp": result.timestamp.isoformat()
+                }
+                for result in results
+            ]
+        }
+    except Exception as e:
+        print(f"Error getting crash history: {e}")
+        return {"history": []}
+    
+
+
 @app.post("/api/games/crash/bet")
 async def make_crash_bet(
     request: Request,
@@ -766,36 +931,37 @@ async def make_crash_bet(
         raise HTTPException(status_code=400, detail="Invalid amount")
     
     
-@app.get("/api/user/referral-info")
-async def get_referral_info(
-    request: Request,
-    db: Session = Depends(get_db)
+# Пример FastAPI endpoint
+@app.get("/crash/history")
+async def get_crash_history(
+    limit: int = Query(5, ge=1, le=20),
+    db: Session = Depends(get_db)  # ← ДОБАВЬТЕ ЭТУ СТРОЧКУ
 ):
-    """Получаем реферальную информацию"""
-    user_id = request.session.get("user_id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    history = db.query(CrashGameResult)\
+        .order_by(CrashGameResult.timestamp.desc())\
+        .limit(limit)\
+        .all()
     
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    return {
-        "referrals_count": user.referrals_count,
-        "active_referrals": user.active_referrals,
-        "referral_earnings_usd": user.referral_earnings_usd,
-        "stars_earned_from_refs": user.stars_earned_from_refs,
-        "stars_spent_by_refs": user.stars_spent_by_refs,
-        "total_refs_balance": user.total_refs_balance,
-        "referral_link": f"https://t.me/your_bot?start=ref_{user.id}"
-    }
-    
-@app.get("/api/debug/session")
-async def debug_session(request: Request):
-    return {
-        "session": dict(request.session),
-        "headers": dict(request.headers)
-    }
+    return [
+        {
+            "gameId": game.game_id,
+            "multiplier": float(game.multiplier),
+            "crashedAt": float(game.crashed_at),
+            "timestamp": game.timestamp.isoformat(),
+            "playersCount": game.total_players,
+            "totalBet": float(game.total_bet),
+            "totalPayout": float(game.total_payout)
+        }
+        for game in history
+    ]
+
+
+
+
+# ----------------------------- ОСТАЛЬНЫЕ -------------------------------------
+
+
+
     
 @app.get("/api/webhook-info")
 async def webhook_info():
@@ -858,124 +1024,7 @@ def generate_avatar_url(user: User) -> str:
     # Если нет username - используем дефолтную аватарку
     return f"https://t.me/i/userpic/320/{user.telegram_id}.jpg"
 
-@app.post("/api/wallet/deposit")
-async def create_deposit(
-    request: Request,
-    deposit_data: dict,
-    db: Session = Depends(get_db)
-):
-    """Создаем запись о депозите"""
-    try:
-        telegram_id = request.session.get("telegram_id")
-        if not telegram_id:
-            raise HTTPException(status_code=401, detail="Not authenticated")
-        
-        user = crud.get_user_by_telegram_id(db, telegram_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        # Создаем pending транзакцию
-        transaction = crud.create_transaction(
-            db=db,
-            user_id=user.id,
-            tx_hash=deposit_data.get("tx_hash"),
-            amount=float(deposit_data.get("amount", 0)),
-            transaction_type="deposit",
-            status="pending"
-        )
-        
-        return {
-            "status": "success",
-            "transaction_id": transaction.id,
-            "message": "Transaction created, waiting for confirmation"
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/wallet/transaction/{tx_hash}")
-async def get_transaction_status(
-    tx_hash: str,
-    db: Session = Depends(get_db)
-):
-    """Проверяем статус транзакции"""
-    transaction = crud.get_transaction_by_hash(db, tx_hash)
-    if not transaction:
-        raise HTTPException(status_code=404, detail="Transaction not found")
-    
-    return {
-        "tx_hash": transaction.tx_hash,
-        "status": transaction.status,
-        "amount": float(transaction.amount),
-        "created_at": transaction.created_at.isoformat()
-    }
-    
-@app.get("/api/ws/test")
-async def websocket_test():
-    return {
-        "websocket_enabled": True,
-        "crash_connections": len(websocket_manager.crash_game_connections),
-        "allowed_origins": [
-            "https://playonstars.netlify.app",
-            "https://web.telegram.org"
-        ]
-    }
-    
-@app.post("/api/user/wallet")
-async def save_user_wallet(
-    request: Request,
-    wallet_data: dict,
-    db: Session = Depends(get_db)
-):
-    """Сохраняем адрес кошелька пользователя"""
-    telegram_id = request.session.get("telegram_id")
-    if not telegram_id:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    user = crud.get_user_by_telegram_id(db, telegram_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Обновляем или создаем запись кошелька
-    wallet = crud.get_wallet_by_user(db, user.id)
-    if wallet:
-        wallet.address = wallet_data.get("wallet_address")
-        wallet.wallet_provider = wallet_data.get("wallet_provider", "tonconnect")
-    else:
-        wallet = crud.create_wallet(
-            db, 
-            user.id, 
-            wallet_data.get("wallet_address"), 
-            wallet_data.get("wallet_provider", "tonconnect")
-        )
-    
-    db.commit()
-    
-    return {"status": "success", "wallet_id": wallet.id}
-
-# Пример FastAPI endpoint
-@app.get("/crash/history")
-async def get_crash_history(
-    limit: int = Query(5, ge=1, le=20),
-    db: Session = Depends(get_db)  # ← ДОБАВЬТЕ ЭТУ СТРОЧКУ
-):
-    history = db.query(CrashGameResult)\
-        .order_by(CrashGameResult.timestamp.desc())\
-        .limit(limit)\
-        .all()
-    
-    return [
-        {
-            "gameId": game.game_id,
-            "multiplier": float(game.multiplier),
-            "crashedAt": float(game.crashed_at),
-            "timestamp": game.timestamp.isoformat(),
-            "playersCount": game.total_players,
-            "totalBet": float(game.total_bet),
-            "totalPayout": float(game.total_payout)
-        }
-        for game in history
-    ]
     
 # Подключаем роутеры
 dp.include_router(telegram_router)
