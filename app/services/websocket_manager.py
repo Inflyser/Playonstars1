@@ -3,6 +3,7 @@ import json
 import logging
 from typing import Dict, Set
 from fastapi import WebSocket
+from datetime import datetime 
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +117,49 @@ class WebSocketManager:
         
         for websocket in disconnected:
             self.disconnect_crash_game(websocket)
+            
+    async def handle_crash_bet(self, websocket: WebSocket, data: dict):
+        """Обработка ставок в краш-игре"""
+        try:
+            user_id = data.get("user_id")
+            amount = data.get("amount")
+            auto_cashout = data.get("auto_cashout")
+
+            if not all([user_id, amount]):
+                await self.send_personal_message({"error": "Missing required fields"}, websocket)
+                return
+
+            # ✅ Сохраняем ставку в БД через crash_game
+            success = await self.crash_game.place_bet(user_id, float(amount), auto_cashout)
+
+            if success:
+                await self.send_personal_message({
+                    "type": "bet_placed",
+                    "status": "success",
+                    "amount": amount
+                }, websocket)
+
+                # ✅ Рассылаем обновление всем клиентам
+                await self.broadcast_crash_game({
+                    "type": "new_bet",
+                    "user_id": user_id,
+                    "amount": amount,
+                    "timestamp": datetime.now().isoformat()
+                })
+            else:
+                await self.send_personal_message({
+                    "type": "bet_placed", 
+                    "status": "error",
+                    "message": "Failed to place bet"
+                }, websocket)
+
+        except Exception as e:
+            print(f"Error handling bet: {e}")
+            await self.send_personal_message({
+                "type": "bet_placed",
+                "status": "error", 
+                "message": str(e)
+            }, websocket)
 
     async def connect_crash_game(self, websocket: WebSocket):
         await websocket.accept()
