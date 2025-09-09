@@ -103,13 +103,13 @@ async def startup():
     ton_api_key = os.getenv("TON_API_KEY")
     ton_wallet_address = os.getenv("TON_WALLET_ADDRESS")
     webhook_url_ton = os.getenv("WEBHOOK_URL_TON")
-    
+
     if all([ton_api_key, ton_wallet_address, webhook_url_ton]):
         print(f"🔗 Setting up TON webhook...")
-        
+
         # Сначала проверяем доступность API
         api_accessible = await ton_service.check_ton_api_status()
-        
+
         if api_accessible:
             success = await ton_service.setup_webhook()
             if success:
@@ -126,7 +126,7 @@ async def startup():
         print(f"⚠️ TON Webhook skipped - missing environment variables: {', '.join(missing_vars)}")
         # Запускаем фоновую задачу для краш-игры
         asyncio.create_task(run_crash_game())
-    
+  
     # Проверяем WebSocket библиотеки
     try:
         import websockets
