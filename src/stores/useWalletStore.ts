@@ -1,11 +1,7 @@
 import { defineStore } from 'pinia';
-import { connector, initTonConnect } from '@/services/tonconnect';
-import { useUserStore } from '@/stores/useUserStore'; // Правильный импорт
+import { connector, initTonConnect, generateConnectionLink, handleTonConnectReturn } from '@/services/tonconnect';
 import { api } from '@/services/api';
-import { 
-  openTelegramLink, 
-  isTelegramWebApp
-} from '@/utils/telegram';
+import { openTelegramLink, isTelegramWebApp } from '@/utils/telegram';
 
 interface WalletState {
     isConnected: boolean;
@@ -13,6 +9,7 @@ interface WalletState {
     tonBalance: number;
     isLoading: boolean;
     isInitialized: boolean;
+    connectionError: string | null;
 }
 
 export const useWalletStore = defineStore('wallet', {
@@ -21,289 +18,174 @@ export const useWalletStore = defineStore('wallet', {
         walletAddress: null,
         tonBalance: 0,
         isLoading: false,
-        isInitialized: false
+        isInitialized: false,
+        connectionError: null
     }),
 
     actions: {
         async init() {
-            if (this.isInitialized) return;
+            if (this.isInitialized) {
+                console.log('✅ Wallet store уже инициализирован');
+                return;
+            }
 
             try {
-                // Создаем экземпляр стора здесь
-                const userStore = useUserStore();
+                console.log('🔄 Инициализация хранилища кошелька...');
+                this.isLoading = true;
+                this.connectionError = null;
 
                 // Инициализируем TonConnect
                 const connected = await initTonConnect();
                 this.isConnected = connected;
-
+                
                 if (connected && connector.wallet) {
                     this.walletAddress = connector.wallet.account.address;
+                    console.log('💰 Кошелек подключен:', this.walletAddress);
+                    
                     await this.updateBalance();
                     await this.saveWalletToDB();
                 }
-            
+
+                // Подписываемся на изменения статуса
                 connector.onStatusChange(async (wallet) => {
+                    console.log('🔄 Изменение статуса кошелька обнаружено');
                     this.isConnected = !!wallet;
                     this.walletAddress = wallet?.account.address || null;
 
                     if (wallet) {
+                        console.log('✅ Кошелек подключен/изменен:', wallet.account.address);
                         await this.updateBalance();
                         await this.saveWalletToDB();
-
-                        // Используем уже созданный экземпляр
-                        await userStore.fetchBalance();
+                    } else {
+                        console.log('❌ Кошелек отключен');
+                        this.walletAddress = null;
+                        this.tonBalance = 0;
                     }
                 });
-            
+
                 this.isInitialized = true;
+                console.log('✅ Хранилище кошелька инициализировано');
+
             } catch (error) {
-                console.error('Wallet init error:', error);
-            }
-        },
-        
-        async checkConnectionStatus() {
-            try {
-                // Принудительно проверяем статус соединения
-                await connector.restoreConnection();
-                this.isConnected = connector.connected;
-
-                if (connector.connected && connector.wallet) {
-                    this.walletAddress = connector.wallet.account.address;
-                    await this.updateBalance();
-                    await this.saveWalletToDB();
-                }
-
-                return this.isConnected;
-            } catch (error) {
-                console.error('Error checking connection status:', error);
-                return false;
+                console.error('❌ Ошибка инициализации хранилища кошелька:', error);
+                this.connectionError = 'Ошибка инициализации';
+                this.isInitialized = false;
+            } finally {
+                this.isLoading = false;
             }
         },
 
-
-        async handleWalletReturn() {
-            // Проверяем параметры возврата из кошелька
-            const urlParams = new URLSearchParams(window.location.search);
-            const hash = window.location.hash;
-
-            const isReturn = urlParams.has('tonconnect') || hash.includes('tonconnect') || 
-                            urlParams.has('startattach') || hash.includes('startattach');
-
-            if (isReturn) {
-                console.log('🔄 Handling wallet return...');
-
-                // Очищаем URL
-                const cleanUrl = window.location.origin + window.location.pathname;
-                window.history.replaceState({}, document.title, cleanUrl);
-
-                // Проверяем статус соединения
-                await this.checkConnectionStatus();
-
-                return true;
-            }
-
-            return false;
-        },
-
-            
         async connect() {
-            console.log('🔄 [WalletStore] Connect method called');
-            this.isLoading = true;
-            
             try {
-                console.log('📱 [WalletStore] Is Telegram environment:', isTelegramWebApp());
-                
+                console.log('🎯 Начало подключения кошелька...');
+                this.isLoading = true;
+                this.connectionError = null;
+
                 if (isTelegramWebApp()) {
-                    console.log('📲 [WalletStore] Telegram env - should open modal');
-                    // Для Telegram модалка открывается из компонента
+                    console.log('📱 Telegram WebApp - открываем кошелек...');
+                    
+                    // Для Telegram используем deep link
+                    const deepLink = 'tg://wallet?startattach=tonconnect';
+                    openTelegramLink(deepLink);
+                    
+                    // Ждем возврата из кошелька
+                    setTimeout(async () => {
+                        await this.checkConnectionAfterTimeout();
+                    }, 3000);
+                    
                 } else {
-                    console.log('🌐 [WalletStore] Browser env - connecting via TonConnect...');
+                    console.log('🌐 Браузер - стандартное подключение...');
+                    // Для браузера используем стандартное подключение
                     await connector.connect({
                         universalLink: 'https://app.tonkeeper.com/ton-connect',
                         bridgeUrl: 'https://bridge.tonapi.io/bridge'
                     });
-                    console.log('✅ [WalletStore] TonConnect connection successful');
                 }
+
             } catch (error) {
-                console.error('❌ [WalletStore] Connection error:', error);
+                console.error('❌ Ошибка подключения кошелька:', error);
+                this.connectionError = 'Ошибка подключения';
                 throw error;
             } finally {
                 this.isLoading = false;
             }
         },
 
-        async generateConnectionLink(): Promise<string> {
-            try {
-                // Создаем подключение и получаем универсальную ссылку
-                const universalLink = await connector.connect({
-                    universalLink: 'https://t.me/wallet',
-                    bridgeUrl: 'https://bridge.tonapi.io/bridge'
-                });
-                
-                return universalLink;
-            } catch (error) {
-                console.error('Error generating connection link:', error);
-                return 'https://app.tonkeeper.com/ton-connect';
-            }
+        async checkConnectionAfterTimeout() {
+            // Проверяем соединение после таймаута (для Telegram)
+            setTimeout(async () => {
+                try {
+                    await connector.restoreConnection();
+                    this.isConnected = connector.connected;
+                    
+                    if (connector.connected && connector.wallet) {
+                        this.walletAddress = connector.wallet.account.address;
+                        await this.updateBalance();
+                        await this.saveWalletToDB();
+                        console.log('✅ Кошелек подключен после таймаута');
+                    }
+                } catch (error) {
+                    console.error('Ошибка проверки соединения:', error);
+                }
+            }, 2000);
         },
 
         async saveWalletToDB() {
+            if (!this.isConnected || !this.walletAddress) {
+                console.log('❌ Не могу сохранить: кошелек не подключен');
+                return false;
+            }
+
             try {
-                if (!this.isConnected || !this.walletAddress) return;
+                console.log('💾 Сохранение кошелька в БД:', this.walletAddress);
                 
                 const response = await api.post('/api/user/wallet', {
                     wallet_address: this.walletAddress,
                     wallet_provider: 'tonconnect'
                 });
                 
-                console.log('✅ Wallet saved to DB:', response.data);
+                console.log('✅ Кошелек сохранен в БД:', response.data);
                 return true;
-            } catch (error) {
-                console.error('❌ Error saving wallet to DB:', error);
+                
+            } catch (error: any) {
+                console.error('❌ Ошибка сохранения кошелька в БД:', error);
+                
+                if (error.response) {
+                    console.error('Детали ошибки:', error.response.data);
+                }
+                
                 return false;
             }
         },
-        
-        
-        async connectInTelegram(walletType: 'tonkeeper' | 'telegram' = 'telegram'): Promise<boolean> {
-            this.isLoading = true;
-            try {
-                console.log('📱 Connecting wallet in Telegram...', walletType);
-                
-                const links = {
-                    tonkeeper: 'tg://resolve?domain=tonkeeper&startattach=tonconnect',
-                    telegram: 'tg://wallet?startattach=tonconnect'
-                };
-                
-                // Открываем deep link
-                if (isTelegramWebApp()) {
-                    openTelegramLink(links[walletType]);
-                } else {
-                    window.open(links[walletType], '_blank');
-                }
-                
-                // Инициируем подключение через TonConnect
-                await connector.connect({
-                    jsBridgeKey: 'tonkeeper',
-                    universalLink: links[walletType]
-                });
 
-                if (connector.connected && connector.wallet) {
-                    this.walletAddress = connector.wallet.account.address;
-                    await this.saveWalletToDB();
-                    await this.updateBalance();
-                }
-                
-                return true;
-            } catch (error) {
-                console.error('❌ Telegram connection error:', error);
-                throw error;
-            } finally {
-                this.isLoading = false;
+        async updateBalance() {
+            if (!this.walletAddress) {
+                console.log('❌ Не могу обновить баланс: нет адреса кошелька');
+                return;
             }
-        },
 
-        async sendTransaction(toAddress: string, amount: number, payload?: string) {
-            this.isLoading = true;
             try {
-                if (!this.isConnected || !connector.wallet) {
-                    throw new Error('Wallet not connected');
-                }
-
-                const transaction = {
-                    validUntil: Date.now() + 1000000,
-                    messages: [
-                        {
-                            address: toAddress,
-                            amount: Math.floor(amount * 1e9).toString(),
-                            payload: payload ? btoa(payload) : undefined
-                        }
-                    ]
-                };
-
-                const result = await connector.sendTransaction(transaction);
-                return result;
-            } catch (error) {
-                console.error('Transaction error:', error);
-                throw error;
-            } finally {
-                this.isLoading = false;
-            }
-        },
-
-        async sendTransactionInTelegram(toAddress: string, amount: number, payload?: string) {
-            this.isLoading = true;
-            try {
-                if (!this.isConnected) {
-                    throw new Error('Wallet not connected');
-                }
+                console.log('🔄 Обновление баланса для:', this.walletAddress);
                 
-                // Для Telegram используем deep link
-                const nanoAmount = Math.floor(amount * 1e9).toString();
-                const deepLink = `tg://wallet?startapp=transfer=${toAddress}_${nanoAmount}_${encodeURIComponent(payload || '')}`;
+                const response = await api.get(`/wallet/balance/${this.walletAddress}`);
+                this.tonBalance = response.data.balance;
                 
-                openTelegramLink(deepLink);
-                
-                // Возвращаем mock результат для pending транзакции
-                return {
-                    boc: `pending_telegram_${Date.now()}`,
-                    status: 'pending'
-                };
+                console.log('✅ Баланс обновлен:', this.tonBalance, 'TON');
                 
             } catch (error) {
-                console.error('Telegram transaction error:', error);
-                throw error;
-            } finally {
-                this.isLoading = false;
+                console.error('❌ Ошибка обновления баланса:', error);
+                this.tonBalance = 0;
             }
-        },
-
-        async waitForTransactionConfirmation(txHash: string, timeout: number = 60000) {
-            const startTime = Date.now();
-            
-            return new Promise((resolve, reject) => {
-                const checkInterval = setInterval(async () => {
-                    try {
-                        const response = await api.get(`/wallet/transaction/${txHash}`);
-                        
-                        if (response.data.status === 'completed') {
-                            clearInterval(checkInterval);
-                            resolve(true);
-                        } else if (response.data.status === 'failed') {
-                            clearInterval(checkInterval);
-                            reject(new Error('Transaction failed'));
-                        }
-                        
-                        if (Date.now() - startTime > timeout) {
-                            clearInterval(checkInterval);
-                            reject(new Error('Transaction timeout'));
-                        }
-                    } catch (error) {
-                        // Продолжаем попытки при ошибках сети
-                    }
-                }, 3000);
-            });
         },
 
         disconnect() {
+            console.log('🚪 Отключение кошелька...');
             connector.disconnect();
             this.isConnected = false;
             this.walletAddress = null;
             this.tonBalance = 0;
-            console.log('✅ Wallet disconnected');
-        },
-
-        async updateBalance() {
-            if (!this.walletAddress) return;
-            
-            try {
-                const response = await api.get(`/wallet/balance/${this.walletAddress}`);
-                this.tonBalance = response.data.balance;
-            } catch (error) {
-                console.error('Failed to update balance:', error);
-            }
+            console.log('✅ Кошелек отключен');
         }
-
     },
 
     getters: {
@@ -311,6 +193,7 @@ export const useWalletStore = defineStore('wallet', {
             if (!state.walletAddress) return '';
             return `${state.walletAddress.slice(0, 6)}...${state.walletAddress.slice(-4)}`;
         },
-        formattedBalance: (state) => state.tonBalance.toFixed(2)
+        formattedBalance: (state) => state.tonBalance.toFixed(2),
+        hasError: (state) => state.connectionError !== null
     }
 });
