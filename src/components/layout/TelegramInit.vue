@@ -40,6 +40,13 @@ const initializeApp = async () => {
       } catch (err) {
         console.error('❌ Ошибка загрузки данных пользователя:', err);
         // НЕ прерываем инициализацию приложения из-за этой ошибки
+        // Но ВСЕГДА пытаемся подключить WebSocket, даже если остальное упало
+        try {
+          await connectWebSocket();
+          console.log('✅ WebSocket подключен (после ошибки загрузки пользователя)');
+        } catch (wsError) {
+          console.error('❌ WebSocket также не удалось подключить:', wsError);
+        }
       }
     }
     
