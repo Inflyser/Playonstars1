@@ -127,6 +127,46 @@ class TonService:
             return hmac.compare_digest(signature, computed_signature)
         except Exception:
             return False
+        
+    # ton_service.py - добавь этот метод в класс TonService
+    async def get_wallet_balance(self, wallet_address: str) -> float:
+        """Получаем баланс кошелька через TON API"""
+        try:
+            print(f"🔍 Getting balance for wallet: {wallet_address}")
+            
+            if not self.api_key:
+                print("⚠️ TON API key not set - returning 0")
+                return 0.0
+            
+            # ✅ ПРАВИЛЬНЫЙ endpoint для получения информации о кошельке в tonapi.io v2
+            url = f"{self.base_url}/accounts/{wallet_address}"
+            
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Accept": "application/json"
+            }
+            
+            print(f"🌐 Making request to: {url}")
+            response = requests.get(url, headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                print(f"✅ TON API response: {data}")
+                
+                # ✅ ПРАВИЛЬНЫЙ путь к балансу в tonapi.io v2
+                balance_nano = data.get('balance', 0)
+                balance_ton = int(balance_nano) / 1e9  # Конвертируем нанотоны в TON
+                
+                print(f"💰 Balance: {balance_ton} TON")
+                return balance_ton
+                
+            else:
+                print(f"❌ TON API error: {response.status_code} - {response.text}")
+                return 0.0
+                
+        except Exception as e:
+            print(f"❌ Error getting wallet balance: {e}")
+            return 0.0
     
     async def process_webhook(self, request: Request, payload: dict):
         """Обрабатываем входящий веб-перехватчик"""
