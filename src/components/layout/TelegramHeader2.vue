@@ -40,18 +40,9 @@
           </div>
         </div>
       </div>
-
-      <!-- Уведомление о подключении -->
-      <div v-if="showSuccessNotification" class="notification success">
-        Кошелек успешно подключен!
-      </div>
-      <div v-if="debugInfo" class="debug-info">
-        <div>Status: {{ walletStore.isConnected ? 'Connected' : 'Disconnected' }}</div>
-        <div>Address: {{ walletStore.walletAddress || 'None' }}</div>
-        <div>Initialized: {{ walletStore.isInitialized }}</div>
-        <div>Loading: {{ walletStore.isLoading }}</div>
-      </div>
     </header>
+      <!-- Уведомление о подключении -->
+
 </template>
 
 <script setup lang="ts">
@@ -80,15 +71,7 @@ watch(() => walletStore.isConnected, (newVal, oldVal) => {
   }
 });
 
-// Инициализируем кошелек при монтировании компонента
-onMounted(async () => {
-  if (!walletStore.isInitialized) {
-    await walletStore.init();
-  }
-  
-  // Проверяем возврат из кошелька (после сканирования QR)
-  checkWalletReturn();
-});
+
 
 const checkWalletReturn = async () => {
   // Проверяем параметры URL для возврата из кошелька

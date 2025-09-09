@@ -17,101 +17,28 @@ const { connect: connectWebSocket } = useWebSocket();
 const isInitialized = ref(false);
 const initializationError = ref<string | null>(null);
 
-// ✅ Правильная обработка глубоких ссылок TonConnect
-const handleTonConnectReturn = () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const hashParams = new URLSearchParams(window.location.hash.slice(1));
-  
-  if (urlParams.has('tonconnect') || hashParams.has('tonconnect')) {
-    console.log('🔄 TonConnect return detected');
-    
-    // Очищаем URL
-    const cleanUrl = window.location.origin + window.location.pathname;
-    window.history.replaceState({}, document.title, cleanUrl);
-    
-    // Инициализируем кошелек
-    setTimeout(() => {
-      walletStore.init().catch(console.error);
-    }, 1000);
-  }
-};
 
-const retryInit = async () => {
-  console.log('🔄 Retrying initialization...');
-  isInitialized.value = false;
-  initializationError.value = null;
-  error.value = null;
-  await initializeApp();
-};
 
 const initializeApp = async () => {
   try {
-    isLoading.value = true;
-    error.value = null;
-
-    // 1. Проверяем возврат из кошелька
-    handleTonConnectReturn();
-
-    const isTelegram = initTelegramWebApp();
-    console.log('📱 Is Telegram environment:', isTelegram);
-
+    console.log('🚀 Запускаем инициализацию приложения...');
+    
+    // 1. Самое важное: инициализируем кошелек (он сам проверит возврат из кошелька)
     await walletStore.init();
-
-    // 2. ✅ Инициализируем TonConnect (должно быть ПЕРВЫМ)
-    if (isTelegram) {
-      await userStore.fetchUserData();
+    
+    // 2. Если мы в Telegram — инициализируем данные пользователя
+    const isTelegram = initTelegramWebApp();
+    if (isTelegram && userStore.user) {
       await userStore.fetchBalance();
       await connectWebSocket();
     }
-
-    isInitialized.value = true;
-
-    // 3. ✅ Инициализируем Telegram (если в Telegram)
-    if (isTelegram) {
-      const initData = getTelegramInitData();
-      console.log('📋 InitData available:', !!initData);
-      
-      if (initData) {
-        console.log('🔐 Authenticating with Telegram...');
-        const authSuccess = await initTelegram(initData);
-        
-        if (!authSuccess) {
-          throw new Error('Telegram authentication failed');
-        }
-      }
-    }
-
-    // 4. ✅ Параллельно загружаем пользовательские данные (если авторизованы)
-    const loadPromises = [];
     
-    if (userStore.user || isTelegram) {
-      loadPromises.push(
-        fetchUserData().catch(err => 
-          console.error('Failed to load user data:', err)
-        ),
-        fetchBalance().catch(err => 
-          console.error('Failed to load balance:', err)
-        )
-      );
-    }
-
-    // 5. ✅ Подключаем WebSocket для реальных обновлений
-    if (isTelegram) {
-      loadPromises.push(
-        connectWebSocket().catch(err =>
-          console.error('Failed to connect WebSocket:', err)
-        )
-      );
-    }
-
-    await Promise.all(loadPromises);
-
     isInitialized.value = true;
-    console.log('🎉 Application fully initialized');
-
+    console.log('✅ Приложение успешно инициализировано!');
+    
   } catch (err) {
-    console.error('❌ Initialization failed:', err);
-    initializationError.value = err instanceof Error ? err.message : 'Unknown error';
+    console.error('❌ Ошибка инициализации:', err);
+    error.value = 'Не удалось загрузить приложение';
   }
 };
 
@@ -123,57 +50,11 @@ watch(() => userStore.user, (newUser) => {
   }
 });
 
-let originalHashChangeHandler: ((event: HashChangeEvent) => void) | null = null;
 
-const handleWalletReturn = () => {
-    // Проверяем параметры возврата из кошелька
-    const urlParams = new URLSearchParams(window.location.search);
-    const tonconnectReturn = urlParams.get('tonconnect');
-    
-    if (tonconnectReturn) {
-        console.log('🔄 Handling wallet return...');
-        // Очищаем URL параметры
-        window.history.replaceState({}, document.title, window.location.pathname);
-        
-        // Даем время на обработку возврата
-        setTimeout(() => {
-            walletStore.init();
-        }, 1000);
-    }
-};
-
-onMounted(async () => {
-    handleWalletReturn();
-    // ✅ Сохраняем оригинальный обработчик через присваивание функции
-    originalHashChangeHandler = window.onhashchange ? 
-        (event: HashChangeEvent) => {
-            if (window.onhashchange) {
-                window.onhashchange.call(window, event);
-            }
-        } : null;
-
-    // ✅ Создаем собственный обработчик
-    const handleHashChange = (event: HashChangeEvent) => {
-        console.log('📍 Hash changed:', window.location.hash);
-        handleTonConnectReturn();
-        
-        // ✅ Вызываем оригинальный обработчик
-        if (originalHashChangeHandler) {
-            originalHashChangeHandler(event);
-        }
-    };
-
-    // ✅ Устанавливаем через addEventListener
-    window.addEventListener('hashchange', handleHashChange);
-    
-    await initializeApp();
+onMounted(() => {
+  initializeApp();
 });
 
-onUnmounted(() => {
-    // ✅ Не нужно восстанавливать onhashchange, т.к. мы использовали addEventListener
-    // Просто очищаем ссылку
-    originalHashChangeHandler = null;
-});
 </script>
 
 <template>
@@ -186,7 +67,6 @@ onUnmounted(() => {
         <div class="error-icon">⚠️</div>
         <h3>Initialization Failed</h3>
         <p>{{ initializationError }}</p>
-        <button @click="retryInit" class="retry-btn">Try Again</button>
       </div>
       
       <div v-else class="loading-state">
