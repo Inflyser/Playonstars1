@@ -36,11 +36,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useWalletStore } from '@/stores/useWalletStore';
 import { isTelegramWebApp } from '@/utils/telegram';
 import TonConnectModal from '@/components/ui/TonConnectModal.vue';
+
 
 const walletStore = useWalletStore();
 const error = ref('');
@@ -50,8 +51,16 @@ const {
   isConnected, 
   isLoading, 
   shortAddress, 
-  formattedBalance 
+  formattedBalance,
+  connectionState // ✅ Добавляем отслеживание статуса
 } = storeToRefs(walletStore);
+
+watch(connectionState, (newStatus) => {
+  console.log('🔄 Connection status changed:', newStatus);
+  if (newStatus === 'error') {
+    error.value = 'Connection failed';
+  }
+});
 
 const connect = async () => {
     console.log('🎯 [WalletConnect] Connect button clicked');
@@ -68,9 +77,16 @@ const connect = async () => {
         }
     } catch (err) {
         console.error('💥 [WalletConnect] Connection error:', err);
-        error.value = 'Failed to connect wallet';
+        error.value = err.message || 'Failed to connect wallet';
     }
 };
+
+// ✅ Инициализируем при монтировании
+onMounted(async () => {
+  if (!walletStore.isInitialized) {
+    await walletStore.init();
+  }
+});
 
 const disconnect = () => {
     console.log('🚪 [WalletConnect] Disconnect button clicked');

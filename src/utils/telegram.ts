@@ -69,39 +69,6 @@ export const getTelegramInitData = (): string | null => {
 /**
  * Безопасно открывает ссылку в Telegram WebApp
  */
-export const openTelegramLink = (url: string): boolean => {
-  try {
-    const isDeepLink = url.startsWith('tg://');
-    const isNative = isNativeTelegramApp();
-    
-    console.log('🔍 Link info:', { url, isDeepLink, isNative });
-    
-    if (isDeepLink && !isNative) {
-      console.warn('⚠️ Deep links only work in native Telegram app');
-      alert('Для подключения кошелька откройте приложение в официальном Telegram приложении');
-      return false;
-    }
-    
-    if (isDeepLink) {
-      // В нативном приложении - используем location.href
-      window.location.href = url;
-      console.log('✅ Deep link opened via location.href');
-      return true;
-    } else {
-      // Обычные ссылки
-      if (window.Telegram?.WebApp?.openLink) {
-        window.Telegram.WebApp.openLink(url);
-      } else {
-        window.open(url, '_blank');
-      }
-      return true;
-    }
-    
-  } catch (error) {
-    console.error('❌ Error opening link:', error);
-    return false;
-  }
-};
 
 export const isNativeTelegramApp = (): boolean => {
   if (typeof window === 'undefined') return false;
@@ -127,6 +94,34 @@ export const getTelegramWebApp = () => {
   return typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
 };
 
+
+export const openTelegramLink = (url: string): boolean => {
+  try {
+    console.log('🔗 Opening link:', url);
+    
+    if (url.startsWith('tg://')) {
+      // Deep link - используем location.href
+      window.location.href = url;
+      return true;
+    } else {
+      // Обычная ссылка
+      if (window.Telegram?.WebApp?.openLink) {
+        window.Telegram.WebApp.openLink(url);
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+      return true;
+    }
+  } catch (err) {
+    console.error('❌ Error opening link:', err);
+    return false;
+  }
+};
+
+export const isNativeTelegram = (): boolean => {
+  const webApp = window.Telegram?.WebApp;
+  return webApp?.platform !== 'web' && webApp?.platform !== undefined;
+};
 /**
  * Создает deeplink для Telegram Wallet
  */

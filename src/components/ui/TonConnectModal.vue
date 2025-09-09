@@ -10,6 +10,10 @@
             <span>Generating QR code...</span>
           </div>
         </div>
+        <div v-if="!qrCodeUrl" class="injected-wallet-message">
+          <p>🎉 Using injected wallet - no QR code needed</p>
+          <p>Check your wallet app for connection request</p>
+        </div>
         <p>Scan with your TON wallet app</p>
       </div>
       
@@ -32,9 +36,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import { useWalletStore } from '@/stores/useWalletStore';
-import { generateConnectionLink } from '@/services/tonconnect';
+import { tonConnectService } from '@/services/tonconnect'; // ✅ Импортируем сервис
 
 const isVisible = ref(false);
 const qrCodeUrl = ref('');
@@ -46,15 +50,19 @@ const open = async () => {
   isVisible.value = true;
   
   try {
-    // Генерируем ссылку для подключения
-    const universalLink = await generateConnectionLink();
+    // ✅ Используем сервис вместо функции
+    const universalLink = await tonConnectService.connect();
     
-    // Создаем QR-код используя сервис генерации QR-кодов
-    qrCodeUrl.value = await generateQRCode(universalLink);
-    
-    console.log('✅ QR code generated successfully');
+    if (universalLink) {
+      // Создаем QR-код только если есть universal link
+      qrCodeUrl.value = await generateQRCode(universalLink);
+      console.log('✅ QR code generated successfully');
+    } else {
+      console.log('ℹ️ No QR code needed (injected wallet)');
+      qrCodeUrl.value = ''; // Очищаем QR код
+    }
   } catch (error) {
-    console.error('❌ Error generating QR code:', error);
+    console.error('❌ Error generating connection:', error);
     qrCodeUrl.value = '';
   }
 };

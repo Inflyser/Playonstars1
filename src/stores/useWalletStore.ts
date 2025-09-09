@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { tonConnectService } from '@/services/tonconnect';
+import { tonConnectService } from '@/services/tonconnect'; // Импортируем сервис
 import { api } from '@/services/api';
 import { openTelegramLink, isTelegramWebApp } from '@/utils/telegram';
 
@@ -36,7 +36,7 @@ export const useWalletStore = defineStore('wallet', {
                 this.connectionStatus = 'connecting';
                 this.connectionError = null;
 
-                // Инициализируем TonConnect
+                // Инициализируем TonConnect через сервис
                 const connected = await tonConnectService.init();
                 this.isConnected = connected;
                 
@@ -88,22 +88,27 @@ export const useWalletStore = defineStore('wallet', {
         async connectInTelegram(walletType: 'tonkeeper' | 'telegram' = 'telegram'): Promise<void> {
             try {
                 console.log(`📱 Connecting via ${walletType} in Telegram...`);
-                
+
                 const links = {
                     tonkeeper: 'tg://resolve?domain=tonkeeper&startattach=tonconnect',
                     telegram: 'tg://wallet?startattach=tonconnect'
                 };
-
-                // Генерируем ссылку для подключения
+            
+                // Генерируем ссылку для подключения через сервис
                 const universalLink = await tonConnectService.connect();
-                console.log('🔗 Generated universal link:', universalLink);
 
-                // Открываем deep link в Telegram
-                openTelegramLink(links[walletType]);
-                
+                if (universalLink) {
+                    console.log('🔗 Generated universal link:', universalLink);
+                    // Открываем deep link в Telegram
+                    openTelegramLink(links[walletType]);
+                } else {
+                    console.log('ℹ️ Using injected wallet connection');
+                    // Для injected wallet не нужен universal link
+                }
+
                 // Запускаем мониторинг статуса подключения
                 this.startConnectionMonitoring();
-                
+
             } catch (error) {
                 console.error('❌ Telegram connection error:', error);
                 throw new Error('Failed to connect via Telegram');
@@ -115,10 +120,15 @@ export const useWalletStore = defineStore('wallet', {
                 console.log('🌐 Connecting in browser...');
                 
                 const universalLink = await tonConnectService.connect();
-                console.log('🔗 Universal link for browser:', universalLink);
                 
-                // Открываем в новом окне для браузера
-                window.open(universalLink, '_blank', 'noopener,noreferrer');
+                if (universalLink) {
+                    console.log('🔗 Universal link for browser:', universalLink);
+                    // Открываем в новом окне для браузера
+                    window.open(universalLink, '_blank', 'noopener,noreferrer');
+                } else {
+                    console.log('ℹ️ Using injected wallet connection in browser');
+                    // Для injected wallet ничего дополнительно делать не нужно
+                }
                 
                 this.startConnectionMonitoring();
                 
@@ -129,39 +139,39 @@ export const useWalletStore = defineStore('wallet', {
         },
 
         startConnectionMonitoring(): void {
-            // Мониторим изменение статуса в течение 2 минут
-            let attempts = 0;
-            const maxAttempts = 24; // 2 минуты (5 секунд * 24)
-            
-            const checkInterval = setInterval(async () => {
-                attempts++;
-                
+            // Сохраняем ссылку на интервал для очистки
+            let checkInterval: number;
+            let timeoutId: number;
+
+            const cleanup = () => {
+                if (checkInterval) clearInterval(checkInterval);
+                if (timeoutId) clearTimeout(timeoutId);
+            };
+
+            // Мониторим изменение статуса
+            checkInterval = window.setInterval(async () => {
                 try {
-                    await tonConnectService.init(); // Переинициализируем для проверки статуса
+                    const isConnected = await this.checkConnection();
                     
-                    if (tonConnectService.isConnected()) {
-                        clearInterval(checkInterval);
-                        this.isConnected = true;
-                        this.walletAddress = tonConnectService.getWalletAddress();
-                        this.connectionStatus = 'connected';
-                        
-                        console.log('✅ Wallet connected successfully:', this.walletAddress);
-                        
-                        await this.updateBalance();
-                        await this.saveWalletToDB();
-                    }
-                    
-                    if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        this.connectionStatus = 'error';
-                        this.connectionError = 'Connection timeout';
-                        console.log('⏰ Connection monitoring timeout');
+                    if (isConnected) {
+                        cleanup();
+                        console.log('✅ Wallet connected successfully');
                     }
                     
                 } catch (error) {
                     console.error('❌ Connection check error:', error);
                 }
-            }, 5000); // Проверяем каждые 5 секунд
+            }, 3000); // Проверяем каждые 3 секунды
+
+            // Таймаут через 2 минуты
+            timeoutId = window.setTimeout(() => {
+                cleanup();
+                if (!this.isConnected) {
+                    this.connectionStatus = 'error';
+                    this.connectionError = 'Connection timeout';
+                    console.log('⏰ Connection monitoring timeout');
+                }
+            }, 120000);
         },
 
         async saveWalletToDB(): Promise<boolean> {
@@ -184,11 +194,6 @@ export const useWalletStore = defineStore('wallet', {
                 
             } catch (error: any) {
                 console.error('❌ Error saving wallet to DB:', error);
-                
-                if (error.response?.data) {
-                    console.error('Server response:', error.response.data);
-                }
-                
                 return false;
             }
         },
@@ -209,7 +214,6 @@ export const useWalletStore = defineStore('wallet', {
                 
             } catch (error) {
                 console.error('❌ Balance update error:', error);
-                // Не сбрасываем баланс при ошибке, оставляем предыдущее значение
             }
         },
 
@@ -227,6 +231,7 @@ export const useWalletStore = defineStore('wallet', {
 
         async checkConnection(): Promise<boolean> {
             try {
+                // Используем сервис для проверки соединения
                 await tonConnectService.init();
                 this.isConnected = tonConnectService.isConnected();
                 

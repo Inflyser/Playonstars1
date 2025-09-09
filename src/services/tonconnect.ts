@@ -46,17 +46,26 @@ class TonConnectService {
         }
     }
 
-    async connect(): Promise<string> {
+    async connect(): Promise<string | null> {
         try {
             console.log('🔗 Starting connection process...');
             
-            const universalLink = await this.connector.connect({
+            const connectionSource = {
                 jsBridgeKey: 'tonkeeper',
                 universalLink: 'https://app.tonkeeper.com/ton-connect'
-            });
-
-            console.log('📱 Universal link generated:', universalLink);
-            return universalLink;
+            };
+        
+            // Метод connect может возвращать string или undefined/void
+            const result = await this.connector.connect(connectionSource);
+            
+            // Проверяем тип возвращаемого значения
+            if (typeof result === 'string') {
+                console.log('📱 Universal link generated:', result);
+                return result;
+            } else {
+                console.log('ℹ️ Connection initiated without universal link (injected wallet)');
+                return null;
+            }
             
         } catch (error) {
             console.error('❌ Connection error:', error);

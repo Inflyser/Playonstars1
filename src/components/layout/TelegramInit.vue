@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref, onUnmounted, watch } from 'vue';
 import { useTelegram } from '@/composables/useTelegram';
-import { initTelegramWebApp, getTelegramInitData, isTelegramWebApp } from '@/utils/telegram';
+
 import { useUserStore } from '@/stores/useUserStore';
-import { initTonConnect, connector } from '@/services/tonconnect';
 import { useWalletStore } from '@/stores/useWalletStore';
 import { useWebSocket } from '@/composables/useWebSocket';
 import TGLoader from '@/components/ui/TGLoader.vue';
 import AppLayout from '@/components/layout/AppLayout.vue';
+import { initTelegramWebApp, isTelegramWebApp, openTelegramLink, getTelegramInitData } from '@/utils/telegram';
+
 
 const { initTelegram, fetchUserData, fetchBalance, isLoading, error } = useTelegram();
 const userStore = useUserStore();
@@ -18,48 +19,21 @@ const initializationError = ref<string | null>(null);
 
 // ✅ Правильная обработка глубоких ссылок TonConnect
 const handleTonConnectReturn = () => {
-  if (!isTelegramWebApp()) return;
-
   const urlParams = new URLSearchParams(window.location.search);
-  console.log('🔍 URL params:', Object.fromEntries(urlParams.entries()));
-
-  // TonConnect возвращает параметры в hash, а не в search
   const hashParams = new URLSearchParams(window.location.hash.slice(1));
-  const hasTonConnectParams = hashParams.has('tonconnect') || hashParams.has('startattach');
   
-  console.log('📱 TonConnect return detected:', hasTonConnectParams);
-
-  if (hasTonConnectParams) {
-    // Очищаем URL чтобы избежать повторной обработки
+  if (urlParams.has('tonconnect') || hashParams.has('tonconnect')) {
+    console.log('🔄 TonConnect return detected');
+    
+    // Очищаем URL
     const cleanUrl = window.location.origin + window.location.pathname;
     window.history.replaceState({}, document.title, cleanUrl);
-
-    // Даем время TonConnect обработать возврат
+    
+    // Инициализируем кошелек
     setTimeout(() => {
-      walletStore.init().then(() => {
-        console.log('✅ Wallet initialized after TonConnect return');
-      }).catch((err) => {
-        console.error('❌ Failed to init wallet after return:', err);
-      });
+      walletStore.init().catch(console.error);
     }, 1000);
   }
-};
-
-// ✅ Слушаем изменения статуса кошелька
-const setupWalletListeners = () => {
-  connector.onStatusChange(async (wallet) => {
-    console.log('🔄 Wallet status changed:', wallet ? 'connected' : 'disconnected');
-    
-    if (wallet) {
-      // Обновляем баланс при подключении кошелька
-      try {
-        await walletStore.updateBalance();
-        console.log('✅ Balance updated after wallet connection');
-      } catch (err) {
-        console.error('❌ Failed to update balance:', err);
-      }
-    }
-  });
 };
 
 const retryInit = async () => {
@@ -71,20 +45,26 @@ const retryInit = async () => {
 };
 
 const initializeApp = async () => {
-  console.log('🔐 Starting application initialization...');
-  
   try {
-    // 1. ✅ Сначала проверяем возврат из кошелька (ВАЖНО: до всей инициализации)
+    isLoading.value = true;
+    error.value = null;
+
+    // 1. Проверяем возврат из кошелька
     handleTonConnectReturn();
 
     const isTelegram = initTelegramWebApp();
     console.log('📱 Is Telegram environment:', isTelegram);
 
-    // 2. ✅ Инициализируем TonConnect (должно быть ПЕРВЫМ)
-    console.log('🔗 Initializing TonConnect...');
-    await initTonConnect();
-    setupWalletListeners();
     await walletStore.init();
+
+    // 2. ✅ Инициализируем TonConnect (должно быть ПЕРВЫМ)
+    if (isTelegram) {
+      await userStore.fetchUserData();
+      await userStore.fetchBalance();
+      await connectWebSocket();
+    }
+
+    isInitialized.value = true;
 
     // 3. ✅ Инициализируем Telegram (если в Telegram)
     if (isTelegram) {
