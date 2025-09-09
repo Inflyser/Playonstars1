@@ -8,10 +8,13 @@ load_dotenv()
 # Получаем URL базы данных из переменных окружения
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# ✅ ВАЖНО: Для Render PostgreSQL нужно добавить sslmode=require
+# ✅ Настройки SSL только в connect_args, НЕ меняем URL!
+connect_args = {}
 if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
-    if "sslmode" not in DATABASE_URL:
-        DATABASE_URL += "?sslmode=require"
+    connect_args = {
+        'sslmode': 'require',
+        'sslrootcert': '/etc/ssl/certs/ca-certificates.crt'
+    }
 
 # Создаем engine с правильными настройками SSL
 engine = create_engine(
@@ -19,10 +22,7 @@ engine = create_engine(
     echo=True,  # Для отладки
     pool_pre_ping=True,  # ✅ Проверяем соединение перед использованием
     pool_recycle=300,  # ✅ Пересоздаем соединения каждые 5 минут
-    connect_args={
-        'sslmode': 'require',
-        'sslrootcert': '/etc/ssl/certs/ca-certificates.crt'
-    }
+    connect_args=connect_args  # ✅ Только здесь настройки SSL
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
