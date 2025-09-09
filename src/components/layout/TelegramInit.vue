@@ -1,56 +1,87 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { useTelegram } from '@/composables/useTelegram';
+import { initTelegramWebApp, getTelegramInitData } from '@/utils/telegram';
 import { useUserStore } from '@/stores/useUserStore';
 import { useWalletStore } from '@/stores/useWalletStore';
 import { useWebSocket } from '@/composables/useWebSocket';
 import TGLoader from '@/components/ui/TGLoader.vue';
 import AppLayout from '@/components/layout/AppLayout.vue';
-import { initTelegramWebApp } from '@/utils/telegram';
 
+const { initTelegram, fetchUserData, fetchBalance, isLoading, error } = useTelegram();
 const userStore = useUserStore();
 const walletStore = useWalletStore();
 const { connect: connectWebSocket } = useWebSocket();
 const isInitialized = ref(false);
 const initializationError = ref<string | null>(null);
 
+
+
+const retryInit = async () => {
+  console.log('🔄 Retrying initialization...');
+  isInitialized.value = false;
+  initializationError.value = null;
+  error.value = null;
+  await initializeApp();
+};
+
 const initializeApp = async () => {
+  console.log('🔐 Starting application initialization...');
+  
   try {
-    console.log('🚀 Запускаем инициализацию приложения...');
-    
-    // 1. Инициализируем кошелек
-    await walletStore.init();
-    
-    // 2. Проверяем, находимся ли мы в Telegram
     const isTelegram = initTelegramWebApp();
     console.log('📱 Is Telegram environment:', isTelegram);
-    
-    // 3. В Telegram среде: загружаем данные и подключаем WebSocket
+
+    // 1. ✅ Инициализируем TonConnect
+    console.log('🔗 Initializing TonConnect...');
+    await walletStore.init();
+
+    // 2. ✅ Инициализируем Telegram (если в Telegram) - ЭТО ВАЖНО!
     if (isTelegram) {
-      try {
-        // Загружаем данные пользователя
-        await userStore.fetchUserData();
-        await userStore.fetchBalance();
-        
-        console.log('✅ Данные пользователя загружены');
-      } catch (err) {
-        console.error('❌ Ошибка загрузки данных пользователя:', err);
-      }
+      const initData = getTelegramInitData();
+      console.log('📋 InitData available:', !!initData);
       
-      // ВАЖНО: ПОДКЛЮЧАЕМ WEBSOCKET В ЛЮБОМ СЛУЧАЕ, ДАЖЕ ЕСЛИ ДАННЫЕ НЕ ЗАГРУЗИЛИСЬ
-      try {
-        await connectWebSocket();
-        console.log('✅ WebSocket подключен');
-      } catch (wsError) {
-        console.error('❌ Ошибка подключения WebSocket:', wsError);
+      if (initData) {
+        console.log('🔐 Authenticating with Telegram...');
+        const authSuccess = await initTelegram(initData);
+        
+        if (!authSuccess) {
+          throw new Error('Telegram authentication failed');
+        }
       }
     }
+
+    // 3. ✅ Параллельно загружаем пользовательские данные (если авторизованы)
+    const loadPromises = [];
     
+    if (userStore.user || isTelegram) {
+      loadPromises.push(
+        fetchUserData().catch(err => 
+          console.error('Failed to load user data:', err)
+        ),
+        fetchBalance().catch(err => 
+          console.error('Failed to load balance:', err)
+        )
+      );
+    }
+
+    // 4. ✅ Подключаем WebSocket для реальных обновлений
+    if (isTelegram) {
+      loadPromises.push(
+        connectWebSocket().catch(err =>
+          console.error('Failed to connect WebSocket:', err)
+        )
+      );
+    }
+
+    await Promise.all(loadPromises);
+
     isInitialized.value = true;
-    console.log('✅ Приложение успешно инициализировано!');
-    
+    console.log('🎉 Application fully initialized');
+
   } catch (err) {
-    console.error('❌ Критическая ошибка инициализации:', err);
-    initializationError.value = 'Не удалось загрузить приложение';
+    console.error('❌ Initialization failed:', err);
+    initializationError.value = err instanceof Error ? err.message : 'Unknown error';
   }
 };
 
@@ -63,13 +94,13 @@ onMounted(() => {
   <div class="telegram-init-container">
     <!-- Показываем загрузчик/ошибку пока не инициализировано -->
     <div v-if="!isInitialized" class="init-status">
-      <!-- УБИРАЕМ isLoading ИЗ УСЛОВИЯ -->
-      <TGLoader v-if="!initializationError" />
+      <TGLoader v-if="isLoading && !initializationError" />
       
       <div v-else-if="initializationError" class="error-state">
         <div class="error-icon">⚠️</div>
         <h3>Initialization Failed</h3>
         <p>{{ initializationError }}</p>
+        <button @click="retryInit" class="retry-btn">Try Again</button>
       </div>
       
       <div v-else class="loading-state">
