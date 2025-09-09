@@ -75,6 +75,51 @@ export const useWalletStore = defineStore('wallet', {
             }
         },
 
+        async connectInTelegram(walletType: 'tonkeeper' | 'telegram' = 'telegram'): Promise<boolean> {
+            console.log('📱 [WalletStore] Connecting in Telegram via:', walletType);
+            this.isLoading = true;
+            this.connectionError = null;
+                
+            try {
+                const links = {
+                    tonkeeper: 'tg://resolve?domain=tonkeeper&startattach=tonconnect',
+                    telegram: 'tg://wallet?startattach=tonconnect'
+                };
+            
+                // Открываем deep link в Telegram
+                if (isTelegramWebApp()) {
+                    openTelegramLink(links[walletType]);
+                } else {
+                    window.open(links[walletType], '_blank');
+                }
+            
+                // Ждем немного и проверяем статус подключения
+                setTimeout(async () => {
+                    try {
+                        await connector.restoreConnection();
+                        this.isConnected = connector.connected;
+
+                        if (connector.connected && connector.wallet) {
+                            this.walletAddress = connector.wallet.account.address;
+                            await this.updateBalance();
+                            await this.saveWalletToDB();
+                            console.log('✅ Кошелек успешно подключен через Telegram');
+                        }
+                    } catch (error) {
+                        console.error('❌ Ошибка проверки подключения:', error);
+                    }
+                }, 2000);
+            
+                return true;
+            } catch (error) {
+                console.error('❌ Ошибка подключения через Telegram:', error);
+                this.connectionError = 'Ошибка подключения через Telegram';
+                return false;
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
         async connect() {
             try {
                 console.log('🎯 Начало подключения кошелька...');
