@@ -22,7 +22,7 @@ class TonService:
                 print("⚠️ TON API key or wallet address not set - skipping webhook")
                 return False
                 
-            webhook_url = f"{os.getenv('WEBHOOK_URL_TON')}/api/webhook/ton"
+            webhook_url = f"{os.getenv('WEBHOOK_URL')}/api/webhook/ton"
             print(f"🔗 Registering TON webhook: {webhook_url}")
             
             # Правильный endpoint для tonapi.io v2
