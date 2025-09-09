@@ -96,6 +96,8 @@ import { api } from '@/services/api'
 import { openTelegramLink, isTelegramWebApp } from '@/utils/telegram'
 import TonConnectModal from '@/components/ui/TonConnectModal.vue'
 
+import { transactionWatcher } from '@/services/transactionWatcher';
+
 const router = useRouter()
 const walletStore = useWalletStore()
 const userStore = useUserStore()
@@ -249,6 +251,7 @@ const handleWalletReturn = () => {
 };
 
 onMounted(() => {
+    
   handleWalletReturn();
   walletStore.updateBalance().catch(console.error);
   
@@ -259,10 +262,12 @@ onMounted(() => {
         console.log('✅ Wallet store updated');
       });
     }
+    transactionWatcher.startWatching();
   });
   
   onUnmounted(() => {
     unsubscribe();
+    transactionWatcher.stopWatching();
   });
 });
 

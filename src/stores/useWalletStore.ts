@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
-import { connector } from '@/services/tonconnect';
+import { connector, initTonConnect } from '@/services/tonconnect';
+import { useUserStore } from '@/stores/useUserStore'; // Правильный импорт
 import { api } from '@/services/api';
 import { 
   openTelegramLink, 
@@ -25,29 +26,42 @@ export const useWalletStore = defineStore('wallet', {
 
     actions: {
         async init() {
-            if (this.isInitialized) {
-                console.log('✅ Wallet store already initialized');
-                return;
-            }
+            if (this.isInitialized) return;
 
-            this.isConnected = connector.connected;
-            
-            if (connector.connected && connector.wallet) {
-                this.walletAddress = connector.wallet.account.address;
-                await this.updateBalance();
-            }
+            try {
+                // Создаем экземпляр стора здесь
+                const userStore = useUserStore();
 
-            connector.onStatusChange((wallet) => {
-                this.isConnected = !!wallet;
-                this.walletAddress = wallet?.account.address || null;
-                if (wallet) {
-                    this.updateBalance();
+                // Инициализируем TonConnect
+                const connected = await initTonConnect();
+                this.isConnected = connected;
+
+                if (connected && connector.wallet) {
+                    this.walletAddress = connector.wallet.account.address;
+                    await this.updateBalance();
+                    await this.saveWalletToDB();
                 }
-            });
+            
+                connector.onStatusChange(async (wallet) => {
+                    this.isConnected = !!wallet;
+                    this.walletAddress = wallet?.account.address || null;
 
-            this.isInitialized = true;
-            console.log('✅ Wallet store initialized');
+                    if (wallet) {
+                        await this.updateBalance();
+                        await this.saveWalletToDB();
+
+                        // Используем уже созданный экземпляр
+                        await userStore.fetchBalance();
+                    }
+                });
+            
+                this.isInitialized = true;
+            } catch (error) {
+                console.error('Wallet init error:', error);
+            }
         },
+        
+    
             
         async connect() {
             console.log('🔄 [WalletStore] Connect method called');
