@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { tonConnectUI, checkForTonConnectReturn } from '@/services/tonconnect'; // Импортируем новый сервис
+import { tonConnectUI } from '@/services/tonconnect'; // Импортируем UI-сервис
 import { api } from '@/services/api';
 
 interface WalletState {
@@ -20,14 +20,12 @@ export const useWalletStore = defineStore('wallet', {
     actions: {
         // ГЛАВНЫЙ метод инициализации. Вызывается при загрузке приложения.
         async init(): Promise<void> {
-            // 1. Проверяем, не вернулись ли мы только что из кошелька
-            checkForTonConnectReturn();
+            // Убираем вызов restoreConnection(), т.к. его нет в UI-библиотеке.
+            // Вместо этого просто настраиваем обработчики событий.
             
-            // 2. Восстанавливаем соединение с кошельком (если было)
-            console.log('🔄 Восстанавливаем соединение с кошельком...');
-            await tonConnectUI.restoreConnection();
+            console.log('🔄 Инициализируем слушатели кошелька...');
             
-            // 3. Настраиваем обработчик изменения статуса кошелька
+            // 1. Подписываемся на изменения статуса кошелька
             tonConnectUI.onStatusChange((wallet) => {
                 console.log('♻️ Статус кошелька изменился:', wallet ? 'Подключен' : 'Отключен');
                 this.isConnected = !!wallet;
@@ -42,26 +40,33 @@ export const useWalletStore = defineStore('wallet', {
                 }
             });
             
-            // 4. Сразу обновляем состояние на основе восстановленной сессии
+            // 2. Сразу обновляем состояние на основе текущей сессии TonConnectUI
+            // У tonConnectUI есть свойство `connected` и `wallet`
             this.isConnected = tonConnectUI.connected;
             this.walletAddress = tonConnectUI.wallet?.account.address || null;
+            
+            if (this.isConnected) {
+                console.log('✅ Активная сессия кошелька восстановлена:', this.walletAddress);
+                await this.updateBalance();
+            }
+            
             console.log('🎯 Инициализация кошелька завершена. Подключен:', this.isConnected);
         },
 
         // ПРОСТО открываем модальное окно для подключения
         connect(): void {
             console.log('🎯 Открываем модалку подключения кошелька');
-            tonConnectUI.openModal();
+            tonConnectUI.openModal(); // Используем встроенный метод открытия модалки:cite[3]
         },
 
         // Отключаем кошелек
         async disconnect(): Promise<void> {
-            await tonConnectUI.disconnect();
+            await tonConnectUI.disconnect(); // Этот метод есть в UI:cite[3]
             this.$reset(); // Чистим состояние хранилища
             console.log('✅ Кошелек отключен');
         },
 
-        // Обновляем баланс
+        // Обновляем баланс (без изменений)
         async updateBalance(): Promise<void> {
             if (!this.walletAddress) return;
             try {
@@ -72,7 +77,7 @@ export const useWalletStore = defineStore('wallet', {
             }
         },
 
-        // Сохраняем кошелек в базу
+        // Сохраняем кошелек в базу (без изменений)
         async saveWalletToDB(): Promise<boolean> {
             if (!this.walletAddress) return false;
             try {
@@ -85,11 +90,17 @@ export const useWalletStore = defineStore('wallet', {
         },
 
         // Отправляем транзакцию (для пополнения и вывода)
-        async sendTransaction(toAddress: string, amount: string): Promise<any> {
+        async sendTransaction(toAddress: string, amountInNanotons: string): Promise<any> {
             const transaction = {
-                validUntil: Math.floor(Date.now() / 1000) + 300, // 5 минут
-                messages: [ { address: toAddress, amount: amount } ]
+                validUntil: Math.floor(Date.now() / 1000) + 300, // 5 минут в Unix-времени:cite[4]
+                messages: [
+                    {
+                        address: toAddress,
+                        amount: amountInNanotons // Сумма уже в нанотонах!
+                    }
+                ]
             };
+            // Используем метод sendTransaction из TonConnectUI:cite[4]
             return await tonConnectUI.sendTransaction(transaction);
         }
     },
