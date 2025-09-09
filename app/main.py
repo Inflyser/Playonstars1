@@ -80,7 +80,10 @@ websocket_manager.set_crash_game(crash_game)  # ✅ Устанавливаем �
 # Запускаем health check
 asyncio.create_task(websocket_manager.check_connection_health())
 
-
+dp.include_router(telegram_router)
+app.include_router(wallet.router, prefix="/api")
+app.include_router(stars.router, prefix="/api")
+app.include_router(websocket.router)
 
 # ----------------------------- ЗАПУСК -------------------------------------
 
@@ -1084,7 +1087,3 @@ def generate_avatar_url(user: User) -> str:
 
     
 # Подключаем роутеры
-dp.include_router(telegram_router)
-app.include_router(wallet.router, prefix="/api")
-app.include_router(stars.router, prefix="/api")
-app.include_router(websocket.router)
