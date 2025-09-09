@@ -61,7 +61,50 @@ export const useWalletStore = defineStore('wallet', {
             }
         },
         
-    
+        async checkConnectionStatus() {
+            try {
+                // Принудительно проверяем статус соединения
+                await connector.restoreConnection();
+                this.isConnected = connector.connected;
+
+                if (connector.connected && connector.wallet) {
+                    this.walletAddress = connector.wallet.account.address;
+                    await this.updateBalance();
+                    await this.saveWalletToDB();
+                }
+
+                return this.isConnected;
+            } catch (error) {
+                console.error('Error checking connection status:', error);
+                return false;
+            }
+        },
+
+
+        async handleWalletReturn() {
+            // Проверяем параметры возврата из кошелька
+            const urlParams = new URLSearchParams(window.location.search);
+            const hash = window.location.hash;
+
+            const isReturn = urlParams.has('tonconnect') || hash.includes('tonconnect') || 
+                            urlParams.has('startattach') || hash.includes('startattach');
+
+            if (isReturn) {
+                console.log('🔄 Handling wallet return...');
+
+                // Очищаем URL
+                const cleanUrl = window.location.origin + window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+
+                // Проверяем статус соединения
+                await this.checkConnectionStatus();
+
+                return true;
+            }
+
+            return false;
+        },
+
             
         async connect() {
             console.log('🔄 [WalletStore] Connect method called');

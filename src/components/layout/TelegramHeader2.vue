@@ -14,6 +14,7 @@
           </button>
           
           <div v-else class="wallet-address">
+            <span class="connected-badge">✓</span>
             {{ walletStore.shortAddress }}
           </div>
         </div>
@@ -39,30 +40,78 @@
           </div>
         </div>
       </div>
+
+      <!-- Уведомление о подключении -->
+      <div v-if="showSuccessNotification" class="notification success">
+        Кошелек успешно подключен!
+      </div>
     </header>
 </template>
 
 <script setup lang="ts">
 import TGButton from '@/components/ui/TGButton.vue'
 import { useUserStore } from '@/stores/useUserStore';
-import { useWalletStore } from '@/stores/useWalletStore'; // Импортируем хранилище кошелька
-import { onMounted } from 'vue';
+import { useWalletStore } from '@/stores/useWalletStore';
+import { onMounted, ref, watch } from 'vue';
 
 const userStore = useUserStore();
 const walletStore = useWalletStore();
+const showSuccessNotification = ref(false);
+
+// Следим за изменениями статуса подключения
+watch(() => walletStore.isConnected, (newVal, oldVal) => {
+  if (newVal && !oldVal) {
+    // Показываем уведомление при успешном подключении
+    showSuccessNotification.value = true;
+    setTimeout(() => {
+      showSuccessNotification.value = false;
+    }, 3000);
+    
+    // Обновляем баланс
+    userStore.fetchBalance();
+  }
+});
 
 // Инициализируем кошелек при монтировании компонента
 onMounted(async () => {
   if (!walletStore.isInitialized) {
     await walletStore.init();
   }
+  
+  // Проверяем возврат из кошелька (после сканирования QR)
+  checkWalletReturn();
 });
+
+const checkWalletReturn = async () => {
+  // Проверяем параметры URL для возврата из кошелька
+  const urlParams = new URLSearchParams(window.location.search);
+  const hash = window.location.hash;
+  
+  if (urlParams.has('tonconnect') || hash.includes('tonconnect') || 
+      urlParams.has('startattach') || hash.includes('startattach')) {
+    
+    console.log('🔍 Обнаружен возврат из кошелька');
+    
+    try {
+      // Даем время TonConnect обработать возврат
+      setTimeout(async () => {
+        await walletStore.init(); // Переинициализируем для обновления статуса
+        await userStore.fetchBalance();
+      }, 1000);
+      
+      // Очищаем URL
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+      
+    } catch (error) {
+      console.error('Ошибка при обработке возврата:', error);
+    }
+  }
+};
 
 const connectWallet = async () => {
   try {
     await walletStore.connect();
-    // После подключения можно обновить баланс
-    await userStore.fetchBalance();
   } catch (error) {
     console.error('Ошибка подключения кошелька:', error);
   }
@@ -70,11 +119,12 @@ const connectWallet = async () => {
 </script>
 
 <style scoped>
-/* Стили остаются без изменений */
+/* Существующие стили остаются */
 .header-secondary {
   padding: 5px 16px 14px 16px;
   margin-bottom: 22px;
   border-bottom: 1px solid #25213C;
+  position: relative;
 }
 
 .header-secondary .header-content {
@@ -113,6 +163,12 @@ const connectWallet = async () => {
   align-items: center;
   background: rgba(0, 166, 252, 0.1);
   border-radius: 25px;
+  gap: 8px;
+}
+
+.connected-badge {
+  color: #4CAF50;
+  font-weight: bold;
 }
 
 .user-section {
@@ -160,5 +216,34 @@ const connectWallet = async () => {
   width: 36px;
   height: 36px;
   border-radius: 50%;
+}
+
+/* Уведомление */
+.notification {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  border-radius: 8px;
+  z-index: 1000;
+  animation: slideDown 0.3s ease;
+}
+
+.notification.success {
+  background: #4CAF50;
+  color: white;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 </style>
