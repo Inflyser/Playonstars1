@@ -45,6 +45,12 @@
       <div v-if="showSuccessNotification" class="notification success">
         Кошелек успешно подключен!
       </div>
+      <div v-if="debugInfo" class="debug-info">
+        <div>Status: {{ walletStore.isConnected ? 'Connected' : 'Disconnected' }}</div>
+        <div>Address: {{ walletStore.walletAddress || 'None' }}</div>
+        <div>Initialized: {{ walletStore.isInitialized }}</div>
+        <div>Loading: {{ walletStore.isLoading }}</div>
+      </div>
     </header>
 </template>
 
@@ -53,6 +59,8 @@ import TGButton from '@/components/ui/TGButton.vue'
 import { useUserStore } from '@/stores/useUserStore';
 import { useWalletStore } from '@/stores/useWalletStore';
 import { onMounted, ref, watch } from 'vue';
+
+const debugInfo = ref(true);
 
 const userStore = useUserStore();
 const walletStore = useWalletStore();
