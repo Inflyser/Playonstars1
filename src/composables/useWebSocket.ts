@@ -16,14 +16,20 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
     const maxReconnectAttempts = 5
 
     const getWebSocketUrl = (): string => {
-        const envUrl = import.meta.env.VITE_WS_URL
-        if (envUrl && envUrl !== 'wss://your-websocket-url') {
-            return envUrl
+        const envUrl = import.meta.env.VITE_WS_URL;
+        
+        // Если в .env есть правильный URL - используем его
+        if (envUrl && envUrl.startsWith('wss://')) {
+            return envUrl;
         }
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-        const host = window.location.host
-        return `${protocol}//${host}/ws`
-    }
+        
+        // Fallback: автоматически определяем URL на основе текущего хоста
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        
+        // ✅ Подключаемся к БАЗОВОМУ URL /ws (а не /ws/general или /ws/crash)
+        return `${protocol}//${host}/ws`;
+    };
 
     const connect = (url?: string): Promise<boolean> => {
         const targetUrl = url || getWebSocketUrl()
