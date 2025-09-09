@@ -99,17 +99,31 @@ async def startup():
         await bot.set_webhook(webhook_url_telegram)
         print(f"📱 Telegram webhook set to: {webhook_url_telegram}")
     
-    # TON webhook (пропускаем если не настроен)
-    if os.getenv("TON_API_KEY") and os.getenv("TON_WALLET_ADDRESS"):
-        print(f"🔗 Setting up TON webhook...")
+    # TON webhook - проверяем что ВСЕ переменные установлены
+    ton_api_key = os.getenv("TON_API_KEY")
+    ton_wallet_address = os.getenv("TON_WALLET_ADDRESS")
+    webhook_url_ton = os.getenv("WEBHOOK_URL_TON")
+    
+    if all([ton_api_key, ton_wallet_address, webhook_url_ton]):
+        print(f"🔗 Setting up TON webhook: {webhook_url_ton}/api/webhook/ton")
         success = await ton_service.setup_webhook()
         if success:
             print("✅ TON Webhook successfully registered")
         else:
             print("⚠️ TON Webhook registration failed - continuing without")
+    else:
+        print("⚠️ TON Webhook skipped - missing environment variables:")
+        if not ton_api_key:
+            print("   - TON_API_KEY not set")
+        if not ton_wallet_address:
+            print("   - TON_WALLET_ADDRESS not set")
+        if not webhook_url_ton:
+            print("   - WEBHOOK_URL_TON not set")
     
     # Запускаем фоновую задачу для краш-игры
     asyncio.create_task(run_crash_game())
+    
+    # Проверяем WebSocket библиотеки
     try:
         import websockets
         print("✅ WebSocket support: websockets library installed")
@@ -158,6 +172,23 @@ async def debug_session(request: Request):
 @app.get("/")
 async def root():
     return {"message": "Bot is running"}
+
+@app.post("/api/webhook/ton")
+async def handle_ton_webhook(request: Request):
+    """Обработчик вебхука от TON"""
+   
+        # Проверяем подпись (если требуется)
+    signature = request.headers.get("X-TonAPI-Signature")
+
+    
+    payload = await request.json()
+    print(f"📨 Received TON webhook: {payload}")
+    
+    # Обрабатываем транзакцию
+    await ton_service.handle_transaction_event(payload)
+    
+    return {"status": "ok"}
+
 
 
 def verify_telegram_webapp(init_data: str) -> bool:

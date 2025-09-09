@@ -18,11 +18,13 @@ class TonService:
     async def setup_webhook(self):
         """Настраиваем веб-перехватчик для TON API"""
         try:
-            if not self.api_key or not self.wallet_address:
-                print("⚠️ TON API key or wallet address not set - skipping webhook")
+            # Проверяем все необходимые переменные
+            webhook_url_ton = os.getenv("WEBHOOK_URL_TON")
+            if not all([self.api_key, self.wallet_address, webhook_url_ton]):
+                print("⚠️ TON API key, wallet address or webhook URL not set - skipping webhook")
                 return False
                 
-            webhook_url = f"{os.getenv('WEBHOOK_URL')}/api/webhook/ton"
+            webhook_url = f"{webhook_url_ton}/api/webhook/ton"
             print(f"🔗 Registering TON webhook: {webhook_url}")
             
             # Правильный endpoint для tonapi.io v2
