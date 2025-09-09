@@ -99,27 +99,27 @@ async def startup():
         await bot.set_webhook(webhook_url_telegram)
         print(f"📱 Telegram webhook set to: {webhook_url_telegram}")
     
-    # TON webhook - проверяем что ВСЕ переменные установлены
+    # TON webhook - с улучшенной логикой
     ton_api_key = os.getenv("TON_API_KEY")
     ton_wallet_address = os.getenv("TON_WALLET_ADDRESS")
     webhook_url_ton = os.getenv("WEBHOOK_URL_TON")
     
     if all([ton_api_key, ton_wallet_address, webhook_url_ton]):
-        print(f"🔗 Setting up TON webhook: {webhook_url_ton}/api/webhook/ton")
-        success = await ton_service.setup_webhook()
-        if success:
-            print("✅ TON Webhook successfully registered")
+        print(f"🔗 Setting up TON webhook...")
+        
+        # Сначала проверяем доступность API
+        api_accessible = await ton_service.check_ton_api_status()
+        
+        if api_accessible:
+            success = await ton_service.setup_webhook()
+            if success:
+                print("✅ TON Webhook successfully registered")
+            else:
+                print("⚠️ TON Webhook registration failed - continuing without")
         else:
-            print("⚠️ TON Webhook registration failed - continuing without")
+            print("⚠️ TON API not accessible - skipping webhook registration")
     else:
-        print("⚠️ TON Webhook skipped - missing environment variables:")
-        if not ton_api_key:
-            print("   - TON_API_KEY not set")
-        if not ton_wallet_address:
-            print("   - TON_WALLET_ADDRESS not set")
-        if not webhook_url_ton:
-            print("   - WEBHOOK_URL_TON not set")
-    
+        print("⚠️ TON Webhook skipped - missing environment variables")
     # Запускаем фоновую задачу для краш-игры
     asyncio.create_task(run_crash_game())
     

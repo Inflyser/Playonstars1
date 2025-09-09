@@ -12,23 +12,21 @@ class TonService:
         self.api_key = os.getenv('TON_API_KEY', '')
         self.wallet_address = os.getenv('TON_WALLET_ADDRESS', '')
         self.webhook_secret = os.getenv('WEBHOOK_SECRET', os.urandom(24).hex())
+        # ✅ ОБНОВЛЕННЫЙ БАЗОВЫЙ URL для TON API v2
         self.base_url = "https://tonapi.io/v2"
     
-# ton_service.py - ЗАМЕНИТЕ текущий setup_webhook метод:
     async def setup_webhook(self):
         """Настраиваем веб-перехватчик для TON API"""
         try:
-            # Проверяем все необходимые переменные
-            webhook_url_ton = os.getenv("WEBHOOK_URL_TON")
-            if not all([self.api_key, self.wallet_address, webhook_url_ton]):
-                print("⚠️ TON API key, wallet address or webhook URL not set - skipping webhook")
+            if not self.api_key or not self.wallet_address:
+                print("⚠️ TON API key or wallet address not set - skipping webhook")
                 return False
                 
-            webhook_url = f"{webhook_url_ton}/api/webhook/ton"
+            webhook_url = f"{os.getenv('WEBHOOK_URL_TON')}/api/webhook/ton"
             print(f"🔗 Registering TON webhook: {webhook_url}")
             
-            # Правильный endpoint для tonapi.io v2
-            url = f"{self.base_url}/webhooks"
+            # ✅ ПРАВИЛЬНЫЙ endpoint для tonapi.io v2
+            url = f"{self.base_url}/webhooks/token"
             
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
@@ -48,13 +46,68 @@ class TonService:
             
             if response.status_code in [200, 201]:
                 print("✅ TON Webhook successfully registered")
+                print(f"Webhook ID: {response.json().get('id')}")
                 return True
             else:
                 print(f"❌ TON Webhook failed: {response.status_code} - {response.text}")
-                return False
+                # ✅ Попробуем альтернативный endpoint
+                return await self.try_alternative_webhook_setup(webhook_url)
                 
         except Exception as e:
             print(f"Error setting up TON webhook: {e}")
+            return False
+    
+    async def try_alternative_webhook_setup(self, webhook_url: str):
+        """Альтернативный метод настройки вебхука"""
+        try:
+            # Попробуем другой endpoint
+            url = f"{self.base_url}/webhooks"
+            
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "url": webhook_url,
+                "events": ["account_transaction"],
+                "filter": {
+                    "account": self.wallet_address,
+                    "operation_type": "in"
+                }
+            }
+            
+            response = requests.post(url, headers=headers, json=payload)
+            
+            if response.status_code in [200, 201]:
+                print("✅ TON Webhook registered via alternative endpoint")
+                return True
+            else:
+                print(f"❌ Alternative endpoint also failed: {response.status_code} - {response.text}")
+                return False
+                
+        except Exception as e:
+            print(f"Error in alternative webhook setup: {e}")
+            return False
+        
+        
+    async def check_ton_api_status(self):
+        """Проверяем статус TON API"""
+        try:
+            url = f"{self.base_url}/health"
+            headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
+            
+            response = requests.get(url, headers=headers)
+            
+            if response.status_code == 200:
+                print("✅ TON API is accessible and healthy")
+                return True
+            else:
+                print(f"❌ TON API health check failed: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ TON API health check error: {e}")
             return False
         
     def verify_webhook_signature(self, request: Request, payload: bytes) -> bool:
