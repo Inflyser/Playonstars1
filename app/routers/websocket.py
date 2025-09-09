@@ -6,6 +6,27 @@ import json
 
 router = APIRouter()
 
+@router.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)):
+    """Основной WebSocket endpoint для общего подключения"""
+    await websocket_manager.connect(websocket, "general")
+    try:
+        while True:
+            data = await websocket.receive_text()
+            try:
+                message = json.loads(data)
+                # Обрабатываем ping/pong
+                if message.get("type") == "ping":
+                    await websocket.send_json({
+                        "type": "pong", 
+                        "timestamp": message.get("timestamp")
+                    })
+            except json.JSONDecodeError:
+                pass
+                
+    except WebSocketDisconnect:
+        websocket_manager.disconnect(websocket, "general")
+        
 @router.websocket("/ws/general")
 async def websocket_general(websocket: WebSocket, db: Session = Depends(get_db)):
     await websocket_manager.connect(websocket, "general")
