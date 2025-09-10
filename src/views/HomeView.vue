@@ -44,19 +44,38 @@
       </div>
     </main>
 
+    <button 
+      v-if="isAdmin" 
+      @click="goToAdmin"
+      class="admin-btn"
+    >
+      ⚙️ Админка
+    </button>
+
     <!-- Плавающая панель навигации -->
     <BottomNavigation />
   </div>
 </template>
 
 <script setup lang="ts">
+import { useUserStore } from '@/stores/useUserStore'
+import { computed } from 'vue'
+
 import BottomNavigation from '@/components/layout/BottomNavigation.vue'
 import TelegramHeader from '@/components/layout/TelegramHeader.vue'
 import TelegramHeader2 from '@/components/layout/TelegramHeader2.vue'
 
 import { useRouter } from 'vue-router'
+const userStore = useUserStore()
 
 const router = useRouter()
+const isAdmin = computed(() => {
+  return userStore.user && 'isAdmin' in userStore.user && userStore.user.isAdmin;
+});
+
+const goToAdmin = () => {
+  router.push('/admin-login')
+}
 
 const PageCrash = () => {
   router.push('/crash')
@@ -72,6 +91,15 @@ const PagePvp = () => {
   min-height: 100vh;
   background: linear-gradient(to right, #1B152F, #180A24);
   padding-bottom: 80px;
+}
+
+.admin-btn {
+  background: linear-gradient(135deg, #ff4757, #ff3742);
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 .main-content {

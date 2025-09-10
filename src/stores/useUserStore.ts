@@ -18,6 +18,7 @@ export interface User {
   ton_balance: number;
   stars_balance: number;
   photo_url?: string;
+  isAdmin?: boolean;
 }
 
 export interface UserBalance {
