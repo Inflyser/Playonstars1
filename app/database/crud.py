@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import models
-from app.database.models import User, DepositHistory, CrashBetHistory, Wallet, Transaction, CrashGameResult
+from app.database.models import User, DepositHistory, CrashBetHistory, Wallet, Transaction, CrashGameResult, CrashGameSettings
 from typing import Optional
 
 def get_user_by_telegram_id(db: Session, telegram_id: int) -> Optional[User]:
@@ -28,6 +28,28 @@ def add_stars_payment_id(db: Session, telegram_id: int, payment_id: str) -> bool
         return True
     
     return False
+
+
+def get_crash_game_settings(db: Session):
+    """Получаем настройки игры"""
+    return db.query(CrashGameSettings).first()
+
+def update_crash_game_settings(db: Session, settings_data: dict):
+    """Обновляем настройки игры"""
+    settings = db.query(CrashGameSettings).first()
+    
+    if not settings:
+        # Создаем настройки по умолчанию
+        settings = CrashGameSettings()
+        db.add(settings)
+    
+    for key, value in settings_data.items():
+        if hasattr(settings, key):
+            setattr(settings, key, value)
+    
+    db.commit()
+    db.refresh(settings)
+    return settings
 
 def has_stars_payment_id(db: Session, telegram_id: int, payment_id: str) -> bool:
     """Проверяем есть ли уже такой ID платежа"""
@@ -321,3 +343,31 @@ def has_stars_payment_id(db: Session, telegram_id: int, payment_id: str) -> bool
         return False
     
     return payment_id in user.stars_payment_ids
+
+
+def get_admin_by_username(db: Session, username: str):
+    return db.query(AdminUser).filter(AdminUser.username == username).first()
+
+def get_admin_by_telegram_id(db: Session, telegram_id: int):
+    return db.query(AdminUser).filter(AdminUser.telegram_id == telegram_id).first()
+
+def verify_admin_password(admin: AdminUser, password: str):
+    """Проверка пароля (используйте bcrypt или similar)"""
+    import bcrypt
+    return bcrypt.checkpw(password.encode(), admin.password_hash.encode())
+
+def create_admin_user(db: Session, username: str, password: str, telegram_id: int = None):
+    """Создание админа с хешированием пароля"""
+    import bcrypt
+    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    
+    admin = AdminUser(
+        username=username,
+        password_hash=hashed,
+        telegram_id=telegram_id,
+        permissions=['crash_settings']
+    )
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
+    return admin

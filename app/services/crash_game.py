@@ -1,22 +1,89 @@
-import asyncio
+import math
 import random
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.database.session import SessionLocal
 from app.database import crud
 from app.database.models import User
+import asyncio
 
 class CrashGame:
     def __init__(self, ws_manager):
         self.ws_manager = ws_manager
         self.current_multiplier = 1.0
         self.is_playing = False
-        self.bets = {}  # user_id -> bet_data
+        self.bets = {}
         self.game_history = []
         self.game_id = 0
+        self.settings = None
+
+    def load_settings(self, db: Session):
+        """Загружаем настройки из БД"""
+        from app.database import crud
+        self.settings = crud.get_crash_game_settings(db)
+        return self.settings
+
+    def generate_multiplier(self) -> float:
+        """Генерация множителя с учетом RTP и настроек"""
+        if not self.settings:
+            # Настройки по умолчанию если не загружены
+            return round(random.uniform(1.1, 10.0), 2)
+        
+        # Базовая вероятность краха (зависит от RTP)
+        base_crash_probability = 1 - self.settings.rtp
+        
+        # Корректируем вероятность в зависимости от волатильности
+        adjusted_probability = base_crash_probability * self.settings.volatility
+        
+        # Выбираем тип распределения
+        if self.settings.crash_point_distribution == 'exponential':
+            multiplier = self._generate_exponential_multiplier(adjusted_probability)
+        elif self.settings.crash_point_distribution == 'uniform':
+            multiplier = self._generate_uniform_multiplier()
+        else:
+            multiplier = self._generate_custom_multiplier(adjusted_probability)
+        
+        # Ограничиваем мин/макс значениями
+        multiplier = max(self.settings.min_multiplier, min(self.settings.max_multiplier, multiplier))
+        
+        return round(multiplier, 2)
+
+    def _generate_exponential_multiplier(self, crash_probability: float) -> float:
+        """Экспоненциальное распределение (классический краш)"""
+        # Формула: multiplier = (1 - crash_probability) / (1 - random())
+        random_val = random.random()
+        if random_val < crash_probability:
+            # Ранний крах
+            return self.settings.min_multiplier
+        
+        multiplier = (1 - crash_probability) / (1 - random_val)
+        return multiplier
+
+    def _generate_uniform_multiplier(self) -> float:
+        """Равномерное распределение"""
+        return random.uniform(self.settings.min_multiplier, self.settings.max_multiplier)
+
+    def _generate_custom_multiplier(self, crash_probability: float) -> float:
+        """Кастомное распределение с контролем волатильности"""
+        # Увеличиваем вероятность раннего краха для высокой волатильности
+        if self.settings.volatility > 1.5 and random.random() < 0.3:
+            return self.settings.min_multiplier
+        
+        # Базовый множитель с нормальным распределением
+        base = random.normalvariate(2.0, self.settings.volatility)
+        
+        # Применяем RTP коррекцию
+        corrected = base * (1 + (1 - self.settings.rtp))
+        
+        return corrected
 
     async def run_game_cycle(self):
-        """Запуск цикла игры"""
+        """Запуск цикла игры с учетом настроек"""
+        # Загружаем актуальные настройки
+        db = SessionLocal()
+        self.load_settings(db)
+        db.close()
+        
         self.game_id += 1
         self.is_playing = True
         self.bets.clear()
@@ -26,17 +93,22 @@ class CrashGame:
             "game_id": self.game_id,
             "phase": "betting",
             "time_remaining": 15,
-            "multiplier": 1.0
+            "multiplier": 1.0,
+            "settings": {
+                "rtp": self.settings.rtp if self.settings else 0.95,
+                "min_multiplier": self.settings.min_multiplier if self.settings else 1.1,
+                "max_multiplier": self.settings.max_multiplier if self.settings else 100.0
+            }
         })
         
+        # Ожидание приема ставок (15 секунд)
         for i in range(15, 0, -1):
             await asyncio.sleep(1)
             if not self.is_playing:
                 return
-                
             await self.ws_manager.send_crash_update({
                 "game_id": self.game_id,
-                "phase": "betting",
+                "phase": "betting", 
                 "time_remaining": i,
                 "multiplier": 1.0
             })
@@ -53,6 +125,7 @@ class CrashGame:
             current_multiplier += step
             current_multiplier = round(current_multiplier, 2)
             
+            # Увеличиваем шаг для больших множителей
             if current_multiplier > 5:
                 step = 0.05
             elif current_multiplier > 2:
@@ -68,7 +141,7 @@ class CrashGame:
         # Крах - игра окончена
         self.is_playing = False
         
-        # ✅ СОХРАНЯЕМ РЕЗУЛЬТАТЫ В БД
+        # Сохраняем результаты
         await self.save_game_results(multiplier)
         
         await self.ws_manager.send_crash_result({
@@ -102,13 +175,11 @@ class CrashGame:
             
             # Обрабатываем каждую ставку
             for user_id, bet_data in self.bets.items():
-                # ✅ Используем get_user_by_id которую сейчас добавим в crud.py
                 user = crud.get_user_by_id(db, user_id)
                 if not user:
                     print(f"❌ User {user_id} not found in DB")
                     continue
                 
-                # ✅ Используем bet_id который сохранили при размещении ставки
                 if 'bet_id' in bet_data:
                     # Определяем результат ставки
                     if bet_data.get('cashed_out', False):
@@ -154,31 +225,38 @@ class CrashGame:
         finally:
             db.close()
 
-    def generate_multiplier(self) -> float:
-        """Генерация случайного множителя"""
-        return round(random.uniform(1.1, 10.0), 2)
-
     async def place_bet(self, user_id: int, amount: float, auto_cashout: float = None):
         """Размещение ставки с сохранением в БД"""
         print(f"🎯 [CrashGame] place_bet called: user_id={user_id}, amount={amount}")
 
         db = SessionLocal()
         try:
-            # ✅ Важно: user_id должен быть ID из БД, а не telegram_id!
+            # Получаем пользователя по ID
             user = db.query(User).filter(User.id == user_id).first()
             if not user:
                 print(f"❌ [CrashGame] User {user_id} not found by ID")
                 return False
 
-            print(f"✅ [CrashGame] User found: ID {user.id}, Telegram ID {user.telegram_id}")
+            # Проверяем достаточно ли средств
+            if user.stars_balance < amount:
+                print(f"❌ [CrashGame] Insufficient balance: {user.stars_balance} < {amount}")
+                return False
 
             # Создаем запись о ставке в БД
             bet = crud.add_crash_bet(
                 db=db,
-                user_id=user.id,  # ✅ ID из БД
-                telegram_id=user.telegram_id,  # ✅ Telegram ID
+                user_id=user.id,
+                telegram_id=user.telegram_id,
                 bet_amount=amount,
                 status='pending'
+            )
+
+            # Списываем средства с баланса
+            crud.update_user_balance(
+                db=db,
+                telegram_id=user.telegram_id,
+                currency='stars',
+                amount=-amount
             )
 
             # Сохраняем в активные ставки
@@ -188,7 +266,7 @@ class CrashGame:
                 "placed_at": datetime.now(),
                 "cashed_out": False,
                 "profit": 0,
-                "bet_id": bet.id  # ✅ Сохраняем ID ставки
+                "bet_id": bet.id
             }
 
             print(f"✅ [CrashGame] Bet added to active bets: {bet.id}")
@@ -212,3 +290,22 @@ class CrashGame:
         bet_data['cashed_out'] = True
         bet_data['cashout_multiplier'] = cashout_multiplier
         bet_data['profit'] = bet_data['amount'] * cashout_multiplier
+        
+        # Немедленно обновляем баланс пользователя
+        db = SessionLocal()
+        try:
+            user = crud.get_user_by_id(db, user_id)
+            if user:
+                win_amount = bet_data['amount'] * cashout_multiplier
+                crud.update_user_balance(
+                    db=db,
+                    telegram_id=user.telegram_id,
+                    currency='stars',
+                    amount=win_amount
+                )
+                db.commit()
+        except Exception as e:
+            print(f"❌ Error in cash_out: {e}")
+            db.rollback()
+        finally:
+            db.close()

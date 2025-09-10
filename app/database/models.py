@@ -172,3 +172,30 @@ class CrashGameResult(Base):
         Index('idx_crash_game_id', 'game_id'),
         Index('idx_crash_timestamp', 'timestamp'),
     )
+    
+class CrashGameSettings(Base):
+    __tablename__ = "crash_game_settings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    rtp = Column(Float, default=0.95)  # 95% RTP по умолчанию
+    house_edge = Column(Float, default=0.05)  # 5% комиссия дома
+    min_multiplier = Column(Float, default=1.1)  # Минимальный множитель
+    max_multiplier = Column(Float, default=100.0)  # Максимальный множитель
+    crash_point_distribution = Column(String, default='exponential')  # exponential, uniform, custom
+    volatility = Column(Float, default=1.0)  # Волатильность (1.0 = нормальная)
+    is_active = Column(Boolean, default=True)
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    
+    
+class AdminUser(Base):
+    __tablename__ = "admin_users"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    password_hash = Column(String)  # Хеш пароля
+    telegram_id = Column(BigInteger, unique=True, nullable=True)  # Привязка к TG
+    is_superadmin = Column(Boolean, default=False)
+    permissions = Column(JSON, default=[])  # ['crash_settings', 'users', 'transactions']
+    created_at = Column(DateTime, default=func.now())
+    last_login = Column(DateTime, nullable=True)

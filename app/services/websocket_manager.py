@@ -179,6 +179,14 @@ class WebSocketManager:
                 "status": "error", 
                 "message": str(e)
             }, websocket)
+            
+    async def send_crash_update(self, data: dict):
+        """Отправка обновлений игры с настройками"""
+        message = {
+            "type": "crash_update",
+            "data": data
+        }
+        await self._broadcast_to_crash_game(json.dumps(message))
 
     async def clean_dead_connections(self):
         """Очищаем неактивные соединения"""
