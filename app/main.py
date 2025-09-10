@@ -59,15 +59,11 @@ app.add_middleware(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-    "https://playonstars.netlify.app",
-    "https://web.telegram.org",
-    "https://telegram.org", 
+    "https://playonstars.netlify.app",  # Ваш фронтенд1
+    "https://web.telegram.org",          # Telegram Web
+    "https://telegram.org",              # Telegram
     "http://localhost:5173",
-    "ws://localhost:5173",
-    "https://tonconnect.io",
-    "https://bridge.tonapi.io",
-    "https://playonstars.onrender.com",  # ✅ ваш домен
-    "wss://playonstars.onrender.com",   # ✅ WebSocket
+    "ws://localhost:5173",# Локальная разработка
     "https://tonconnect.io",  # ✅ Добавьте это
     "https://bridge.tonapi.io",  # ✅ И это
     os.getenv("FRONTEND_URL", "https://playonstars.netlify.app")
@@ -75,7 +71,6 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    allow_websocket_connections=True  # ✅ ВАЖНО для WebSocket
 )
 
 # Создайте экземпляр игры с передачей websocket_manager
@@ -128,33 +123,7 @@ async def startup():
         print(f"⚠️ TON Webhook skipped - missing environment variables: {', '.join(missing_vars)}")
     
     # ✅ Запускаем фоновую задачу для краш-игры ОДИН РАЗ
-    
-    from app.database.session import SessionLocal
-    from app.database import crud
-
-    def init_db():
-        db = SessionLocal()
-        try:
-            # Проверяем, есть ли уже настройки
-            settings = crud.get_game_settings(db)
-            if not settings:
-                # Создаем настройки по умолчанию
-                crud.update_game_settings(
-                    db,
-                    admin_password="KBV4B92clwn8juHJHF45106KBNJHF31cvo2pl5g",  # Пароль по умолчанию
-                    crash_rtp=0.95,             # RTP по умолчанию
-                    crash_min_multiplier=1.1,    # Минимальный множитель
-                    crash_max_multiplier=100.0   # Максимальный множитель
-                )
-                print("Настройки по умолчанию созданы.")
-            else:
-                print("Настройки уже существуют.")
-        finally:
-            db.close()
-
-    # Вызываем функцию инициализации при старте
-    init_db()
-    asyncio.create_task(run_crash_game_loop())
+    asyncio.create_task(run_crash_game())
   
     # Проверяем WebSocket библиотеки
     try:
@@ -168,22 +137,7 @@ async def startup():
         print("✅ WebSocket support: wsproto library installed") 
     except ImportError:
         print("❌ WebSocket support: wsproto library missing")
-      
-      
-async def run_crash_game_loop():
-    """Бесконечный цикл для запуска краш-игр"""
-    while True:
-        try:
-            if not crash_game.is_playing:
-                await crash_game.run_game_cycle()
-            await asyncio.sleep(5)  # Пауза между играми
-        except Exception as e:
-            print(f"❌ Error in crash game loop: {e}")
-            await asyncio.sleep(10)  
-
-
-
-
+        
 
 @app.post("/login")
 async def login_from_webapp(request: Request, data: dict, db: Session = Depends(get_db)):
@@ -503,8 +457,74 @@ async def websocket_status():
             "wsproto_installed": False,
             "error": "WebSocket libraries not installed"
         }
-        
 
+async def run_crash_game():
+    """Фоновая задача для управления краш-игрой"""
+    while True:
+        try:
+            await crash_game.run_game_cycle()  # ✅ Используем существующий экземпляр
+            # Пауза между играми
+            await asyncio.sleep(10)
+        except Exception as e:
+            print(f"Error in crash game: {e}")
+            await asyncio.sleep(10)
+        
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket_manager.connect(websocket, "general")
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Обработка сообщений
+            try:
+                message = json.loads(data)
+                if message.get("type") == "ping":
+                    await websocket.send_json({"type": "pong", "timestamp": message.get("timestamp")})
+            except json.JSONDecodeError:
+                pass
+    except WebSocketDisconnect:
+        websocket_manager.disconnect(websocket, "general")
+
+@app.websocket("/ws/crash")
+async def websocket_crash(websocket: WebSocket, db: Session = Depends(get_db)):
+    await websocket_manager.connect_crash_game(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            print(f"📨 [WebSocket] Received message: {data}")
+            
+            try:
+                message = json.loads(data)
+                print(f"📨 [WebSocket] Parsed message: {message}")
+                
+                if message.get("type") == "place_bet":
+                    print("🎯 [WebSocket] Processing place_bet message")
+                    await websocket_manager.handle_crash_bet(websocket, message)
+                elif message.get("type") == "ping":
+                    # Обрабатываем ping
+                    await websocket.send_json({
+                        "type": "pong",
+                        "timestamp": message.get("timestamp")
+                    })
+                    
+            except json.JSONDecodeError as e:
+                print(f"❌ [WebSocket] JSON decode error: {e}")
+                
+    except WebSocketDisconnect:
+        print("🔌 [WebSocket] Client disconnected from crash game")
+        websocket_manager.disconnect_crash_game(websocket)
+        
+        
+@app.websocket("/ws/user/{user_id}")
+async def websocket_user_endpoint(websocket: WebSocket, user_id: int):
+    await websocket_manager.connect(websocket, f"user_{user_id}")
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Персональные сообщения для пользователя
+    except WebSocketDisconnect:
+        websocket_manager.disconnect(websocket, f"user_{user_id}")
+    
     
 async def check_deposits_periodically():
     """Периодическая проверка депозитов (fallback)"""
@@ -528,7 +548,50 @@ async def check_deposits_periodically():
             await asyncio.sleep(300)
             
 
+
+@app.websocket("/ws/crash")
+async def websocket_crash_endpoint(websocket: WebSocket):
+    await websocket_manager.connect_crash_game(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Обработка ставок краш-игры
+            try:
+                message = json.loads(data)
+                if message.get("type") == "place_bet":
+                    # Здесь логика обработки ставки
+                    user_id = message.get("user_id")
+                    amount = message.get("amount")
+                    auto_cashout = message.get("auto_cashout")
+                    
+                    # Сохраняем ставку
+                    if user_id and amount:
+                        crash_game.bets[user_id] = {
+                            "amount": amount,
+                            "auto_cashout": auto_cashout,
+                            "placed_at": datetime.now()
+                        }
+                        
+            except json.JSONDecodeError:
+                pass
+    except WebSocketDisconnect:
+        websocket_manager.disconnect_crash_game(websocket)
+
         
+
+
+@app.get("/api/ws/test")
+async def websocket_test():
+    return {
+        "websocket_enabled": True,
+        "crash_connections": len(websocket_manager.crash_game_connections),
+        "allowed_origins": [
+            "https://playonstars.netlify.app",
+            "https://web.telegram.org"
+        ]
+    }
+
+
 
 
 

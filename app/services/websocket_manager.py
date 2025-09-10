@@ -5,39 +5,8 @@ import time
 from typing import Dict, Set
 from fastapi import WebSocket
 from datetime import datetime 
-from starlette.websockets import WebSocketState
 
 logger = logging.getLogger(__name__)
-
-def check_websocket_origin(websocket: WebSocket) -> bool:
-    """Проверяет разрешен ли origin для WebSocket соединения"""
-    allowed_origins = [
-        "https://playonstars.netlify.app",
-        "https://web.telegram.org", 
-        "https://telegram.org",
-        "http://localhost:5173",
-        "ws://localhost:5173",
-        "https://tonconnect.io",
-        "https://bridge.tonapi.io",
-        "https://playonstars.onrender.com",
-        "wss://playonstars.onrender.com",
-        # Добавьте другие разрешенные origin
-        "https://yourdomain.com",
-        "wss://yourdomain.com",
-    ]
-    
-    origin = websocket.headers.get("origin")
-    if not origin:
-        # Если origin не указан, разрешаем (может быть из приложений)
-        return True
-    
-    # Проверяем совпадение с разрешенными origin
-    for allowed in allowed_origins:
-        if origin.startswith(allowed):
-            return True
-    
-    logger.warning(f"❌ Origin not allowed: {origin}")
-    return False
 
 class WebSocketManager:
     def __init__(self):
@@ -45,53 +14,37 @@ class WebSocketManager:
         self.crash_game_connections: Set[WebSocket] = set()
         self.connection_timestamps: Dict[WebSocket, float] = {}  # ✅ Таймстампы соединений
         self.crash_game = None  # ✅ Будет установлен извне
-        
-        
-    
-        
-            
-    async def _broadcast_to_crash_game(self, message: str):
-        """Приватный метод для broadcast сообщений только к подключениям crash игры"""
-        if not self.crash_game_connections:
-            return
 
     def set_crash_game(self, crash_game):
         """Устанавливаем ссылку на crash game"""
         self.crash_game = crash_game
 
     async def connect(self, websocket: WebSocket, channel: str = "general"):
-        # УБЕРИТЕ эту строку: await websocket.accept()
-
+        await websocket.accept()
+        
         if channel not in self.active_connections:
             self.active_connections[channel] = set()
-
+        
         self.active_connections[channel].add(websocket)
         self.connection_timestamps[websocket] = time.time()
         logger.info(f"Client connected to channel '{channel}'. Total: {len(self.active_connections[channel])}")
 
+    def disconnect(self, websocket: WebSocket, channel: str = "general"):
+        if channel in self.active_connections:
+            self.active_connections[channel].discard(websocket)
+            if not self.active_connections[channel]:
+                del self.active_connections[channel]
+        
+        if websocket in self.connection_timestamps:
+            del self.connection_timestamps[websocket]
+        
+        logger.info(f"Client disconnected from channel '{channel}'")
 
     async def send_personal_message(self, message: dict, websocket: WebSocket):
         try:
             await websocket.send_json(message)
         except Exception as e:
             logger.error(f"Error sending personal message: {e}")
-            
-            
-    async def send_crash_update(self, data: dict):
-        """Отправка обновлений игры"""
-        message = {
-            "type": "crash_update",
-            "data": data
-        }
-        await self.broadcast_crash_game(message)  # ✅ Исправлено
-    
-    async def send_crash_result(self, data: dict):
-        """Отправка результатов игры"""
-        message = {
-            "type": "crash_result", 
-            "data": data
-        }
-        await self.broadcast_crash_game(message)
 
     async def broadcast(self, message: dict, channel: str = "general"):
         if channel in self.active_connections:
@@ -107,120 +60,25 @@ class WebSocketManager:
             for websocket in disconnected:
                 self.disconnect(websocket, channel)
 
-    async def handle_crash_bet(self, websocket: WebSocket, data: dict):
-        """Обработка ставок в краш-игре"""
-        try:
-            print(f"🎯 [WebSocket] Received bet data: {data}")
-
-            user_id = data.get("user_id")
-            amount = data.get("amount")
-            auto_cashout = data.get("auto_cashout")
-
-            if not all([user_id, amount]):
-                print("❌ [WebSocket] Missing required fields")
-                await self.send_personal_message({
-                    "type": "bet_placed",
-                    "status": "error",
-                    "message": "Missing required fields"
-                }, websocket)
-                return
-
-            if not self.crash_game:
-                print("❌ [WebSocket] Crash game not initialized")
-                await self.send_personal_message({
-                    "type": "bet_placed",
-                    "status": "error", 
-                    "message": "Game not ready"
-                }, websocket)
-                return
-
-            # ✅ Сохраняем ставку в БД
-            print(f"🎯 [WebSocket] Calling place_bet for user {user_id}, amount {amount}")
-            success = await self.crash_game.place_bet(int(user_id), float(amount), auto_cashout)
-
-            if success:
-                print(f"✅ [WebSocket] Bet successfully processed for user {user_id}")
-                await self.send_personal_message({
-                    "type": "bet_placed",
-                    "status": "success",
-                    "amount": amount
-                }, websocket)
-
-                # ✅ Рассылаем обновление о новой ставке всем
-                await self.broadcast_crash_game({
-                    "type": "new_bet",
-                    "data": {
-                        "user_id": user_id,
-                        "amount": amount,
-                        "timestamp": datetime.now().isoformat()
-                    }
-                })
-            else:
-                print(f"❌ [WebSocket] Failed to process bet for user {user_id}")
-                await self.send_personal_message({
-                    "type": "bet_placed", 
-                    "status": "error",
-                    "message": "Failed to place bet"
-                }, websocket)
-
-        except Exception as e:
-            print(f"❌ [WebSocket] Error handling bet: {e}")
-            await self.send_personal_message({
-                "type": "bet_placed",
-                "status": "error", 
-                "message": str(e)
-            }, websocket)
-
-    async def cash_out(self, user_id: int):
-        """Обработка вывода средств"""
-        try:
-            if not self.crash_game:
-                return False
-
-            success = await self.crash_game.cash_out(user_id)
-            if success:
-                await self.broadcast_crash_game({
-                    "type": "cash_out",
-                    "data": {
-                        "user_id": user_id,
-                        "timestamp": datetime.now().isoformat()
-                    }
-                })
-            return success
-
-        except Exception as e:
-            print(f"❌ [WebSocket] Error handling cash out: {e}")
-            return False
-
+    # Специальные методы для краш-игры
     async def connect_crash_game(self, websocket: WebSocket):
-        # УБЕРИТЕ эту строку: await websocket.accept()
-
+        await websocket.accept()
+        
         # ✅ Очищаем мертвые соединения перед добавлением
         await self.clean_dead_connections()
-
+        
         self.crash_game_connections.add(websocket)
         self.connection_timestamps[websocket] = time.time()
-
+        
         logger.info(f"✅ Client connected to crash game. Total: {len(self.crash_game_connections)}")
         print(f"📊 Active connections: {[id(ws) for ws in self.crash_game_connections]}")
-
-    def disconnect(self, websocket: WebSocket, channel: str = "general"):
-        if channel in self.active_connections:
-            self.active_connections[channel].discard(websocket)
-            if not self.active_connections[channel]:
-                del self.active_connections[channel]
-
-        if websocket in self.connection_timestamps:
-            del self.connection_timestamps[websocket]
-
-        logger.info(f"Client disconnected from channel '{channel}'")
 
     def disconnect_crash_game(self, websocket: WebSocket):
         if websocket in self.crash_game_connections:
             self.crash_game_connections.discard(websocket)
         if websocket in self.connection_timestamps:
             del self.connection_timestamps[websocket]
-
+        
         logger.info(f"🔌 Client disconnected from crash game. Total: {len(self.crash_game_connections)}")
 
     async def broadcast_crash_game(self, message: dict):
@@ -321,14 +179,6 @@ class WebSocketManager:
                 "status": "error", 
                 "message": str(e)
             }, websocket)
-            
-    async def send_crash_update(self, data: dict):
-        """Отправка обновлений игры с настройками"""
-        message = {
-            "type": "crash_update",
-            "data": data
-        }
-        await self._broadcast_to_crash_game(json.dumps(message))
 
     async def clean_dead_connections(self):
         """Очищаем неактивные соединения"""
