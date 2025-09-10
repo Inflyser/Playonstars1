@@ -22,7 +22,7 @@ class CrashGame:
     def load_settings(self, db: Session):
         """Загружаем настройки из БД"""
         from app.database import crud
-        self.settings = crud.get_crash_game_settings(db)
+        self.settings = crud.get_game_settings(db)
         return self.settings
 
     def generate_multiplier(self) -> float:
