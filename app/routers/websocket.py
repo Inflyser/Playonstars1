@@ -8,7 +8,38 @@ import logging
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# ✅ УДАЛИТЬ дублирующий endpoint /ws - оставить только /ws/general
+
+@router.websocket("/ws")
+async def websocket_root(websocket: WebSocket, db: Session = Depends(get_db)):
+    """Корневой WebSocket endpoint для обратной совместимости"""
+    await websocket.accept()
+    await websocket_manager.connect(websocket, "general")
+    
+    try:
+        while True:
+            data = await websocket.receive_text()
+            try:
+                message = json.loads(data)
+                logger.info(f"📨 Root WebSocket message: {message}")
+                
+                if message.get("type") == "ping":
+                    await websocket.send_json({
+                        "type": "pong",
+                        "timestamp": message.get("timestamp")
+                    })
+                    
+            except json.JSONDecodeError as e:
+                logger.error(f"❌ JSON decode error: {e}")
+                
+    except WebSocketDisconnect:
+        logger.info("🔌 Root WebSocket disconnected")
+        websocket_manager.disconnect(websocket, "general")
+    except Exception as e:
+        logger.error(f"❌ Root WebSocket error: {e}")
+        websocket_manager.disconnect(websocket, "general")
+
+
+
 @router.websocket("/ws/general")
 async def websocket_general(websocket: WebSocket, db: Session = Depends(get_db)):
     """Общее WebSocket подключение для всех клиентов"""
