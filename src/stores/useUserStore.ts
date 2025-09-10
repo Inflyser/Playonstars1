@@ -171,6 +171,10 @@ export const useUserStore = defineStore('user', () => {
     return telegramUser.value?.username || user.value?.username || '';
   });
 
+
+  
+
+
   return {
     user,
     telegramUser,

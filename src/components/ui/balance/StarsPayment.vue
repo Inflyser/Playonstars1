@@ -2,10 +2,10 @@
   <div class="stars-payment">
     <InputPanel
       v-model="amount"
-      :prefix-text="'STARS'"
-      :placeholder="'Введите сумму в STARS'"
-      :max-value="'5000'"
-      :icon-type="'stars'"
+      prefix-text="STARS"
+      placeholder="Введите сумму в STARS"
+      max-value="5000"
+      icon-type="stars"
     />
 
     <p style="color: #6A717B; font-size: 13px; margin: -10px 10px 15px 20px;">
@@ -16,11 +16,11 @@
       <button class="btn primary" @click="$router.back()">Отмена</button>
       <button 
         class="btn secondary" 
-        @click="purchaseStars"
+        @click="initiateTelegramPayment"
         :disabled="!isValidAmount || isProcessing"
       >
         <span v-if="isProcessing">Обработка...</span>
-        <span v-else>Пополнить</span>
+        <span v-else>Оплатить через Telegram</span>
       </button>
     </div>
 
@@ -35,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import InputPanel from '@/components/layout/InputPanel.vue'
 import { api } from '@/services/api'
@@ -48,15 +48,23 @@ const amount = ref('')
 const isProcessing = ref(false)
 const error = ref('')
 const successMessage = ref('')
+const telegramWebApp = ref<any>(null)
 
-// Вычисляемые свойства
+onMounted(() => {
+  // Проверяем доступность Telegram WebApp
+  if (window.Telegram?.WebApp) {
+    telegramWebApp.value = window.Telegram.WebApp
+    telegramWebApp.value.expand()
+    telegramWebApp.value.enableClosingConfirmation()
+  }
+})
+
 const isValidAmount = computed(() => {
   const numAmount = parseFloat(amount.value || '0')
   return numAmount >= 100 && numAmount <= 5000
 })
 
-// Метод покупки звезд
-const purchaseStars = async () => {
+const initiateTelegramPayment = async () => {
   if (!isValidAmount.value) {
     error.value = 'Неверная сумма. Минимум 100 STARS, максимум 5000 STARS'
     return
@@ -64,32 +72,71 @@ const purchaseStars = async () => {
 
   isProcessing.value = true
   error.value = ''
-  successMessage.value = ''
 
   try {
     const starsAmount = parseFloat(amount.value)
     
+    // Создаем инвойс через бекенд
+    const response = await api.post('/stars/create-invoice', {
+      amount: starsAmount,
+      description: `Пополнение STARS на ${starsAmount}`
+    })
+
+    if (response.data.status === 'success') {
+      // Используем Telegram WebApp для оплаты
+      if (telegramWebApp.value) {
+        telegramWebApp.value.openInvoice(response.data.invoice_id, (status: string) => {
+          if (status === 'paid') {
+            handleSuccessfulPayment(starsAmount)
+          } else if (status === 'failed') {
+            error.value = 'Оплата не удалась'
+          } else if (status === 'cancelled') {
+            // Пользователь отменил оплату
+          }
+        })
+      } else {
+        // Fallback для браузера
+        await handleDirectPayment(starsAmount)
+      }
+    }
+
+  } catch (err: any) {
+    console.error('Payment error:', err)
+    error.value = err.response?.data?.detail || 'Ошибка при создании платежа'
+  } finally {
+    isProcessing.value = false
+  }
+}
+
+const handleSuccessfulPayment = async (starsAmount: number) => {
+  successMessage.value = `✅ Успешно пополнено ${starsAmount} STARS!`
+  
+  // Обновляем баланс
+  await userStore.fetchBalance()
+  
+  // Закрываем веб-апп или возвращаемся
+  if (telegramWebApp.value) {
+    setTimeout(() => {
+      telegramWebApp.value.close()
+    }, 2000)
+  } else {
+    setTimeout(() => {
+      router.back()
+    }, 2000)
+  }
+}
+
+const handleDirectPayment = async (starsAmount: number) => {
+  try {
     const response = await api.post('/stars/purchase', {
       amount: starsAmount
     })
 
     if (response.data.status === 'success') {
-      successMessage.value = `✅ Успешно пополнено ${starsAmount} STARS!`
-      
-      // Обновляем баланс в хранилище
-      await userStore.fetchBalance()
-      
-      // Возвращаемся назад через 2 секунды
-      setTimeout(() => {
-        router.back()
-      }, 2000)
+      await handleSuccessfulPayment(starsAmount)
     }
-
   } catch (err: any) {
-    console.error('Purchase error:', err)
     error.value = err.response?.data?.detail || 'Ошибка при пополнении баланса'
-  } finally {
-    isProcessing.value = false
   }
 }
 </script>
