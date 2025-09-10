@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import models
-from app.database.models import User, DepositHistory, CrashBetHistory, Wallet, Transaction, CrashGameResult, CrashGameSettings, AdminSettings
+from app.database.models import User, DepositHistory, CrashBetHistory, Wallet, Transaction, CrashGameResult, GameSettings, AdminSettings
 from typing import Optional
 
 def get_user_by_telegram_id(db: Session, telegram_id: int) -> Optional[User]:
@@ -326,61 +326,23 @@ def has_stars_payment_id(db: Session, telegram_id: int, payment_id: str) -> bool
     return payment_id in user.stars_payment_ids
 
 
-def get_crash_game_settings(db: Session):
-    """Получаем текущие настройки игры"""
-    return db.query(CrashGameSettings).first()
+def get_game_settings(db: Session):
+    """Получаем настройки игры"""
+    return db.query(GameSettings).first()
 
-def update_crash_game_settings(db: Session, settings_data: dict):
+def update_game_settings(db: Session, admin_password: str = None, 
+                        crash_rtp: float = None, 
+                        crash_min_multiplier: float = None,
+                        crash_max_multiplier: float = None):
     """Обновляем настройки игры"""
-    settings = db.query(CrashGameSettings).first()
+    settings = db.query(GameSettings).first()
     
     if not settings:
-        settings = CrashGameSettings()
+        settings = GameSettings()
         db.add(settings)
     
-    for key, value in settings_data.items():
-        if hasattr(settings, key):
-            setattr(settings, key, value)
-    
-    db.commit()
-    db.refresh(settings)
-    return settings
-
-def get_game_stats(db: Session):
-    """Статистика игр для расчета фактического RTP"""
-    from sqlalchemy import func
-    
-    total_games = db.query(func.count(CrashGameResult.id)).scalar()
-    total_bet = db.query(func.sum(CrashGameResult.total_bet)).scalar() or 0
-    total_payout = db.query(func.sum(CrashGameResult.total_payout)).scalar() or 0
-    
-    actual_rtp = (total_payout / total_bet) if total_bet > 0 else 0
-    
-    return {
-        "total_games": total_games,
-        "total_bet": float(total_bet),
-        "total_payout": float(total_payout),
-        "house_profit": float(total_bet - total_payout),
-        "actual_rtp": float(actual_rtp)
-    }
-    
-def get_admin_settings(db: Session):
-    """Получаем настройки админки"""
-    return db.query(AdminSettings).first()
-
-def update_admin_settings(db: Session, admin_code: str = None, 
-                         crash_rtp: float = None, 
-                         crash_min_multiplier: float = None,
-                         crash_max_multiplier: float = None):
-    """Обновляем настройки админки"""
-    settings = db.query(AdminSettings).first()
-    
-    if not settings:
-        settings = AdminSettings()
-        db.add(settings)
-    
-    if admin_code is not None:
-        settings.admin_code = admin_code
+    if admin_password is not None:
+        settings.admin_password = admin_password
     if crash_rtp is not None:
         settings.crash_rtp = crash_rtp
     if crash_min_multiplier is not None:

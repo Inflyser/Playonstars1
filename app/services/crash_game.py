@@ -50,27 +50,27 @@ class CrashGame:
         
         return round(multiplier, 2)
 
-    def _generate_exponential_multiplier(self, crash_probability: float) -> float:
-        """Экспоненциальное распределение (классический краш)"""
-        random_val = random.random()
-        if random_val < crash_probability:
-            return self.settings.min_multiplier
-        
-        multiplier = (1 - crash_probability) / (1 - random_val)
-        return multiplier
+    def generate_multiplier(self) -> float:
+        """Простая генерация множителя"""
+        db = SessionLocal()
+        try:
+            settings = crud.get_game_settings(db)
+            if not settings:
+                return round(random.uniform(1.1, 10.0), 2)
 
-    def _generate_uniform_multiplier(self) -> float:
-        """Равномерное распределение"""
-        return random.uniform(self.settings.min_multiplier, self.settings.max_multiplier)
+            # ✅ ПРОСТАЯ ФОРМУЛА - без сложных распределений
+            base = random.uniform(1.1, 5.0)
+            multiplier = base * (1 + (1 - settings.crash_rtp))
 
-    def _generate_custom_multiplier(self, crash_probability: float) -> float:
-        """Кастомное распределение с контролем волатильности"""
-        if self.settings.volatility > 1.5 and random.random() < 0.3:
-            return self.settings.min_multiplier
-        
-        base = random.normalvariate(2.0, self.settings.volatility)
-        corrected = base * (1 + (1 - self.settings.rtp))
-        return corrected
+            # Ограничиваем мин/макс
+            multiplier = max(settings.crash_min_multiplier, 
+                            min(settings.crash_max_multiplier, multiplier))
+
+            return round(multiplier, 2)
+
+        finally:
+            db.close()
+            
     async def run_game_cycle(self):
         """Запуск цикла игры с учетом настроек"""
         # Загружаем актуальные настройки

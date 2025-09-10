@@ -174,27 +174,13 @@ class CrashGameResult(Base):
     )
     
     
-class CrashGameSettings(Base):
-    __tablename__ = "crash_game_settings"
+class GameSettings(Base):
+    __tablename__ = "game_settings"
     
     id = Column(Integer, primary_key=True, index=True)
-    rtp = Column(Float, default=0.95)  # 95% RTP по умолчанию
-    house_edge = Column(Float, default=0.05)  # 5% комиссия дома
-    min_multiplier = Column(Float, default=1.1)  # Минимальный множитель
-    max_multiplier = Column(Float, default=100.0)  # Максимальный множитель
-    crash_point_distribution = Column(String, default='exponential')  # exponential, uniform, custom
-    volatility = Column(Float, default=1.0)  # Волатильность (1.0 = нормальная)
-    is_active = Column(Boolean, default=True)
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
-    
-    
-    
-class AdminSettings(Base):
-    __tablename__ = "admin_settings"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    admin_code = Column(String, default="admin123")  # Простой код для доступа
+    admin_password = Column(String, default="admin123")  # Простой пароль для админки
     crash_rtp = Column(Float, default=0.95)  # RTP для краша
     crash_min_multiplier = Column(Float, default=1.1)
     crash_max_multiplier = Column(Float, default=100.0)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    

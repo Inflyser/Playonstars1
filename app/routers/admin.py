@@ -1,75 +1,83 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from app.database.session import get_db
-from app.dependencies import get_current_admin, require_permission
 from app.database import crud
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter()
 
-@router.get("/crash-settings")
-async def get_crash_settings(
-    db: Session = Depends(get_db),
-    admin: dict = Depends(require_permission("manage_games"))
-):
-    """Получить текущие настройки краш-игры"""
-    settings = crud.get_crash_game_settings(db)
+@router.post("/admin/login")
+async def admin_login(admin_data: dict, db: Session = Depends(get_db)):
+    """Простая авторизация по паролю"""
+    password = admin_data.get("password", "")
+    
+    settings = crud.get_game_settings(db)
     if not settings:
-        raise HTTPException(404, "Настройки не найдены")
+        # Создаем настройки по умолчанию
+        settings = crud.update_game_settings(db)
+    
+    if password != settings.admin_password:
+        raise HTTPException(status_code=401, detail="Неверный пароль админа")
     
     return {
-        "rtp": settings.rtp,
-        "house_edge": settings.house_edge,
-        "min_multiplier": settings.min_multiplier,
-        "max_multiplier": settings.max_multiplier,
-        "crash_point_distribution": settings.crash_point_distribution,
-        "volatility": settings.volatility,
-        "is_active": settings.is_active
+        "status": "success", 
+        "message": "Авторизация успешна",
+        "settings": {
+            "crash_rtp": settings.crash_rtp,
+            "crash_min_multiplier": settings.crash_min_multiplier,
+            "crash_max_multiplier": settings.crash_max_multiplier
+        }
     }
 
-@router.post("/crash-settings")
-async def update_crash_settings(
-    settings_data: dict,
-    db: Session = Depends(get_db),
-    admin: dict = Depends(require_permission("manage_games"))
-):
-    """Обновить настройки краш-игры"""
-    try:
-        # Валидация данных
-        if 'rtp' in settings_data and not (0.5 <= settings_data['rtp'] <= 0.99):
-            raise HTTPException(400, "RTP должен быть между 0.5 и 0.99")
-        
-        if 'house_edge' in settings_data and not (0.01 <= settings_data['house_edge'] <= 0.5):
-            raise HTTPException(400, "Комиссия должна быть между 1% и 50%")
-        
-        settings = crud.update_crash_game_settings(db, settings_data)
-        
-        return {
-            "status": "success",
-            "message": "Настройки обновлены",
-            "settings": {
-                "rtp": settings.rtp,
-                "house_edge": settings.house_edge,
-                "min_multiplier": settings.min_multiplier,
-                "max_multiplier": settings.max_multiplier,
-                "volatility": settings.volatility,
-                "distribution": settings.crash_point_distribution
-            }
+@router.post("/admin/update")
+async def update_settings(admin_data: dict, db: Session = Depends(get_db)):
+    """Обновление настроек - требует пароль админа"""
+    password = admin_data.get("password", "")
+    new_rtp = admin_data.get("crash_rtp")
+    new_min = admin_data.get("crash_min_multiplier")
+    new_max = admin_data.get("crash_max_multiplier")
+    
+    # Проверяем пароль
+    settings = crud.get_game_settings(db)
+    if password != settings.admin_password:
+        raise HTTPException(status_code=401, detail="Неверный пароль админа")
+    
+    # Простая валидация
+    if new_rtp is not None and not (0.5 <= new_rtp <= 0.99):
+        raise HTTPException(400, "RTP должен быть между 0.5 и 0.99")
+    
+    # Обновляем настройки
+    updated = crud.update_game_settings(
+        db=db,
+        crash_rtp=new_rtp,
+        crash_min_multiplier=new_min,
+        crash_max_multiplier=new_max
+    )
+    
+    return {
+        "status": "success",
+        "message": "Настройки обновлены",
+        "settings": {
+            "crash_rtp": updated.crash_rtp,
+            "crash_min_multiplier": updated.crash_min_multiplier,
+            "crash_max_multiplier": updated.crash_max_multiplier
         }
-        
-    except Exception as e:
-        raise HTTPException(500, f"Ошибка обновления настроек: {str(e)}")
+    }
 
-@router.get("/game-stats")
-async def get_game_stats(
-    db: Session = Depends(get_db),
-    admin: dict = Depends(require_permission("view_stats"))
-):
-    """Статистика игры для админки"""
-    stats = crud.get_game_stats(db)
+@router.post("/admin/change-password")
+async def change_password(admin_data: dict, db: Session = Depends(get_db)):
+    """Смена пароля админа"""
+    old_password = admin_data.get("old_password", "")
+    new_password = admin_data.get("new_password", "")
     
-    # Добавляем текущие теоретические настройки
-    settings = crud.get_crash_game_settings(db)
-    stats["theoretical_rtp"] = settings.rtp if settings else 0.95
-    stats["house_edge"] = settings.house_edge if settings else 0.05
+    if not new_password or len(new_password) < 4:
+        raise HTTPException(status_code=400, detail="Новый пароль слишком короткий")
     
-    return stats
+    # Проверяем старый пароль
+    settings = crud.get_game_settings(db)
+    if old_password != settings.admin_password:
+        raise HTTPException(status_code=401, detail="Неверный старый пароль")
+    
+    # Меняем пароль
+    updated = crud.update_game_settings(db=db, admin_password=new_password)
+    
+    return {"status": "success", "message": "Пароль успешно изменен"}
