@@ -42,7 +42,7 @@ async def create_stars_invoice(
             "payload": json.dumps({"user_id": current_user.telegram_id, "amount": amount}),
             "provider_token": "",  # ✅ ДЛЯ STARS ОСТАВЛЯЕМ ПУСТЫМ
             "currency": "XTR",     # ✅ ВАЛЮТА TELEGRAM STARS
-            "prices": [{"label": f"{amount} STARS", "amount": amount * 100}]
+            "prices": [{"label": f"{amount} STARS", "amount": amount}]
         }
         
         headers = {"Content-Type": "application/json"}
@@ -64,6 +64,10 @@ async def create_stars_invoice(
     except Exception as e:
         logger.error(f"Error creating invoice: {e}")
         raise HTTPException(status_code=500, detail="Ошибка при создании инвойса")
+    
+    
+    # app/routers/stars.py
+
 
 # УБИРАЕМ ЛИШНИЕ ЭНДПОИНТЫ КОТОРЫЕ НЕ РАБОТАЮТ
 # @router.get("/payment-status/{payment_id}") - УДАЛИ ЭТОТ ЕСЛИ stars_service НЕ РАБОТАЕТ
