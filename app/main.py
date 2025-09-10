@@ -123,6 +123,32 @@ async def startup():
         print(f"⚠️ TON Webhook skipped - missing environment variables: {', '.join(missing_vars)}")
     
     # ✅ Запускаем фоновую задачу для краш-игры ОДИН РАЗ
+    
+    from app.database.session import SessionLocal
+    from app.database import crud
+
+    def init_db():
+        db = SessionLocal()
+        try:
+            # Проверяем, есть ли уже настройки
+            settings = crud.get_game_settings(db)
+            if not settings:
+                # Создаем настройки по умолчанию
+                crud.update_game_settings(
+                    db,
+                    admin_password="KBV4B92clwn8juHJHF45106KBNJHF31cvo2pl5g",  # Пароль по умолчанию
+                    crash_rtp=0.95,             # RTP по умолчанию
+                    crash_min_multiplier=1.1,    # Минимальный множитель
+                    crash_max_multiplier=100.0   # Максимальный множитель
+                )
+                print("Настройки по умолчанию созданы.")
+            else:
+                print("Настройки уже существуют.")
+        finally:
+            db.close()
+
+    # Вызываем функцию инициализации при старте
+    init_db()
     asyncio.create_task(run_crash_game())
   
     # Проверяем WebSocket библиотеки
@@ -138,28 +164,6 @@ async def startup():
     except ImportError:
         print("❌ WebSocket support: wsproto library missing")
         
-
-async def create_first_admin():
-    """Создание первого администратора при запуске"""
-    db = SessionLocal()
-    try:
-        admin = crud.get_admin_by_username(db, "admin")
-        if not admin:
-            import bcrypt
-            password_hash = bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            
-            crud.create_admin_user(
-                db=db,
-                username="admin",
-                password_hash=password_hash,
-                email="admin@example.com",
-                is_superadmin=True
-            )
-            print("✅ Первый администратор создан: admin / admin123")
-    except Exception as e:
-        print(f"❌ Ошибка создания администратора: {e}")
-    finally:
-        db.close()
 
 
 @app.post("/login")
