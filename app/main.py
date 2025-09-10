@@ -149,7 +149,7 @@ async def startup():
 
     # Вызываем функцию инициализации при старте
     init_db()
-    asyncio.create_task(run_crash_game())
+    asyncio.create_task(run_crash_game_loop())
   
     # Проверяем WebSocket библиотеки
     try:
@@ -163,7 +163,18 @@ async def startup():
         print("✅ WebSocket support: wsproto library installed") 
     except ImportError:
         print("❌ WebSocket support: wsproto library missing")
-        
+      
+      
+async def run_crash_game_loop():
+    """Бесконечный цикл для запуска краш-игр"""
+    while True:
+        try:
+            if not crash_game.is_playing:
+                await crash_game.run_game_cycle()
+            await asyncio.sleep(5)  # Пауза между играми
+        except Exception as e:
+            print(f"❌ Error in crash game loop: {e}")
+            await asyncio.sleep(10)  
 
 
 @app.post("/login")

@@ -51,6 +51,23 @@ class WebSocketManager:
             await websocket.send_json(message)
         except Exception as e:
             logger.error(f"Error sending personal message: {e}")
+            
+            
+    async def send_crash_update(self, data: dict):
+        """Отправка обновлений игры"""
+        message = {
+            "type": "crash_update",
+            "data": data
+        }
+        await self.broadcast_crash_game(message)  # ✅ Исправлено
+    
+    async def send_crash_result(self, data: dict):
+        """Отправка результатов игры"""
+        message = {
+            "type": "crash_result", 
+            "data": data
+        }
+        await self.broadcast_crash_game(message)
 
     async def broadcast(self, message: dict, channel: str = "general"):
         if channel in self.active_connections:

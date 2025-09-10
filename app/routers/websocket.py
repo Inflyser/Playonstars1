@@ -74,3 +74,28 @@ async def websocket_user(websocket: WebSocket, user_id: int, db: Session = Depen
             # Персональные сообщения для пользователя
     except WebSocketDisconnect:
         websocket_manager.disconnect(websocket, f"user_{user_id}")
+        
+@router.websocket("/ws/crash")
+async def websocket_crash(websocket: WebSocket, db: Session = Depends(get_db)):
+    await websocket_manager.connect_crash_game(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            try:
+                message = json.loads(data)
+                
+                if message.get("type") == "place_bet":
+                    print("🎯 Processing bet placement")
+                    await websocket_manager.handle_crash_bet(websocket, message)
+                    
+                elif message.get("type") == "ping":
+                    await websocket.send_json({
+                        "type": "pong",
+                        "timestamp": message.get("timestamp")
+                    })
+                    
+            except json.JSONDecodeError as e:
+                print(f"❌ JSON decode error: {e}")
+                
+    except WebSocketDisconnect:
+        websocket_manager.disconnect_crash_game(websocket)

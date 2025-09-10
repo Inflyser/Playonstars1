@@ -48,6 +48,9 @@ class CrashGame:
             
     async def run_game_cycle(self):
         """Запуск цикла игры с учетом настроек"""
+        if self.is_playing:
+            return  # Не запускаем новую игру, если текущая еще идет
+        
         # Загружаем актуальные настройки
         db = SessionLocal()
         self.load_settings(db)
@@ -57,48 +60,26 @@ class CrashGame:
         self.is_playing = True
         self.bets.clear()
         
-        # Фаза приема ставок
-        await self.ws_manager.send_crash_update({
-            "game_id": self.game_id,
-            "phase": "betting",
-            "time_remaining": 15,
-            "multiplier": 1.0,
-            "settings": {
-                "rtp": self.settings.crash_rtp if self.settings else 0.95,
-                "min_multiplier": self.settings.crash_min_multiplier if self.settings else 1.1,
-                "max_multiplier": self.settings.crash_max_multiplier if self.settings else 100.0
-            }
-        })
+        print(f"🎮 Starting crash game #{self.game_id}")
         
-        # Ожидание приема ставок (15 секунд)
-        for i in range(15, 0, -1):
-            await asyncio.sleep(1)
-            if not self.is_playing:
-                return
-            await self.ws_manager.send_crash_update({
-                "game_id": self.game_id,
-                "phase": "betting", 
-                "time_remaining": i,
-                "multiplier": 1.0
-            })
-
-        # Генерируем множитель
-        multiplier = self.generate_multiplier()
-        
-        # Фаза полета
-        current_multiplier = 1.0
-        step = 0.01
-        
-        while current_multiplier < multiplier and self.is_playing:
-            await asyncio.sleep(0.1)
-            current_multiplier += step
-            current_multiplier = round(current_multiplier, 2)
+        try:
+            # Фаза приема ставок (15 секунд)
+            for i in range(15, 0, -1):
+                await self.ws_manager.send_crash_update({
+                    "game_id": self.game_id,
+                    "phase": "betting",
+                    "time_remaining": i,
+                    "multiplier": 1.0
+                })
+                await asyncio.sleep(1)
             
-            # Увеличиваем шаг для больших множителей
-            if current_multiplier > 5:
-                step = 0.05
-            elif current_multiplier > 2:
-                step = 0.02
+            # Генерируем множитель
+            multiplier = self.generate_multiplier()
+            print(f"🎯 Generated multiplier: {multiplier}x")
+            
+            # Фаза полета
+            current_multiplier = 1.0
+            step = 0.01
             
             await self.ws_manager.send_crash_update({
                 "game_id": self.game_id,
@@ -106,19 +87,43 @@ class CrashGame:
                 "multiplier": current_multiplier,
                 "time_remaining": 0
             })
-
-        # Крах - игра окончена
-        self.is_playing = False
-        
-        # Сохраняем результаты
-        await self.save_game_results(multiplier)
-        
-        await self.ws_manager.send_crash_result({
-            "game_id": self.game_id,
-            "final_multiplier": multiplier,
-            "crashed_at": multiplier,
-            "timestamp": datetime.now().isoformat()
-        })
+            
+            while current_multiplier < multiplier and self.is_playing:
+                await asyncio.sleep(0.1)
+                current_multiplier += step
+                current_multiplier = round(current_multiplier, 2)
+                
+                # Увеличиваем шаг для больших множителей
+                if current_multiplier > 5:
+                    step = 0.05
+                elif current_multiplier > 2:
+                    step = 0.02
+                
+                await self.ws_manager.send_crash_update({
+                    "game_id": self.game_id,
+                    "phase": "flying",
+                    "multiplier": current_multiplier,
+                    "time_remaining": 0
+                })
+            
+            # Крах - игра окончена
+            self.is_playing = False
+            
+            # Сохраняем результаты
+            await self.save_game_results(multiplier)
+            
+            await self.ws_manager.send_crash_result({
+                "game_id": self.game_id,
+                "final_multiplier": multiplier,
+                "crashed_at": multiplier,
+                "timestamp": datetime.now().isoformat()
+            })
+            
+            print(f"💥 Game #{self.game_id} crashed at {multiplier}x")
+            
+        except Exception as e:
+            print(f"❌ Error in game cycle: {e}")
+            self.is_playing = False
 
     async def save_game_results(self, final_multiplier: float):
         """Сохраняем результаты игры в базу данных"""
