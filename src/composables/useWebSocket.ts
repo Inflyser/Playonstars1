@@ -6,11 +6,14 @@ import { useGameStore } from '@/stores/useGameStore'
 interface WebSocketCallbacks {
   onNewBet?: (betData: any) => void
   onBetHistory?: (historyData: any[]) => void
+  onCrashUpdate?: (data: any) => void
+  onCrashResult?: (data: any) => void
+  onBalanceUpdate?: (balance: any) => void
 }
 
 export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
     const socket = ref<WebSocket | null>(null)
-    const crashSocket = ref<WebSocket | null>(null) // ✅ Отдельный сокет для краш-игры
+    const crashSocket = ref<WebSocket | null>(null)
     const isConnected = ref(false)
     const isCrashConnected = ref(false)
     const reconnectAttempts = ref(0)
@@ -30,13 +33,11 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
         return `${protocol}//${host}/ws`;
     };
 
-    // ✅ ОБЩЕЕ ПОДКЛЮЧЕНИЕ
     const connect = (url?: string): Promise<boolean> => {
         const targetUrl = url || getWebSocketUrl()
         return connectToUrl(targetUrl, 'general')
     }
 
-    // ✅ ПОДКЛЮЧЕНИЕ К КРАШ-ИГРЕ
     const connectToCrashGame = async (): Promise<boolean> => {
         const baseUrl = getWebSocketUrl()
         const url = baseUrl.endsWith('/') ? `${baseUrl}crash` : `${baseUrl}/crash`
@@ -61,7 +62,6 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
                     
                     reconnectAttempts.value = 0
                     
-                    // Запускаем ping только для общего соединения
                     if (socketType === 'general' && !pingInterval) {
                         pingInterval = window.setInterval(() => {
                             if (ws.readyState === WebSocket.OPEN) {
@@ -98,6 +98,15 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
                     
                     if (socketType === 'general') {
                         attemptReconnect()
+                    } else {
+                        // Автопереподключение для crash игры
+                        setTimeout(() => {
+                            if (reconnectAttempts.value < maxReconnectAttempts) {
+                                reconnectAttempts.value++
+                                console.log(`🔄 Reconnecting to crash game (attempt ${reconnectAttempts.value})`)
+                                connectToCrashGame().catch(console.error)
+                            }
+                        }, 2000)
                     }
                 }
 
@@ -113,50 +122,69 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
     }
 
     const handleWebSocketMessage = (data: any, socketType: string) => {
+        console.log(`📨 [WebSocket ${socketType}] Received:`, data)
+        
         const userStore = useUserStore();
         const gameStore = useGameStore();
 
         switch (data.type) {
             case 'crash_update':
-                gameStore.setCrashGameState({
-                    ...data.data,
-                    players: data.data.players || [],
-                    bets: data.data.bets || []
-                });
+                console.log('🎮 Crash update:', data.data)
+                if (callbacks.onCrashUpdate) {
+                    callbacks.onCrashUpdate(data.data)
+                } else {
+                    // Fallback: обновляем хранилище напрямую
+                    gameStore.setCrashGameState({
+                        ...data.data,
+                        players: data.data.players || [],
+                        bets: data.data.bets || []
+                    })
+                }
                 break;
 
             case 'crash_result':
-                gameStore.processCrashResult(data.data);
-                // Обновляем баланс после завершения игры
-                setTimeout(() => {
-                    userStore.fetchBalance();
-                }, 2000);
+                console.log('💥 Crash result:', data.data)
+                if (callbacks.onCrashResult) {
+                    callbacks.onCrashResult(data.data)
+                } else {
+                    gameStore.processCrashResult(data.data)
+                    setTimeout(() => {
+                        userStore.fetchBalance();
+                    }, 2000)
+                }
                 break;
 
             case 'balance_update':
-                userStore.setBalance(data.balance);
+                console.log('💰 Balance update:', data.balance)
+                if (callbacks.onBalanceUpdate) {
+                    callbacks.onBalanceUpdate(data.balance)
+                } else {
+                    userStore.setBalance(data.balance)
+                }
                 break;
 
             case 'new_bet':
+                console.log('🎯 New bet:', data.data)
                 if (callbacks.onNewBet) {
-                    callbacks.onNewBet(data.data);
+                    callbacks.onNewBet(data.data)
                 }
                 break;
 
             case 'bet_history':
+                console.log('📊 Bet history:', data.data)
                 if (callbacks.onBetHistory) {
-                    callbacks.onBetHistory(data.data);
+                    callbacks.onBetHistory(data.data)
                 }
                 break;
 
             case 'pong':
-                // Обработка pong ответа
+                console.log('🏓 Pong received')
                 break;
 
             default:
-                console.log('Unknown WebSocket message type:', data.type);
+                console.log('❓ Unknown message type:', data.type, data)
         }
-    };
+    }
 
     const attemptReconnect = () => {
         if (reconnectAttempts.value < maxReconnectAttempts) {
@@ -189,24 +217,27 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
     }
 
     const send = (data: any, socketType: 'general' | 'crash' = 'general') => {
-        const targetSocket = socketType === 'general' ? socket.value : crashSocket.value;
-        const isTargetConnected = socketType === 'general' ? isConnected.value : isCrashConnected.value;
+        const targetSocket = socketType === 'general' ? socket.value : crashSocket.value
+        const isTargetConnected = socketType === 'general' ? isConnected.value : isCrashConnected.value
         
         if (targetSocket && isTargetConnected && targetSocket.readyState === WebSocket.OPEN) {
             targetSocket.send(JSON.stringify(data))
+            console.log('📤 Sent:', data)
             return true
         }
+        
+        console.warn('❌ Cannot send - WebSocket not connected')
         return false
     }
     
     const placeCrashBet = (amount: number, autoCashout?: number) => {
         try {
-            const userStore = useUserStore();
-            const userId = userStore.user?.id;
+            const userStore = useUserStore()
+            const userId = userStore.user?.id
             
             if (!userId) {
-                console.error("❌ User ID not available");
-                return false;
+                console.error("❌ User ID not available")
+                return false
             }
             
             const betData = {
@@ -215,16 +246,16 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
                 amount: amount,
                 auto_cashout: autoCashout,
                 currency: "stars"
-            };
+            }
             
-            console.log("🎯 Sending crash bet:", betData);
-            return send(betData, 'crash');
+            console.log("🎯 Sending crash bet:", betData)
+            return send(betData, 'crash')
             
         } catch (error) {
-            console.error("❌ Failed to send crash bet:", error);
-            return false;
+            console.error("❌ Failed to send crash bet:", error)
+            return false
         }
-    };
+    }
 
     const cashOut = () => {
         return send({
@@ -240,7 +271,6 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
         }, 'crash')
     }
 
-    // ✅ Функция для периодического опроса (fallback)
     const startPolling = (interval: number = 5000) => {
         console.log('🔄 Starting polling as WebSocket fallback')
         
