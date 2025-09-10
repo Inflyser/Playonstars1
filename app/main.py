@@ -59,11 +59,15 @@ app.add_middleware(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-    "https://playonstars.netlify.app",  # Ваш фронтенд1
-    "https://web.telegram.org",          # Telegram Web
-    "https://telegram.org",              # Telegram
+    "https://playonstars.netlify.app",
+    "https://web.telegram.org",
+    "https://telegram.org", 
     "http://localhost:5173",
-    "ws://localhost:5173",# Локальная разработка
+    "ws://localhost:5173",
+    "https://tonconnect.io",
+    "https://bridge.tonapi.io",
+    "https://playonstars.onrender.com",  # ✅ ваш домен
+    "wss://playonstars.onrender.com",   # ✅ WebSocket
     "https://tonconnect.io",  # ✅ Добавьте это
     "https://bridge.tonapi.io",  # ✅ И это
     os.getenv("FRONTEND_URL", "https://playonstars.netlify.app")
@@ -71,6 +75,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_websocket_connections=True  # ✅ ВАЖНО для WebSocket
 )
 
 # Создайте экземпляр игры с передачей websocket_manager

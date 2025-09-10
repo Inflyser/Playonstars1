@@ -9,12 +9,45 @@ from starlette.websockets import WebSocketState
 
 logger = logging.getLogger(__name__)
 
+def check_websocket_origin(websocket: WebSocket) -> bool:
+    """Проверяет разрешен ли origin для WebSocket соединения"""
+    allowed_origins = [
+        "https://playonstars.netlify.app",
+        "https://web.telegram.org", 
+        "https://telegram.org",
+        "http://localhost:5173",
+        "ws://localhost:5173",
+        "https://tonconnect.io",
+        "https://bridge.tonapi.io",
+        "https://playonstars.onrender.com",
+        "wss://playonstars.onrender.com",
+        # Добавьте другие разрешенные origin
+        "https://yourdomain.com",
+        "wss://yourdomain.com",
+    ]
+    
+    origin = websocket.headers.get("origin")
+    if not origin:
+        # Если origin не указан, разрешаем (может быть из приложений)
+        return True
+    
+    # Проверяем совпадение с разрешенными origin
+    for allowed in allowed_origins:
+        if origin.startswith(allowed):
+            return True
+    
+    logger.warning(f"❌ Origin not allowed: {origin}")
+    return False
+
 class WebSocketManager:
     def __init__(self):
         self.active_connections: Dict[str, Set[WebSocket]] = {}
         self.crash_game_connections: Set[WebSocket] = set()
         self.connection_timestamps: Dict[WebSocket, float] = {}  # ✅ Таймстампы соединений
         self.crash_game = None  # ✅ Будет установлен извне
+        
+        
+    
         
             
     async def _broadcast_to_crash_game(self, message: str):
@@ -27,25 +60,15 @@ class WebSocketManager:
         self.crash_game = crash_game
 
     async def connect(self, websocket: WebSocket, channel: str = "general"):
-        await websocket.accept()
-        
+        # УБЕРИТЕ эту строку: await websocket.accept()
+
         if channel not in self.active_connections:
             self.active_connections[channel] = set()
-        
+
         self.active_connections[channel].add(websocket)
         self.connection_timestamps[websocket] = time.time()
         logger.info(f"Client connected to channel '{channel}'. Total: {len(self.active_connections[channel])}")
 
-    def disconnect(self, websocket: WebSocket, channel: str = "general"):
-        if channel in self.active_connections:
-            self.active_connections[channel].discard(websocket)
-            if not self.active_connections[channel]:
-                del self.active_connections[channel]
-        
-        if websocket in self.connection_timestamps:
-            del self.connection_timestamps[websocket]
-        
-        logger.info(f"Client disconnected from channel '{channel}'")
 
     async def send_personal_message(self, message: dict, websocket: WebSocket):
         try:
@@ -170,14 +193,7 @@ class WebSocketManager:
             return False
 
     async def connect_crash_game(self, websocket: WebSocket):
-        try:
-            # Проверяем, не принято ли уже соединение
-            if websocket.client_state != WebSocketState.CONNECTED:
-                await websocket.accept()
-        except RuntimeError as e:
-            # Игнорируем ошибку, если соединение уже принято
-            if "accepted" not in str(e).lower():
-                raise e
+        # УБЕРИТЕ эту строку: await websocket.accept()
 
         # ✅ Очищаем мертвые соединения перед добавлением
         await self.clean_dead_connections()
@@ -188,12 +204,23 @@ class WebSocketManager:
         logger.info(f"✅ Client connected to crash game. Total: {len(self.crash_game_connections)}")
         print(f"📊 Active connections: {[id(ws) for ws in self.crash_game_connections]}")
 
+    def disconnect(self, websocket: WebSocket, channel: str = "general"):
+        if channel in self.active_connections:
+            self.active_connections[channel].discard(websocket)
+            if not self.active_connections[channel]:
+                del self.active_connections[channel]
+
+        if websocket in self.connection_timestamps:
+            del self.connection_timestamps[websocket]
+
+        logger.info(f"Client disconnected from channel '{channel}'")
+
     def disconnect_crash_game(self, websocket: WebSocket):
         if websocket in self.crash_game_connections:
             self.crash_game_connections.discard(websocket)
         if websocket in self.connection_timestamps:
             del self.connection_timestamps[websocket]
-        
+
         logger.info(f"🔌 Client disconnected from crash game. Total: {len(self.crash_game_connections)}")
 
     async def broadcast_crash_game(self, message: dict):

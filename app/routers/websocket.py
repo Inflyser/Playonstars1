@@ -5,14 +5,50 @@ from sqlalchemy.orm import Session
 import json
 import logging
 
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+def check_websocket_origin(websocket: WebSocket) -> bool:
+    """Проверяет разрешен ли origin для WebSocket соединения"""
+    allowed_origins = [
+        "https://playonstars.netlify.app",
+        "https://web.telegram.org", 
+        "https://telegram.org",
+        "http://localhost:5173",
+        "ws://localhost:5173",
+        "https://tonconnect.io",
+        "https://bridge.tonapi.io",
+        "https://playonstars.onrender.com",
+        "wss://playonstars.onrender.com",
+        # Добавьте другие разрешенные origin
+        "https://yourdomain.com",
+        "wss://yourdomain.com",
+    ]
+    
+    origin = websocket.headers.get("origin")
+    if not origin:
+        # Если origin не указан, разрешаем (может быть из приложений)
+        return True
+    
+    # Проверяем совпадение с разрешенными origin
+    for allowed in allowed_origins:
+        if origin.startswith(allowed):
+            return True
+    
+    logger.warning(f"❌ Origin not allowed: {origin}")
+    return False
 
 @router.websocket("/ws")
 async def websocket_root(websocket: WebSocket, db: Session = Depends(get_db)):
     """Корневой WebSocket endpoint для обратной совместимости"""
-    await websocket.accept()
+    # ✅ ПРОВЕРКА ORIGIN ПЕРЕД ПРИНЯТИЕМ
+    if not check_websocket_origin(websocket):
+        logger.warning(f"❌ WebSocket connection rejected from origin: {websocket.headers.get('origin')}")
+        await websocket.close(code=1008)  # Policy Violation
+        return
+    
+    await websocket.accept()  # ✅ ТОЛЬКО ЗДЕСЬ вызываем accept()
     await websocket_manager.connect(websocket, "general")
     
     try:
@@ -38,12 +74,16 @@ async def websocket_root(websocket: WebSocket, db: Session = Depends(get_db)):
         logger.error(f"❌ Root WebSocket error: {e}")
         websocket_manager.disconnect(websocket, "general")
 
-
-
 @router.websocket("/ws/general")
 async def websocket_general(websocket: WebSocket, db: Session = Depends(get_db)):
     """Общее WebSocket подключение для всех клиентов"""
-    await websocket.accept()
+    # ✅ ПРОВЕРКА ORIGIN
+    if not check_websocket_origin(websocket):
+        logger.warning(f"❌ WebSocket connection rejected from origin: {websocket.headers.get('origin')}")
+        await websocket.close(code=1008)
+        return
+    
+    await websocket.accept()  # ✅ ТОЛЬКО ЗДЕСЬ
     await websocket_manager.connect(websocket, "general")
     
     try:
@@ -72,7 +112,13 @@ async def websocket_general(websocket: WebSocket, db: Session = Depends(get_db))
 @router.websocket("/ws/crash")
 async def websocket_crash(websocket: WebSocket, db: Session = Depends(get_db)):
     """WebSocket endpoint specifically for crash game"""
-    await websocket.accept()
+    # ✅ ПРОВЕРКА ORIGIN
+    if not check_websocket_origin(websocket):
+        logger.warning(f"❌ Crash WebSocket connection rejected from origin: {websocket.headers.get('origin')}")
+        await websocket.close(code=1008)
+        return
+    
+    await websocket.accept()  # ✅ ТОЛЬКО ЗДЕСЬ
     await websocket_manager.connect_crash_game(websocket)
     
     try:
@@ -88,7 +134,6 @@ async def websocket_crash(websocket: WebSocket, db: Session = Depends(get_db)):
                     
                 elif message.get("type") == "cash_out":
                     logger.info("💵 Processing cash out")
-                    # Добавьте обработку cash_out
                     user_id = message.get("user_id")
                     if user_id:
                         await websocket_manager.cash_out(user_id)
