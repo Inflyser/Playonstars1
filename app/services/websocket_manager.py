@@ -82,6 +82,91 @@ class WebSocketManager:
             # Удаляем отключенные соединения
             for websocket in disconnected:
                 self.disconnect(websocket, channel)
+    
+    async def handle_crash_bet(self, websocket: WebSocket, data: dict):
+        """Обработка ставок в краш-игре"""
+        try:
+            print(f"🎯 [WebSocket] Received bet data: {data}")
+            
+            user_id = data.get("user_id")
+            amount = data.get("amount")
+            auto_cashout = data.get("auto_cashout")
+            
+            if not all([user_id, amount]):
+                print("❌ [WebSocket] Missing required fields")
+                await self.send_personal_message({
+                    "type": "bet_placed",
+                    "status": "error",
+                    "message": "Missing required fields"
+                }, websocket)
+                return
+            
+            if not self.crash_game:
+                print("❌ [WebSocket] Crash game not initialized")
+                await self.send_personal_message({
+                    "type": "bet_placed",
+                    "status": "error", 
+                    "message": "Game not ready"
+                }, websocket)
+                return
+            
+            # ✅ Сохраняем ставку в БД
+            print(f"🎯 [WebSocket] Calling place_bet for user {user_id}, amount {amount}")
+            success = await self.crash_game.place_bet(int(user_id), float(amount), auto_cashout)
+            
+            if success:
+                print(f"✅ [WebSocket] Bet successfully processed for user {user_id}")
+                await self.send_personal_message({
+                    "type": "bet_placed",
+                    "status": "success",
+                    "amount": amount
+                }, websocket)
+                
+                # ✅ Рассылаем обновление о новой ставке всем
+                await self.broadcast_crash_game({
+                    "type": "new_bet",
+                    "data": {
+                        "user_id": user_id,
+                        "amount": amount,
+                        "timestamp": datetime.now().isoformat()
+                    }
+                })
+            else:
+                print(f"❌ [WebSocket] Failed to process bet for user {user_id}")
+                await self.send_personal_message({
+                    "type": "bet_placed", 
+                    "status": "error",
+                    "message": "Failed to place bet"
+                }, websocket)
+                
+        except Exception as e:
+            print(f"❌ [WebSocket] Error handling bet: {e}")
+            await self.send_personal_message({
+                "type": "bet_placed",
+                "status": "error", 
+                "message": str(e)
+            }, websocket)
+    
+    async def cash_out(self, user_id: int):
+        """Обработка вывода средств"""
+        try:
+            if not self.crash_game:
+                return False
+            
+            success = await self.crash_game.cash_out(user_id)
+            if success:
+                await self.broadcast_crash_game({
+                    "type": "cash_out",
+                    "data": {
+                        "user_id": user_id,
+                        "timestamp": datetime.now().isoformat()
+                    }
+                })
+            return success
+            
+        except Exception as e:
+            print(f"❌ [WebSocket] Error handling cash out: {e}")
+            return False
 
     # Специальные методы для краш-игры
     async def connect_crash_game(self, websocket: WebSocket):
