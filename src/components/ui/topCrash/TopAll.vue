@@ -3,7 +3,7 @@
     <div class="history-header">
       <h4 style="color: #F0F0F080;">Всего ставок: {{ betHistory.length }}</h4>
       <button @click="refreshHistory" class="refresh-btn">
-        <img src="@/assets/images/refresh-small.svg" alt="Refresh">
+        <img src="@/assets/images/reload.svg" alt="Refresh">
       </button>
     </div>
     
@@ -449,6 +449,8 @@ onMounted(async () => {
 
 .bet-item-vertical.lost:hover {
   background: #24153F;
+  border: 1px solid #25213C;
+  
 }
 
 .bet-item-vertical.pending:hover {
