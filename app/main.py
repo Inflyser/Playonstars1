@@ -82,7 +82,7 @@ asyncio.create_task(websocket_manager.check_connection_health())
 
 dp.include_router(telegram_router)
 app.include_router(wallet.router, prefix="/api")
-app.include_router(stars.router, prefix="/api")
+app.include_router(stars.router, prefix="/api/stars") 
 app.include_router(websocket.router)
 
 # ----------------------------- ЗАПУСК -------------------------------------

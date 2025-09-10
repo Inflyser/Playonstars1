@@ -204,3 +204,157 @@ async def stars_successful_payment_handler(message: Message):
     """Обработка успешного платежа"""
     payment_info = message.successful_payment
     await message.answer(f"✅ Успешно пополнено {payment_info.total_amount / 100} STARS!")
+    
+    
+from aiogram.types import LabeledPrice, PreCheckoutQuery, SuccessfulPayment
+from aiogram.filters import Command
+from decimal import Decimal
+import logging
+
+logger = logging.getLogger(__name__)
+
+@router.message(Command("buy_stars"))
+async def cmd_buy_stars(message: Message, db: Session = Depends(get_db)):
+    """Команда для покупки Stars"""
+    try:
+        # Получаем пользователя
+        user = get_user(db, message.from_user.id)
+        if not user:
+            await message.answer("❌ Пользователь не найден")
+            return
+
+        # Создаем инвойс для покупки 100 Stars (10.00 USD эквивалент)
+        prices = [LabeledPrice(label="100 STARS", amount=10000)]  # 10000 = 100.00 Stars
+        
+        await message.answer_invoice(
+            title="Пополнение STARS",
+            description="Пополнение баланса STARS для игр в PlayOnStars",
+            provider_token="",  # ✅ ДЛЯ STARS ОСТАВЛЯЕМ ПУСТЫМ!
+            currency="XTR",     # ✅ ВАЛЮТА TELEGRAM STARS
+            prices=prices,
+            payload=f"stars_deposit:{message.from_user.id}:100",  # user_id:amount
+            start_parameter="stars_payment",
+            need_name=False,
+            need_phone_number=False,
+            need_email=False,
+            need_shipping_address=False,
+            is_flexible=False,
+            max_tip_amount=0
+        )
+        
+    except Exception as e:
+        logger.error(f"Error creating stars invoice: {e}")
+        await message.answer("❌ Ошибка при создании платежа")
+
+@router.pre_checkout_query()
+async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery, db: Session = Depends(get_db)):
+    """Обработка предварительной проверки платежа"""
+    try:
+        # ✅ ВСЕГДА ПОДТВЕРЖДАЕМ ДЛЯ STARS
+        await pre_checkout_query.answer(ok=True)
+        
+        logger.info(f"Pre-checkout approved for {pre_checkout_query.from_user.id}")
+        
+    except Exception as e:
+        logger.error(f"Pre-checkout error: {e}")
+        await pre_checkout_query.answer(ok=False, error_message="Payment error")
+
+@router.message(lambda message: message.successful_payment is not None)
+async def successful_payment_handler(message: Message, db: Session = Depends(get_db)):
+    """Обработка УСПЕШНОГО платежа - ТОЛЬКО ЗДЕСЬ зачисляем средства!"""
+    try:
+        payment: SuccessfulPayment = message.successful_payment
+        user_id = message.from_user.id
+        
+        logger.info(f"Successful payment: {payment.to_python()}")
+        
+        # ✅ Парсим payload для получения данных
+        payload_parts = payment.invoice_payload.split(':')
+        if len(payload_parts) != 3 or payload_parts[0] != 'stars_deposit':
+            logger.error(f"Invalid payload format: {payment.invoice_payload}")
+            await message.answer("❌ Ошибка обработки платежа")
+            return
+        
+        target_user_id = int(payload_parts[1])
+        stars_amount = int(payload_parts[2])
+        
+        # ✅ Проверяем что платеж именно в Stars
+        if payment.currency != 'XTR':
+            logger.error(f"Invalid currency: {payment.currency}")
+            await message.answer("❌ Неверная валюта платежа")
+            return
+        
+        # ✅ Проверяем что пользователь совпадает
+        if user_id != target_user_id:
+            logger.error(f"User mismatch: {user_id} != {target_user_id}")
+            await message.answer("❌ Ошибка безопасности платежа")
+            return
+        
+        # ✅ ПРОВЕРЯЕМ НЕ ОБРАБАТЫВАЛИ ЛИ УЖЕ ЭТОТ ПЛАТЕЖ
+        payment_id = payment.telegram_payment_charge_id
+        
+        user = get_user(db, user_id)
+        if not user:
+            await message.answer("❌ Пользователь не найден")
+            return
+        
+        # Проверка на дубликат платежа
+        if user.stars_payment_ids and payment_id in user.stars_payment_ids:
+            logger.warning(f"Duplicate payment detected: {payment_id}")
+            await message.answer("⚠️ Этот платеж уже был обработан ранее")
+            return
+        
+        # ✅ ЗАЧИСЛЯЕМ СРЕДСТВА НА БАЛАНС
+        user.stars_balance += stars_amount
+        
+        # ✅ СОХРАНЯЕМ ID ПЛАТЕЖА ДЛЯ ПРЕДОТВРАЩЕНИЯ ДУБЛИКАТОВ
+        if user.stars_payment_ids is None:
+            user.stars_payment_ids = []
+        user.stars_payment_ids.append(payment_id)
+        
+        db.commit()
+        
+        logger.info(f"Added {stars_amount} STARS to user {user_id}. New balance: {user.stars_balance}")
+        
+        # ✅ ОТПРАВЛЯЕМ ПОДТВЕРЖДЕНИЕ ПОЛЬЗОВАТЕЛЮ
+        await message.answer(
+            f"✅ Успешно пополнено {stars_amount} STARS!\n"
+            f"💫 Новый баланс: {user.stars_balance} STARS\n\n"
+            f"Спасибо за покупку! 🎮"
+        )
+        
+        # ✅ ОТПРАВЛЯЕМ УВЕДОМЛЕНИЕ Через WEBSOCKET (если пользователь в веб-апп)
+        try:
+            from app.services.websocket_manager import websocket_manager
+            await websocket_manager.send_to_user(
+                f"user_{user_id}",
+                {
+                    "type": "balance_update",
+                    "currency": "stars",
+                    "new_balance": user.stars_balance,
+                    "amount_added": stars_amount
+                }
+            )
+        except Exception as ws_error:
+            logger.warning(f"WebSocket notification failed: {ws_error}")
+        
+    except Exception as e:
+        logger.error(f"Error processing successful payment: {e}")
+        await message.answer("❌ Ошибка при обработке платежа")
+
+# Добавляем команду для проверки баланса
+@router.message(Command("balance"))
+async def cmd_balance(message: Message, db: Session = Depends(get_db)):
+    """Проверка баланса пользователя"""
+    user = get_user(db, message.from_user.id)
+    if not user:
+        await message.answer("❌ Пользователь не найден")
+        return
+    
+    await message.answer(
+        f"💰 Ваш баланс:\n"
+        f"⭐ STARS: {user.stars_balance}\n"
+        f"💎 TON: {user.ton_balance}\n\n"
+        f"Для пополнения STARS используйте /buy_stars"
+    )
+    
