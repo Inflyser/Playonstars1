@@ -7,40 +7,41 @@
       </button>
     </div>
     
-    <div class="bets-list" ref="betsList">
+    <div class="bets-list-vertical" ref="betsList">
       <div 
         v-for="bet in betHistory" 
         :key="bet.id"
-        class="bet-item"
+        class="bet-item-vertical"
         :class="{ 
           won: bet.status === 'won', 
           lost: bet.status === 'lost',
           pending: bet.status === 'pending'
         }"
       >
-        <div class="bet-number">{{ bet.bet_number }}</div>
-        
-        <div class="bet-amount-section">
-          <span class="bet-amount">{{ formatAmount(bet.bet_amount) }}</span>
-          <img src="@/assets/images/coin.svg" class="currency-icon" alt="stars">
+        <div class="bet-info-row">
+          <div class="bet-number">{{ bet.bet_number }}</div>
+          <div class="bet-time">{{ formatTime(bet.created_at) }}</div>
         </div>
         
-        <div class="bet-multiplier-panel">
-          {{ bet.crash_coefficient ? bet.crash_coefficient.toFixed(2) + 'x' : 'x' }}
+        <div class="bet-details-row">
+          <div class="bet-amount-section">
+            <span class="bet-amount">{{ formatAmount(bet.bet_amount) }}</span>
+            <img src="@/assets/images/coin.svg" class="currency-icon" alt="stars">
+          </div>
+          
+          <div class="bet-multiplier-panel">
+            {{ bet.crash_coefficient ? bet.crash_coefficient.toFixed(2) + 'x' : 'x' }}
+          </div>
+          
+          <div class="bet-profit-section" :class="{ 
+            profit: bet.win_amount > 0, 
+            loss: bet.win_amount <= 0 
+          }">
+            <span class="bet-profit">{{ formatProfit(bet.win_amount) }}</span>
+            <img src="@/assets/images/coin.svg" class="currency-icon" alt="stars">
+          </div>
         </div>
-        
-        <div class="bet-profit-section" :class="{ 
-          profit: bet.win_amount > 0, 
-          loss: bet.win_amount <= 0 
-        }">
-          <span class="bet-profit">{{ formatProfit(bet.win_amount) }}</span>
-          <img src="@/assets/images/coin.svg" class="currency-icon" alt="stars">
-        </div>
-        
-        <div class="bet-time">{{ formatTime(bet.created_at) }}</div>
       </div>
-      
-      <!-- Остальной код без изменений -->
     </div>
   </div>
 </template>
@@ -122,7 +123,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* Стили остаются такими же как в предыдущем примере */
 .top-all-container {
   border-radius: 16px;
   padding: 16px;
@@ -138,13 +138,6 @@ onMounted(async () => {
   margin-bottom: 16px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.history-header h3 {
-  margin: 0;
-  color: #ffffff;
-  font-size: 1.1em;
-  font-weight: 600;
 }
 
 .refresh-btn {
@@ -166,68 +159,75 @@ onMounted(async () => {
   filter: brightness(0.8);
 }
 
-.bets-list {
+.bets-list-vertical {
   max-height: 320px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
 }
 
-.bets-list::-webkit-scrollbar {
+.bets-list-vertical::-webkit-scrollbar {
   width: 4px;
 }
 
-.bets-list::-webkit-scrollbar-track {
+.bets-list-vertical::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.bets-list::-webkit-scrollbar-thumb {
+.bets-list-vertical::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.3);
   border-radius: 2px;
 }
 
-/* ОСНОВНОЙ СТИЛЬ ПАНЕЛЕК */
-.bet-item {
-  display: grid;
-  grid-template-columns: 45px 1fr 70px 90px 55px;
-  gap: 10px;
-  align-items: center;
-  padding: 8px 12px;
-  margin-bottom: 6px;
+/* ВЕРТИКАЛЬНЫЙ СТИЛЬ ДЛЯ СТАВОК */
+.bet-item-vertical {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  margin-bottom: 8px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
   transition: all 0.2s ease;
-  border: none; /* Убираем бордер */
   border: 1px solid #6C4DB1;
 }
 
-/* СТИЛЬ ДЛЯ ВЫИГРЫШНОЙ СТАВКИ */
-.bet-item.won {
-  background: #534081B2; /* Фиолетовый с прозрачностью */
+.bet-item-vertical.won {
+  background: #534081B2;
 }
 
-/* СТИЛЬ ДЛЯ ПРОИГРЫШНОЙ СТАВКИ */
-.bet-item.lost {
-  background: #1D1131; /* Темно-фиолетовый */
+.bet-item-vertical.lost {
+  background: #1D1131;
 }
 
-/* СТИЛЬ ДЛЯ СТАВКИ В ПРОЦЕССЕ */
+.bet-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
 
-
-/* НОМЕР СТАВКИ */
 .bet-number {
   font-size: 14px;
   font-weight: 600;
   color: #ffffff;
-  text-align: center;
 }
 
-/* СЕКЦИЯ С СУММОЙ СТАВКИ */
+.bet-time {
+  font-size: 11px;
+  color: #a0a0b0;
+  opacity: 0.8;
+}
+
+.bet-details-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .bet-amount-section {
   display: flex;
   align-items: center;
   gap: 4px;
-  justify-content: flex-start;
 }
 
 .bet-amount {
@@ -236,7 +236,6 @@ onMounted(async () => {
   font-size: 13px;
 }
 
-/* ПАНЕЛЬКА КОЭФФИЦИЕНТА */
 .bet-multiplier-panel {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 6px;
@@ -248,12 +247,10 @@ onMounted(async () => {
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-/* СЕКЦИЯ ВЫИГРЫША */
 .bet-profit-section {
   display: flex;
   align-items: center;
   gap: 4px;
-  justify-content: flex-end;
 }
 
 .bet-profit {
@@ -261,7 +258,6 @@ onMounted(async () => {
   font-size: 13px;
 }
 
-/* ИКОНКА ВАЛЮТЫ */
 .currency-icon {
   width: 14px;
   height: 14px;
@@ -269,21 +265,10 @@ onMounted(async () => {
   filter: brightness(0.9);
 }
 
-/* ВРЕМЯ */
-.bet-time {
-  text-align: center;
-  font-size: 11px;
-  color: #a0a0b0;
-  opacity: 0.8;
-}
-
 /* АДАПТИВНОСТЬ */
 @media (max-width: 768px) {
-  .bet-item {
-    grid-template-columns: 40px 1fr 65px 80px 50px;
-    gap: 8px;
-    padding: 8px 10px;
-    font-size: 0.9em;
+  .bet-item-vertical {
+    padding: 10px;
   }
   
   .bet-number {
@@ -311,16 +296,13 @@ onMounted(async () => {
 }
 
 @media (max-width: 480px) {
-  .bet-item {
-    grid-template-columns: 35px 1fr 60px 70px 45px;
-    gap: 6px;
-    padding: 6px 8px;
-    font-size: 0.8em;
-  }
-  
   .top-all-container {
     padding: 12px;
     margin: 12px 0;
+  }
+  
+  .bet-item-vertical {
+    padding: 8px;
   }
   
   .bet-number {
@@ -339,60 +321,16 @@ onMounted(async () => {
 }
 
 /* Анимации */
-.bet-item:hover {
+.bet-item-vertical:hover {
   transform: translateX(2px);
   background: rgba(255, 255, 255, 0.08);
 }
 
-.bet-item.won:hover {
+.bet-item-vertical.won:hover {
   background: #5a4899B2;
 }
 
-.bet-item.lost:hover {
+.bet-item-vertical.lost:hover {
   background: #24153F;
-}
-
-.loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 32px;
-  color: #a0a0b0;
-}
-
-.loader {
-  width: 24px;
-  height: 24px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-top: 2px solid #6366f1;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 12px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48px 24px;
-  color: #a0a0b0;
-  text-align: center;
-}
-
-.empty-state img {
-  width: 64px;
-  height: 64px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 0.9em;
 }
 </style>
