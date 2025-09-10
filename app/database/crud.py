@@ -12,6 +12,30 @@ def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
     """Получаем пользователя по ID"""
     return db.query(User).filter(User.id == user_id).first()
 
+def add_stars_payment_id(db: Session, telegram_id: int, payment_id: str) -> bool:
+    """Добавляем ID платежа в историю пользователя"""
+    user = get_user_by_telegram_id(db, telegram_id)
+    if not user:
+        return False
+    
+    if user.stars_payment_ids is None:
+        user.stars_payment_ids = []
+    
+    # Проверяем не добавляли ли уже этот ID
+    if payment_id not in user.stars_payment_ids:
+        user.stars_payment_ids.append(payment_id)
+        db.commit()
+        return True
+    
+    return False
+
+def has_stars_payment_id(db: Session, telegram_id: int, payment_id: str) -> bool:
+    """Проверяем есть ли уже такой ID платежа"""
+    user = get_user_by_telegram_id(db, telegram_id)
+    if not user or not user.stars_payment_ids:
+        return False
+    
+    return payment_id in user.stars_payment_ids
 def create_user(
     db: Session, 
     telegram_id: int, 
@@ -271,3 +295,29 @@ def get_crash_game_history(db: Session, limit: int = 50):
     ).limit(limit).all()
 
 get_user = get_user_by_telegram_id
+
+
+def add_stars_payment_id(db: Session, telegram_id: int, payment_id: str) -> bool:
+    """Добавляем ID платежа в историю пользователя"""
+    user = get_user_by_telegram_id(db, telegram_id)
+    if not user:
+        return False
+    
+    if user.stars_payment_ids is None:
+        user.stars_payment_ids = []
+    
+    # Проверяем не добавляли ли уже этот ID
+    if payment_id not in user.stars_payment_ids:
+        user.stars_payment_ids.append(payment_id)
+        db.commit()
+        return True
+    
+    return False
+
+def has_stars_payment_id(db: Session, telegram_id: int, payment_id: str) -> bool:
+    """Проверяем есть ли уже такой ID платежа"""
+    user = get_user_by_telegram_id(db, telegram_id)
+    if not user or not user.stars_payment_ids:
+        return False
+    
+    return payment_id in user.stars_payment_ids

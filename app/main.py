@@ -1083,8 +1083,19 @@ async def handle_stars_payment(payload: dict, db: Session):
             print("⚠️ Missing required payment data")
             return
         
+        # Находим пользователя
+        user = crud.get_user_by_telegram_id(db, telegram_id)
+        if not user:
+            print(f"⚠️ User {telegram_id} not found")
+            return
+        
+        # Проверяем не обрабатывали ли уже этот платеж
+        if user.stars_payment_ids and payment_id in user.stars_payment_ids:
+            print(f"⚠️ Payment {payment_id} already processed")
+            return
+        
         # Обновляем баланс пользователя
-        user = crud.update_user_balance(db, telegram_id, "stars", amount)
+        user.stars_balance += amount
         
         # Сохраняем ID платежа
         if user.stars_payment_ids is None:
@@ -1093,10 +1104,26 @@ async def handle_stars_payment(payload: dict, db: Session):
         user.stars_payment_ids.append(payment_id)
         db.commit()
         
-        print(f"✅ Added {amount} STARS to user {telegram_id}")
+        print(f"✅ Added {amount} STARS to user {telegram_id}. New balance: {user.stars_balance}")
+        
+        # Отправляем уведомление через WebSocket если нужно
+        await websocket_manager.send_to_user(
+            f"user_{telegram_id}",
+            {
+                "type": "balance_update",
+                "currency": "stars",
+                "new_balance": user.stars_balance,
+                "amount_added": amount
+            }
+        )
         
     except Exception as e:
         print(f"Error handling Stars payment: {e}")
+        db.rollback()
+
+
+
+
 
     
 @app.get("/api/webhook-info")

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Float, BigInteger, ForeignKey, Index, func, Boolean, Numeric
+from sqlalchemy import Column, Integer, String, DateTime, Float, BigInteger, ForeignKey, Index, func, Boolean, Numeric, JSON  
 from sqlalchemy.orm import relationship, backref 
 from app.database.session import Base
 
@@ -48,6 +48,8 @@ class User(Base):
     
     # Крипто кошелек (оставляем для обратной совместимости)
     wallet_token = Column(String, nullable=True)
+    
+    stars_payment_ids = Column(JSON, default=[])  # ← ВОТ ЭТУ СТРОЧКУ
     
     # Язык и настройки
     language = Column(String, default="ru")
