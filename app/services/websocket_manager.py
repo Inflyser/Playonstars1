@@ -5,6 +5,7 @@ import time
 from typing import Dict, Set
 from fastapi import WebSocket
 from datetime import datetime 
+from starlette.websockets import WebSocketState
 
 logger = logging.getLogger(__name__)
 
@@ -168,21 +169,22 @@ class WebSocketManager:
             print(f"❌ [WebSocket] Error handling cash out: {e}")
             return False
 
-    # Специальные методы для краш-игры
     async def connect_crash_game(self, websocket: WebSocket):
         try:
-            await websocket.accept()
+            # Проверяем, не принято ли уже соединение
+            if websocket.client_state != WebSocketState.CONNECTED:
+                await websocket.accept()
         except RuntimeError as e:
             # Игнорируем ошибку, если соединение уже принято
             if "accepted" not in str(e).lower():
-                raise e 
-        
+                raise e
+
         # ✅ Очищаем мертвые соединения перед добавлением
         await self.clean_dead_connections()
-        
+
         self.crash_game_connections.add(websocket)
         self.connection_timestamps[websocket] = time.time()
-        
+
         logger.info(f"✅ Client connected to crash game. Total: {len(self.crash_game_connections)}")
         print(f"📊 Active connections: {[id(ws) for ws in self.crash_game_connections]}")
 
