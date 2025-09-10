@@ -31,4 +31,8 @@ export const starsService = {
     const response = await api.get(`/stars/payment-status/${paymentId}`)
     return response.data
   }
+
+
+  
 }
+

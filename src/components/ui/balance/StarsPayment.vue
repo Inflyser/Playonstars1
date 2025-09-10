@@ -76,33 +76,20 @@ const initiateTelegramPayment = async () => {
   try {
     const starsAmount = parseFloat(amount.value)
     
-    // Создаем инвойс через бекенд
-    const response = await api.post('/stars/create-invoice', {
-      amount: starsAmount,
-      description: `Пополнение STARS на ${starsAmount}`
-    })
-
-    if (response.data.status === 'success') {
-      // Используем Telegram WebApp для оплаты
-      if (telegramWebApp.value) {
-        telegramWebApp.value.openInvoice(response.data.invoice_id, (status: string) => {
-          if (status === 'paid') {
-            handleSuccessfulPayment(starsAmount)
-          } else if (status === 'failed') {
-            error.value = 'Оплата не удалась'
-          } else if (status === 'cancelled') {
-            // Пользователь отменил оплату
-          }
-        })
-      } else {
-        // Fallback для браузера
-        await handleDirectPayment(starsAmount)
-      }
-    }
+    // Просто вызываем метод - он не возвращает success
+    await userStore.updateBalance('stars', starsAmount, 'add')
+    
+    // Если не было ошибки - значит успешно
+    successMessage.value = `✅ Успешно пополнено ${starsAmount} STARS!`
+    
+    // Возвращаемся назад через 2 секунды
+    setTimeout(() => {
+      router.back()
+    }, 2000)
 
   } catch (err: any) {
     console.error('Payment error:', err)
-    error.value = err.response?.data?.detail || 'Ошибка при создании платежа'
+    error.value = err.response?.data?.detail || 'Ошибка при пополнении баланса'
   } finally {
     isProcessing.value = false
   }
