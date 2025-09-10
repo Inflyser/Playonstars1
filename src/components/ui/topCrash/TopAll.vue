@@ -37,7 +37,7 @@
             profit: bet.win_amount > 0, 
             loss: bet.win_amount <= 0 
           }">
-            <span class="bet-profit">{{ formatProfit(bet.win_amount) }}</span>
+            <span class="bet-profit">{{ formatProfit(bet.win_amount * bet.crash_coefficient.toFixed(2)) }}</span>
             <img src="@/assets/images/coin.svg" class="currency-icon" alt="stars">
           </div>
         </div>
