@@ -76,3 +76,5 @@ async def process_referral(new_user_id: int, referrer_id: int, db: Session):
         print(f"❌ Ошибка обработки реферала: {e}")
         db.rollback()
         return False
+    
+    
