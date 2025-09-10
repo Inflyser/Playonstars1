@@ -27,6 +27,7 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
     except WebSocketDisconnect:
         websocket_manager.disconnect(websocket, "general")
         
+        
 @router.websocket("/ws/general")
 async def websocket_general(websocket: WebSocket, db: Session = Depends(get_db)):
     await websocket_manager.connect(websocket, "general")
@@ -46,24 +47,9 @@ async def websocket_general(websocket: WebSocket, db: Session = Depends(get_db))
                 
     except WebSocketDisconnect:
         websocket_manager.disconnect(websocket, "general")
-
-@router.websocket("/ws/crash")
-async def websocket_crash(websocket: WebSocket, db: Session = Depends(get_db)):
-    await websocket_manager.connect_crash_game(websocket)
-    try:
-        while True:
-            data = await websocket.receive_text()
-            # Обработка ставок в краш-игре
-            try:
-                message = json.loads(data)
-                if message.get("type") == "place_bet":
-                    # Здесь логика обработки ставки
-                    pass
-            except json.JSONDecodeError:
-                pass
-                
-    except WebSocketDisconnect:
-        websocket_manager.disconnect_crash_game(websocket)
+        
+        
+        
 
 @router.websocket("/ws/user/{user_id}")
 async def websocket_user(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
@@ -74,6 +60,9 @@ async def websocket_user(websocket: WebSocket, user_id: int, db: Session = Depen
             # Персональные сообщения для пользователя
     except WebSocketDisconnect:
         websocket_manager.disconnect(websocket, f"user_{user_id}")
+        
+        
+
         
 @router.websocket("/ws/crash")
 async def websocket_crash(websocket: WebSocket, db: Session = Depends(get_db)):
@@ -99,3 +88,17 @@ async def websocket_crash(websocket: WebSocket, db: Session = Depends(get_db)):
                 
     except WebSocketDisconnect:
         websocket_manager.disconnect_crash_game(websocket)
+        
+
+
+
+@router.websocket("/ws/test")
+async def websocket_test():
+    return {
+        "websocket_enabled": True,
+        "crash_connections": len(websocket_manager.crash_game_connections),
+        "allowed_origins": [
+            "https://playonstars.netlify.app",
+            "https://web.telegram.org"
+        ]
+    }

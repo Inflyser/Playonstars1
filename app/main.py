@@ -177,6 +177,9 @@ async def run_crash_game_loop():
             await asyncio.sleep(10)  
 
 
+
+
+
 @app.post("/login")
 async def login_from_webapp(request: Request, data: dict, db: Session = Depends(get_db)):
     try:
@@ -495,74 +498,8 @@ async def websocket_status():
             "wsproto_installed": False,
             "error": "WebSocket libraries not installed"
         }
+        
 
-async def run_crash_game():
-    """Фоновая задача для управления краш-игрой"""
-    while True:
-        try:
-            await crash_game.run_game_cycle()  # ✅ Используем существующий экземпляр
-            # Пауза между играми
-            await asyncio.sleep(5)
-        except Exception as e:
-            print(f"Error in crash game: {e}")
-            await asyncio.sleep(10)
-        
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket_manager.connect(websocket, "general")
-    try:
-        while True:
-            data = await websocket.receive_text()
-            # Обработка сообщений
-            try:
-                message = json.loads(data)
-                if message.get("type") == "ping":
-                    await websocket.send_json({"type": "pong", "timestamp": message.get("timestamp")})
-            except json.JSONDecodeError:
-                pass
-    except WebSocketDisconnect:
-        websocket_manager.disconnect(websocket, "general")
-
-@app.websocket("/ws/crash")
-async def websocket_crash(websocket: WebSocket, db: Session = Depends(get_db)):
-    await websocket_manager.connect_crash_game(websocket)
-    try:
-        while True:
-            data = await websocket.receive_text()
-            print(f"📨 [WebSocket] Received message: {data}")
-            
-            try:
-                message = json.loads(data)
-                print(f"📨 [WebSocket] Parsed message: {message}")
-                
-                if message.get("type") == "place_bet":
-                    print("🎯 [WebSocket] Processing place_bet message")
-                    await websocket_manager.handle_crash_bet(websocket, message)
-                elif message.get("type") == "ping":
-                    # Обрабатываем ping
-                    await websocket.send_json({
-                        "type": "pong",
-                        "timestamp": message.get("timestamp")
-                    })
-                    
-            except json.JSONDecodeError as e:
-                print(f"❌ [WebSocket] JSON decode error: {e}")
-                
-    except WebSocketDisconnect:
-        print("🔌 [WebSocket] Client disconnected from crash game")
-        websocket_manager.disconnect_crash_game(websocket)
-        
-        
-@app.websocket("/ws/user/{user_id}")
-async def websocket_user_endpoint(websocket: WebSocket, user_id: int):
-    await websocket_manager.connect(websocket, f"user_{user_id}")
-    try:
-        while True:
-            data = await websocket.receive_text()
-            # Персональные сообщения для пользователя
-    except WebSocketDisconnect:
-        websocket_manager.disconnect(websocket, f"user_{user_id}")
-    
     
 async def check_deposits_periodically():
     """Периодическая проверка депозитов (fallback)"""
@@ -586,50 +523,7 @@ async def check_deposits_periodically():
             await asyncio.sleep(300)
             
 
-
-@app.websocket("/ws/crash")
-async def websocket_crash_endpoint(websocket: WebSocket):
-    await websocket_manager.connect_crash_game(websocket)
-    try:
-        while True:
-            data = await websocket.receive_text()
-            # Обработка ставок краш-игры
-            try:
-                message = json.loads(data)
-                if message.get("type") == "place_bet":
-                    # Здесь логика обработки ставки
-                    user_id = message.get("user_id")
-                    amount = message.get("amount")
-                    auto_cashout = message.get("auto_cashout")
-                    
-                    # Сохраняем ставку
-                    if user_id and amount:
-                        crash_game.bets[user_id] = {
-                            "amount": amount,
-                            "auto_cashout": auto_cashout,
-                            "placed_at": datetime.now()
-                        }
-                        
-            except json.JSONDecodeError:
-                pass
-    except WebSocketDisconnect:
-        websocket_manager.disconnect_crash_game(websocket)
-
         
-
-
-@app.get("/api/ws/test")
-async def websocket_test():
-    return {
-        "websocket_enabled": True,
-        "crash_connections": len(websocket_manager.crash_game_connections),
-        "allowed_origins": [
-            "https://playonstars.netlify.app",
-            "https://web.telegram.org"
-        ]
-    }
-
-
 
 
 
