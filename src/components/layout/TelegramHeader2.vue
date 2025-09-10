@@ -14,7 +14,7 @@
           </button>
           
           <div v-else class="wallet-address">
-            <span class="connected-badge">✓</span>
+            <span class="connected-badge"></span>
             {{ walletStore.shortAddress }}
           </div>
         </div>
@@ -146,13 +146,13 @@ const connectWallet = async () => {
 .wallet-address {
   margin: 10px 0px 0px 0px;
   padding: 0px 20px;
-  color: #00A6FC;
+  color: #ffffff;
   font-weight: bold;
   font-size: 14px;
   height: 38px;
   display: flex;
   align-items: center;
-  background: rgba(0, 166, 252, 0.1);
+  background: #534081B2;
   border-radius: 25px;
   gap: 8px;
 }
