@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import models
-from app.database.models import User, DepositHistory, CrashBetHistory, Wallet, Transaction, CrashGameResult, GameSettings, AdminSettings
+from app.database.models import User, DepositHistory, CrashBetHistory, Wallet, Transaction, CrashGameResult, GameSettings
 from typing import Optional
 
 def get_user_by_telegram_id(db: Session, telegram_id: int) -> Optional[User]:
