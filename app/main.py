@@ -139,6 +139,18 @@ async def startup():
         print("❌ WebSocket support: wsproto library missing")
         
 
+async def run_crash_game():
+    """Фоновая задача для управления краш-игрой"""
+    while True:
+        try:
+            await crash_game.run_game_cycle()  # ✅ Используем существующий экземпляр
+            # Пауза между играми
+            await asyncio.sleep(5)
+        except Exception as e:
+            print(f"Error in crash game: {e}")
+            await asyncio.sleep(10)
+            
+
 @app.post("/login")
 async def login_from_webapp(request: Request, data: dict, db: Session = Depends(get_db)):
     try:
@@ -458,16 +470,7 @@ async def websocket_status():
             "error": "WebSocket libraries not installed"
         }
 
-async def run_crash_game():
-    """Фоновая задача для управления краш-игрой"""
-    while True:
-        try:
-            await crash_game.run_game_cycle()  # ✅ Используем существующий экземпляр
-            # Пауза между играми
-            await asyncio.sleep(10)
-        except Exception as e:
-            print(f"Error in crash game: {e}")
-            await asyncio.sleep(10)
+
         
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
