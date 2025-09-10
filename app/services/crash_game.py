@@ -7,6 +7,8 @@ from app.database import crud
 from app.database.models import User
 import asyncio
 
+
+
 class CrashGame:
     def __init__(self, ws_manager):
         self.ws_manager = ws_manager
@@ -26,7 +28,6 @@ class CrashGame:
     def generate_multiplier(self) -> float:
         """Генерация множителя с учетом RTP и настроек"""
         if not self.settings:
-            # Настройки по умолчанию если не загружены
             return round(random.uniform(1.1, 10.0), 2)
         
         # Базовая вероятность краха (зависит от RTP)
@@ -44,16 +45,15 @@ class CrashGame:
             multiplier = self._generate_custom_multiplier(adjusted_probability)
         
         # Ограничиваем мин/макс значениями
-        multiplier = max(self.settings.min_multiplier, min(self.settings.max_multiplier, multiplier))
+        multiplier = max(self.settings.min_multiplier, 
+                        min(self.settings.max_multiplier, multiplier))
         
         return round(multiplier, 2)
 
     def _generate_exponential_multiplier(self, crash_probability: float) -> float:
         """Экспоненциальное распределение (классический краш)"""
-        # Формула: multiplier = (1 - crash_probability) / (1 - random())
         random_val = random.random()
         if random_val < crash_probability:
-            # Ранний крах
             return self.settings.min_multiplier
         
         multiplier = (1 - crash_probability) / (1 - random_val)
@@ -65,18 +65,12 @@ class CrashGame:
 
     def _generate_custom_multiplier(self, crash_probability: float) -> float:
         """Кастомное распределение с контролем волатильности"""
-        # Увеличиваем вероятность раннего краха для высокой волатильности
         if self.settings.volatility > 1.5 and random.random() < 0.3:
             return self.settings.min_multiplier
         
-        # Базовый множитель с нормальным распределением
         base = random.normalvariate(2.0, self.settings.volatility)
-        
-        # Применяем RTP коррекцию
         corrected = base * (1 + (1 - self.settings.rtp))
-        
         return corrected
-
     async def run_game_cycle(self):
         """Запуск цикла игры с учетом настроек"""
         # Загружаем актуальные настройки

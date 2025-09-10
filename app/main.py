@@ -139,6 +139,29 @@ async def startup():
         print("❌ WebSocket support: wsproto library missing")
         
 
+async def create_first_admin():
+    """Создание первого администратора при запуске"""
+    db = SessionLocal()
+    try:
+        admin = crud.get_admin_by_username(db, "admin")
+        if not admin:
+            import bcrypt
+            password_hash = bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            
+            crud.create_admin_user(
+                db=db,
+                username="admin",
+                password_hash=password_hash,
+                email="admin@example.com",
+                is_superadmin=True
+            )
+            print("✅ Первый администратор создан: admin / admin123")
+    except Exception as e:
+        print(f"❌ Ошибка создания администратора: {e}")
+    finally:
+        db.close()
+
+
 @app.post("/login")
 async def login_from_webapp(request: Request, data: dict, db: Session = Depends(get_db)):
     try:

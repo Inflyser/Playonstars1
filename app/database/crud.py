@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import models
-from app.database.models import User, DepositHistory, CrashBetHistory, Wallet, Transaction, CrashGameResult, CrashGameSettings, AdminUser
+from app.database.models import User, DepositHistory, CrashBetHistory, Wallet, Transaction, CrashGameResult, CrashGameSettings, AdminSettings
 from typing import Optional
 
 def get_user_by_telegram_id(db: Session, telegram_id: int) -> Optional[User]:
@@ -30,26 +30,7 @@ def add_stars_payment_id(db: Session, telegram_id: int, payment_id: str) -> bool
     return False
 
 
-def get_crash_game_settings(db: Session):
-    """Получаем настройки игры"""
-    return db.query(CrashGameSettings).first()
 
-def update_crash_game_settings(db: Session, settings_data: dict):
-    """Обновляем настройки игры"""
-    settings = db.query(CrashGameSettings).first()
-    
-    if not settings:
-        # Создаем настройки по умолчанию
-        settings = CrashGameSettings()
-        db.add(settings)
-    
-    for key, value in settings_data.items():
-        if hasattr(settings, key):
-            setattr(settings, key, value)
-    
-    db.commit()
-    db.refresh(settings)
-    return settings
 
 def has_stars_payment_id(db: Session, telegram_id: int, payment_id: str) -> bool:
     """Проверяем есть ли уже такой ID платежа"""
@@ -345,29 +326,68 @@ def has_stars_payment_id(db: Session, telegram_id: int, payment_id: str) -> bool
     return payment_id in user.stars_payment_ids
 
 
-def get_admin_by_username(db: Session, username: str):
-    return db.query(AdminUser).filter(AdminUser.username == username).first()
+def get_crash_game_settings(db: Session):
+    """Получаем текущие настройки игры"""
+    return db.query(CrashGameSettings).first()
 
-def get_admin_by_telegram_id(db: Session, telegram_id: int):
-    return db.query(AdminUser).filter(AdminUser.telegram_id == telegram_id).first()
-
-def verify_admin_password(admin: AdminUser, password: str):
-    """Проверка пароля (используйте bcrypt или similar)"""
-    import bcrypt
-    return bcrypt.checkpw(password.encode(), admin.password_hash.encode())
-
-def create_admin_user(db: Session, username: str, password: str, telegram_id: int = None):
-    """Создание админа с хешированием пароля"""
-    import bcrypt
-    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+def update_crash_game_settings(db: Session, settings_data: dict):
+    """Обновляем настройки игры"""
+    settings = db.query(CrashGameSettings).first()
     
-    admin = AdminUser(
-        username=username,
-        password_hash=hashed,
-        telegram_id=telegram_id,
-        permissions=['crash_settings']
-    )
-    db.add(admin)
+    if not settings:
+        settings = CrashGameSettings()
+        db.add(settings)
+    
+    for key, value in settings_data.items():
+        if hasattr(settings, key):
+            setattr(settings, key, value)
+    
     db.commit()
-    db.refresh(admin)
-    return admin
+    db.refresh(settings)
+    return settings
+
+def get_game_stats(db: Session):
+    """Статистика игр для расчета фактического RTP"""
+    from sqlalchemy import func
+    
+    total_games = db.query(func.count(CrashGameResult.id)).scalar()
+    total_bet = db.query(func.sum(CrashGameResult.total_bet)).scalar() or 0
+    total_payout = db.query(func.sum(CrashGameResult.total_payout)).scalar() or 0
+    
+    actual_rtp = (total_payout / total_bet) if total_bet > 0 else 0
+    
+    return {
+        "total_games": total_games,
+        "total_bet": float(total_bet),
+        "total_payout": float(total_payout),
+        "house_profit": float(total_bet - total_payout),
+        "actual_rtp": float(actual_rtp)
+    }
+    
+def get_admin_settings(db: Session):
+    """Получаем настройки админки"""
+    return db.query(AdminSettings).first()
+
+def update_admin_settings(db: Session, admin_code: str = None, 
+                         crash_rtp: float = None, 
+                         crash_min_multiplier: float = None,
+                         crash_max_multiplier: float = None):
+    """Обновляем настройки админки"""
+    settings = db.query(AdminSettings).first()
+    
+    if not settings:
+        settings = AdminSettings()
+        db.add(settings)
+    
+    if admin_code is not None:
+        settings.admin_code = admin_code
+    if crash_rtp is not None:
+        settings.crash_rtp = crash_rtp
+    if crash_min_multiplier is not None:
+        settings.crash_min_multiplier = crash_min_multiplier
+    if crash_max_multiplier is not None:
+        settings.crash_max_multiplier = crash_max_multiplier
+    
+    db.commit()
+    db.refresh(settings)
+    return settings

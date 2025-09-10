@@ -173,6 +173,7 @@ class CrashGameResult(Base):
         Index('idx_crash_timestamp', 'timestamp'),
     )
     
+    
 class CrashGameSettings(Base):
     __tablename__ = "crash_game_settings"
     
@@ -188,14 +189,12 @@ class CrashGameSettings(Base):
     
     
     
-class AdminUser(Base):
-    __tablename__ = "admin_users"
+class AdminSettings(Base):
+    __tablename__ = "admin_settings"
     
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True)
-    password_hash = Column(String)  # Хеш пароля
-    telegram_id = Column(BigInteger, unique=True, nullable=True)  # Привязка к TG
-    is_superadmin = Column(Boolean, default=False)
-    permissions = Column(JSON, default=[])  # ['crash_settings', 'users', 'transactions']
-    created_at = Column(DateTime, default=func.now())
-    last_login = Column(DateTime, nullable=True)
+    admin_code = Column(String, default="admin123")  # Простой код для доступа
+    crash_rtp = Column(Float, default=0.95)  # RTP для краша
+    crash_min_multiplier = Column(Float, default=1.1)
+    crash_max_multiplier = Column(Float, default=100.0)
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

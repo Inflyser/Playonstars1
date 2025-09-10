@@ -1,21 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database.session import get_db
+from app.dependencies import get_current_admin, require_permission
 from app.database import crud
-from app.database.models import CrashGameSettings, CrashBetHistory, CrashGameResult
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.get("/crash-settings")
-async def get_crash_settings(db: Session = Depends(get_db)):
+async def get_crash_settings(
+    db: Session = Depends(get_db),
+    admin: dict = Depends(require_permission("manage_games"))
+):
     """Получить текущие настройки краш-игры"""
     settings = crud.get_crash_game_settings(db)
     if not settings:
-        # Создаем настройки по умолчанию
-        settings = CrashGameSettings()
-        db.add(settings)
-        db.commit()
-        db.refresh(settings)
+        raise HTTPException(404, "Настройки не найдены")
     
     return {
         "rtp": settings.rtp,
@@ -28,7 +27,11 @@ async def get_crash_settings(db: Session = Depends(get_db)):
     }
 
 @router.post("/crash-settings")
-async def update_crash_settings(settings_data: dict, db: Session = Depends(get_db)):
+async def update_crash_settings(
+    settings_data: dict,
+    db: Session = Depends(get_db),
+    admin: dict = Depends(require_permission("manage_games"))
+):
     """Обновить настройки краш-игры"""
     try:
         # Валидация данных
@@ -57,25 +60,16 @@ async def update_crash_settings(settings_data: dict, db: Session = Depends(get_d
         raise HTTPException(500, f"Ошибка обновления настроек: {str(e)}")
 
 @router.get("/game-stats")
-async def get_game_stats(db: Session = Depends(get_db)):
+async def get_game_stats(
+    db: Session = Depends(get_db),
+    admin: dict = Depends(require_permission("view_stats"))
+):
     """Статистика игры для админки"""
-    from sqlalchemy import func
+    stats = crud.get_game_stats(db)
     
-    # Статистика по играм
-    total_games = db.query(func.count(CrashGameResult.id)).scalar()
-    total_bets = db.query(func.count(CrashBetHistory.id)).scalar()
-    total_bet_amount = db.query(func.sum(CrashBetHistory.bet_amount)).scalar() or 0
-    total_payout = db.query(func.sum(CrashBetHistory.win_amount)).scalar() or 0
+    # Добавляем текущие теоретические настройки
+    settings = crud.get_crash_game_settings(db)
+    stats["theoretical_rtp"] = settings.rtp if settings else 0.95
+    stats["house_edge"] = settings.house_edge if settings else 0.05
     
-    # Расчет реального RTP
-    actual_rtp = (total_payout / total_bet_amount) if total_bet_amount > 0 else 0
-    
-    return {
-        "total_games": total_games,
-        "total_bets": total_bets,
-        "total_bet_amount": round(total_bet_amount, 2),
-        "total_payout": round(total_payout, 2),
-        "house_profit": round(total_bet_amount - total_payout, 2),
-        "actual_rtp": round(actual_rtp, 4),
-        "theoretical_rtp": crud.get_crash_game_settings(db).rtp
-    }
+    return stats

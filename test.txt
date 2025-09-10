@@ -1,0 +1,992 @@
+смотри
+
+
+код игры
+
+import math
+import random
+from datetime import datetime
+from sqlalchemy.orm import Session
+from app.database.session import SessionLocal
+from app.database import crud
+from app.database.models import User
+import asyncio
+
+
+
+class CrashGame:
+    def __init__(self, ws_manager):
+        self.ws_manager = ws_manager
+        self.current_multiplier = 1.0
+        self.is_playing = False
+        self.bets = {}
+        self.game_history = []
+        self.game_id = 0
+        self.settings = None
+
+    def load_settings(self, db: Session):
+        """Загружаем настройки из БД"""
+        from app.database import crud
+        self.settings = crud.get_crash_game_settings(db)
+        return self.settings
+
+    def generate_multiplier(self) -> float:
+        """Генерация множителя с учетом RTP и настроек"""
+        if not self.settings:
+            return round(random.uniform(1.1, 10.0), 2)
+        
+        # Базовая вероятность краха (зависит от RTP)
+        base_crash_probability = 1 - self.settings.rtp
+        
+        # Корректируем вероятность в зависимости от волатильности
+        adjusted_probability = base_crash_probability * self.settings.volatility
+        
+        # Выбираем тип распределения
+        if self.settings.crash_point_distribution == 'exponential':
+            multiplier = self._generate_exponential_multiplier(adjusted_probability)
+        elif self.settings.crash_point_distribution == 'uniform':
+            multiplier = self._generate_uniform_multiplier()
+        else:
+            multiplier = self._generate_custom_multiplier(adjusted_probability)
+        
+        # Ограничиваем мин/макс значениями
+        multiplier = max(self.settings.min_multiplier, 
+                        min(self.settings.max_multiplier, multiplier))
+        
+        return round(multiplier, 2)
+
+    def _generate_exponential_multiplier(self, crash_probability: float) -> float:
+        """Экспоненциальное распределение (классический краш)"""
+        random_val = random.random()
+        if random_val < crash_probability:
+            return self.settings.min_multiplier
+        
+        multiplier = (1 - crash_probability) / (1 - random_val)
+        return multiplier
+
+    def _generate_uniform_multiplier(self) -> float:
+        """Равномерное распределение"""
+        return random.uniform(self.settings.min_multiplier, self.settings.max_multiplier)
+
+    def _generate_custom_multiplier(self, crash_probability: float) -> float:
+        """Кастомное распределение с контролем волатильности"""
+        if self.settings.volatility > 1.5 and random.random() < 0.3:
+            return self.settings.min_multiplier
+        
+        base = random.normalvariate(2.0, self.settings.volatility)
+        corrected = base * (1 + (1 - self.settings.rtp))
+        return corrected
+    async def run_game_cycle(self):
+        """Запуск цикла игры с учетом настроек"""
+        # Загружаем актуальные настройки
+        db = SessionLocal()
+        self.load_settings(db)
+        db.close()
+        
+        self.game_id += 1
+        self.is_playing = True
+        self.bets.clear()
+        
+        # Фаза приема ставок
+        await self.ws_manager.send_crash_update({
+            "game_id": self.game_id,
+            "phase": "betting",
+            "time_remaining": 15,
+            "multiplier": 1.0,
+            "settings": {
+                "rtp": self.settings.rtp if self.settings else 0.95,
+                "min_multiplier": self.settings.min_multiplier if self.settings else 1.1,
+                "max_multiplier": self.settings.max_multiplier if self.settings else 100.0
+            }
+        })
+        
+        # Ожидание приема ставок (15 секунд)
+        for i in range(15, 0, -1):
+            await asyncio.sleep(1)
+            if not self.is_playing:
+                return
+            await self.ws_manager.send_crash_update({
+                "game_id": self.game_id,
+                "phase": "betting", 
+                "time_remaining": i,
+                "multiplier": 1.0
+            })
+
+        # Генерируем множитель
+        multiplier = self.generate_multiplier()
+        
+        # Фаза полета
+        current_multiplier = 1.0
+        step = 0.01
+        
+        while current_multiplier < multiplier and self.is_playing:
+            await asyncio.sleep(0.1)
+            current_multiplier += step
+            current_multiplier = round(current_multiplier, 2)
+            
+            # Увеличиваем шаг для больших множителей
+            if current_multiplier > 5:
+                step = 0.05
+            elif current_multiplier > 2:
+                step = 0.02
+            
+            await self.ws_manager.send_crash_update({
+                "game_id": self.game_id,
+                "phase": "flying",
+                "multiplier": current_multiplier,
+                "time_remaining": 0
+            })
+
+        # Крах - игра окончена
+        self.is_playing = False
+        
+        # Сохраняем результаты
+        await self.save_game_results(multiplier)
+        
+        await self.ws_manager.send_crash_result({
+            "game_id": self.game_id,
+            "final_multiplier": multiplier,
+            "crashed_at": multiplier,
+            "timestamp": datetime.now().isoformat()
+        })
+
+    async def save_game_results(self, final_multiplier: float):
+        """Сохраняем результаты игры в базу данных"""
+        db = SessionLocal()
+        try:
+            total_players = len(self.bets)
+            total_bet = sum(bet['amount'] for bet in self.bets.values())
+            total_payout = 0.0
+            
+            # Сохраняем результат игры
+            game_result = crud.create_crash_game_result(
+                db=db,
+                game_id=self.game_id,
+                multiplier=final_multiplier,
+                crashed_at=final_multiplier,
+                total_players=total_players,
+                total_bet=total_bet,
+                total_payout=total_payout
+            )
+            
+            db.commit()
+            db.refresh(game_result)
+            
+            # Обрабатываем каждую ставку
+            for user_id, bet_data in self.bets.items():
+                user = crud.get_user_by_id(db, user_id)
+                if not user:
+                    print(f"❌ User {user_id} not found in DB")
+                    continue
+                
+                if 'bet_id' in bet_data:
+                    # Определяем результат ставки
+                    if bet_data.get('cashed_out', False):
+                        cashout_multiplier = bet_data.get('cashout_multiplier', 1.0)
+                        win_amount = bet_data['amount'] * cashout_multiplier
+                        status = 'won'
+                    elif final_multiplier >= (bet_data.get('auto_cashout', 0) or 0):
+                        win_amount = bet_data['amount'] * bet_data['auto_cashout']
+                        status = 'won'
+                    else:
+                        win_amount = 0
+                        status = 'lost'
+                    
+                    # Обновляем ставку в БД
+                    crud.update_crash_bet_result(
+                        db=db,
+                        bet_id=bet_data['bet_id'],
+                        crash_coefficient=final_multiplier,
+                        win_amount=win_amount,
+                        status=status
+                    )
+                    
+                    # Обновляем баланс пользователя если выигрыш
+                    if win_amount > 0:
+                        crud.update_user_balance(
+                            db=db,
+                            telegram_id=user.telegram_id,
+                            currency='stars',
+                            amount=win_amount
+                        )
+                    
+                    total_payout += win_amount
+            
+            # Обновляем общий выигрыш в результате игры
+            game_result.total_payout = total_payout
+            db.commit()
+            
+            print(f"✅ Результаты игры сохранены: Game ID {self.game_id}")
+            
+        except Exception as e:
+            print(f"❌ Ошибка сохранения результатов игры: {e}")
+            db.rollback()
+        finally:
+            db.close()
+
+    async def place_bet(self, user_id: int, amount: float, auto_cashout: float = None):
+        """Размещение ставки с сохранением в БД"""
+        print(f"🎯 [CrashGame] place_bet called: user_id={user_id}, amount={amount}")
+
+        db = SessionLocal()
+        try:
+            # Получаем пользователя по ID
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                print(f"❌ [CrashGame] User {user_id} not found by ID")
+                return False
+
+            # Проверяем достаточно ли средств
+            if user.stars_balance < amount:
+                print(f"❌ [CrashGame] Insufficient balance: {user.stars_balance} < {amount}")
+                return False
+
+            # Создаем запись о ставке в БД
+            bet = crud.add_crash_bet(
+                db=db,
+                user_id=user.id,
+                telegram_id=user.telegram_id,
+                bet_amount=amount,
+                status='pending'
+            )
+
+            # Списываем средства с баланса
+            crud.update_user_balance(
+                db=db,
+                telegram_id=user.telegram_id,
+                currency='stars',
+                amount=-amount
+            )
+
+            # Сохраняем в активные ставки
+            self.bets[user.id] = {
+                "amount": amount,
+                "auto_cashout": auto_cashout,
+                "placed_at": datetime.now(),
+                "cashed_out": False,
+                "profit": 0,
+                "bet_id": bet.id
+            }
+
+            print(f"✅ [CrashGame] Bet added to active bets: {bet.id}")
+            return True
+
+        except Exception as e:
+            print(f"❌ [CrashGame] Error in place_bet: {e}")
+            import traceback
+            traceback.print_exc()
+            db.rollback()
+            return False
+        finally:
+            db.close()
+
+    async def cash_out(self, user_id: int, cashout_multiplier: float):
+        """Вывод средств с обновлением в БД"""
+        if user_id not in self.bets:
+            raise Exception("No active bet found")
+        
+        bet_data = self.bets[user_id]
+        bet_data['cashed_out'] = True
+        bet_data['cashout_multiplier'] = cashout_multiplier
+        bet_data['profit'] = bet_data['amount'] * cashout_multiplier
+        
+        # Немедленно обновляем баланс пользователя
+        db = SessionLocal()
+        try:
+            user = crud.get_user_by_id(db, user_id)
+            if user:
+                win_amount = bet_data['amount'] * cashout_multiplier
+                crud.update_user_balance(
+                    db=db,
+                    telegram_id=user.telegram_id,
+                    currency='stars',
+                    amount=win_amount
+                )
+                db.commit()
+        except Exception as e:
+            print(f"❌ Error in cash_out: {e}")
+            db.rollback()
+        finally:
+            db.close()
+
+
+модель
+
+from sqlalchemy import Column, Integer, String, DateTime, Float, BigInteger, ForeignKey, Index, func, Boolean, Numeric, JSON  
+from sqlalchemy.orm import relationship, backref 
+from app.database.session import Base
+
+
+class Wallet(Base):
+    __tablename__ = "wallets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    address = Column(String, unique=True, index=True, nullable=False)
+    wallet_provider = Column(String, default="tonconnect")
+    is_verified = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=func.now())
+    
+    user = relationship("User", back_populates="wallets")
+    transactions = relationship("Transaction", back_populates="wallet")
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    wallet_id = Column(Integer, ForeignKey("wallets.id"), nullable=False, index=True)
+    tx_hash = Column(String, unique=True, index=True, nullable=False)
+    amount = Column(Numeric(20, 9), nullable=False)
+    status = Column(String, default="pending")  # pending, completed, failed
+    transaction_type = Column(String)  # deposit, withdrawal
+    created_at = Column(DateTime, default=func.now())
+    completed_at = Column(DateTime, nullable=True)
+    
+    wallet = relationship("Wallet", back_populates="transactions")
+
+# Обновим модель User для связи с кошельками
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
+    username = Column(String)
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    photo_url = Column(String, nullable=True)
+    referrer_id = Column(Integer, ForeignKey('users.id'), nullable=True, index=True)
+    
+    # Основные балансы
+    ton_balance = Column(Float, default=0.0)
+    stars_balance = Column(Float, default=0.0)
+    
+    # Крипто кошелек (оставляем для обратной совместимости)
+    wallet_token = Column(String, nullable=True)
+    
+    stars_payment_ids = Column(JSON, default=[])  # ← ВОТ ЭТУ СТРОЧКУ
+    
+    # Язык и настройки
+    language = Column(String, default="ru")
+    
+    # Реферальная система
+    referrals_count = Column(Integer, default=0)
+    active_referrals = Column(Integer, default=0)
+    referral_earnings_usd = Column(Float, default=0.0)
+    
+    # Статистика по подаркам
+    gifts_uploaded = Column(Integer, default=0)
+    gift_name_number = Column(String, nullable=True)
+    
+    # Детальная статистика по рефералам
+    stars_earned_from_refs = Column(Float, default=0.0)
+    stars_spent_by_refs = Column(Float, default=0.0)
+    total_refs_balance = Column(Float, default=0.0)
+    
+    # Временные метки
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # Связи
+    referrer = relationship(
+        "User", 
+        remote_side=[id],
+        backref=backref("referrals", lazy="dynamic"),
+        foreign_keys=[referrer_id]
+    )
+    
+    deposits = relationship("DepositHistory", back_populates="user")
+    crash_bets = relationship("CrashBetHistory", back_populates="user")
+    wallets = relationship("Wallet", back_populates="user")  # Добавляем связь с кошельками
+
+
+class DepositHistory(Base):
+    __tablename__ = "deposit_history"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    telegram_id = Column(BigInteger, nullable=False, index=True)
+    
+    # Дата и время депозита
+    deposit_datetime = Column(DateTime, default=func.now())
+    amount = Column(Float, nullable=False)  # сумма депозита
+    note = Column(String, nullable=True)  # примечание
+    
+    # Связь с пользователем
+    user = relationship("User", back_populates="deposits")
+    
+    # Индексы для быстрого поиска
+    __table_args__ = (
+        Index('idx_deposit_user_date', 'user_id', 'deposit_datetime'),
+        Index('idx_deposit_telegram_date', 'telegram_id', 'deposit_datetime'),
+    )
+
+
+class CrashBetHistory(Base):
+    __tablename__ = "crash_bet_history"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    telegram_id = Column(BigInteger, nullable=False, index=True)
+    
+    # Данные ставки
+    bet_number = Column(Integer, nullable=False)  # номер ставки
+    bet_amount = Column(Float, nullable=False)  # сумма ставки
+    crash_coefficient = Column(Float, nullable=True)  # выигрышный коэф (null если проигрыш)
+    win_amount = Column(Float, default=0.0)  # выигрышная сумма
+    
+    # Статус ставки
+    status = Column(String, default='pending')  # pending, won, lost
+    
+    # Временные метки
+    created_at = Column(DateTime, default=func.now())
+    ended_at = Column(DateTime, nullable=True)
+    
+    # Связь с пользователем
+    user = relationship("User", back_populates="crash_bets")
+    
+    # Индексы для быстрой фильтрации
+    __table_args__ = (
+        Index('idx_crash_user_date', 'user_id', 'created_at'),
+        Index('idx_crash_telegram_date', 'telegram_id', 'created_at'),
+        Index('idx_crash_status', 'status'),
+    )
+    
+    
+class ReferralAction(Base):
+    __tablename__ = "referral_actions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    referrer_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    referral_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    
+    action_type = Column(String, nullable=False)  # 'registration', 'deposit', 'bet'
+    action_amount = Column(Float, default=0.0)
+    reward_amount = Column(Float, default=0.0)
+    
+    created_at = Column(DateTime, default=func.now())
+    
+    # Связи
+    referrer = relationship("User", foreign_keys=[referrer_id], backref="referral_actions_made")
+    referral = relationship("User", foreign_keys=[referral_id], backref="referral_actions_received")
+    
+class CrashGameResult(Base):
+    __tablename__ = "crash_game_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    game_id = Column(Integer, index=True, nullable=False)
+    multiplier = Column(Numeric(10, 2), nullable=False)
+    crashed_at = Column(Numeric(10, 2), nullable=False)
+    total_players = Column(Integer, default=0)
+    total_bet = Column(Numeric(20, 2), default=0.0)
+    total_payout = Column(Numeric(20, 2), default=0.0)
+    timestamp = Column(DateTime, default=func.now())
+    
+    # Индексы для быстрого поиска
+    __table_args__ = (
+        Index('idx_crash_game_id', 'game_id'),
+        Index('idx_crash_timestamp', 'timestamp'),
+    )
+    
+    
+class CrashGameSettings(Base):
+    __tablename__ = "crash_game_settings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    rtp = Column(Float, default=0.95)  # 95% RTP по умолчанию
+    house_edge = Column(Float, default=0.05)  # 5% комиссия дома
+    min_multiplier = Column(Float, default=1.1)  # Минимальный множитель
+    max_multiplier = Column(Float, default=100.0)  # Максимальный множитель
+    crash_point_distribution = Column(String, default='exponential')  # exponential, uniform, custom
+    volatility = Column(Float, default=1.0)  # Волатильность (1.0 = нормальная)
+    is_active = Column(Boolean, default=True)
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    
+    
+class AdminSettings(Base):
+    __tablename__ = "admin_settings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    admin_code = Column(String, default="admin123")  # Простой код для доступа
+    crash_rtp = Column(Float, default=0.95)  # RTP для краша
+    crash_min_multiplier = Column(Float, default=1.1)
+    crash_max_multiplier = Column(Float, default=100.0)
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+
+
+круд.py
+
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from app.database import models
+from app.database.models import User, DepositHistory, CrashBetHistory, Wallet, Transaction, CrashGameResult, CrashGameSettings, AdminSettings
+from typing import Optional
+
+def get_user_by_telegram_id(db: Session, telegram_id: int) -> Optional[User]:
+    """Получаем пользователя по telegram_id"""
+    return db.query(User).filter(User.telegram_id == telegram_id).first()
+
+def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
+    """Получаем пользователя по ID"""
+    return db.query(User).filter(User.id == user_id).first()
+
+def add_stars_payment_id(db: Session, telegram_id: int, payment_id: str) -> bool:
+    """Добавляем ID платежа в историю пользователя"""
+    user = get_user_by_telegram_id(db, telegram_id)
+    if not user:
+        return False
+    
+    if user.stars_payment_ids is None:
+        user.stars_payment_ids = []
+    
+    # Проверяем не добавляли ли уже этот ID
+    if payment_id not in user.stars_payment_ids:
+        user.stars_payment_ids.append(payment_id)
+        db.commit()
+        return True
+    
+    return False
+
+
+
+
+def has_stars_payment_id(db: Session, telegram_id: int, payment_id: str) -> bool:
+    """Проверяем есть ли уже такой ID платежа"""
+    user = get_user_by_telegram_id(db, telegram_id)
+    if not user or not user.stars_payment_ids:
+        return False
+    
+    return payment_id in user.stars_payment_ids
+def create_user(
+    db: Session, 
+    telegram_id: int, 
+    username: Optional[str] = None,
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None,
+    referrer_id: Optional[int] = None,
+    language: str = 'ru',
+    photo_url: str = None 
+) -> User:
+    """Создаем нового пользователя с учетом реферальной системы"""
+    db_user = User(
+        telegram_id=telegram_id,
+        username=username,
+        first_name=first_name,
+        last_name=last_name,
+        referrer_id=referrer_id,
+        language=language,
+        photo_url=photo_url
+    )
+    
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    
+    # Если есть реферер, обновляем его счетчики
+    if referrer_id:
+        update_referrer_stats(db, referrer_id)
+    
+    return db_user
+
+def update_user_language(db: Session, telegram_id: int, language: str):
+    """Обновляем язык пользователя"""
+    user = get_user_by_telegram_id(db, telegram_id)
+    if not user:
+        # Если пользователя нет - создаем с выбранным языком
+        return create_user(db, telegram_id, language=language)
+    
+    user.language = language
+    db.commit()
+    db.refresh(user)
+    return user
+
+def update_referrer_stats(db: Session, referrer_id: int):
+    """Обновляем статистику реферера"""
+    referrer = db.query(User).filter(User.id == referrer_id).first()
+    if referrer:
+        referrer.referrals_count = db.query(User).filter(
+            User.referrer_id == referrer_id
+        ).count()
+        referrer.active_referrals = db.query(User).filter(
+            User.referrer_id == referrer_id,
+            User.ton_balance > 0
+        ).count()
+        db.commit()
+
+def update_user_balance(
+    db: Session, 
+    telegram_id: int, 
+    currency: str, 
+    amount: float
+) -> Optional[User]:
+    """Обновляем баланс пользователя"""
+    user = get_user_by_telegram_id(db, telegram_id)
+    if not user:
+        return None
+    
+    if currency == 'ton':
+        user.ton_balance += amount
+    elif currency == 'stars':
+        user.stars_balance += amount
+    
+    db.commit()
+    db.refresh(user)
+    return user
+
+def get_user_balance(db: Session, telegram_id: int) -> dict:
+    """Получаем балансы пользователя"""
+    user = get_user_by_telegram_id(db, telegram_id)
+    if not user:
+        return {'ton': 0.0, 'stars': 0.0}
+    
+    return {'ton': user.ton_balance, 'stars': user.stars_balance}
+
+def add_deposit_history(
+    db: Session,
+    user_id: int,
+    telegram_id: int,
+    amount: float,
+    note: Optional[str] = None
+) -> DepositHistory:
+    """Добавляем запись в историю депозитов"""
+    deposit = DepositHistory(
+        user_id=user_id,
+        telegram_id=telegram_id,
+        amount=amount,
+        note=note
+    )
+    
+    db.add(deposit)
+    db.commit()
+    db.refresh(deposit)
+    return deposit
+
+def add_crash_bet(
+    db: Session,
+    user_id: int,
+    telegram_id: int,
+    bet_amount: float,
+    crash_coefficient: Optional[float] = None,
+    win_amount: float = 0.0,
+    status: str = 'pending'
+) -> CrashBetHistory:
+    """Добавляем запись о ставке в crash игру"""
+    # Получаем последний номер ставки для пользователя
+    last_bet = db.query(CrashBetHistory).filter(
+        CrashBetHistory.user_id == user_id
+    ).order_by(CrashBetHistory.bet_number.desc()).first()
+    
+    next_bet_number = (last_bet.bet_number + 1) if last_bet else 1
+    
+    bet = CrashBetHistory(
+        user_id=user_id,
+        telegram_id=telegram_id,
+        bet_number=next_bet_number,
+        bet_amount=bet_amount,
+        crash_coefficient=crash_coefficient,
+        win_amount=win_amount,
+        status=status
+    )
+    
+    db.add(bet)
+    db.commit()
+    db.refresh(bet)
+    return bet
+
+
+def get_user_crash_bet_history(db: Session, user_id: int, limit: int = 50):
+    """Получаем историю ставок пользователя"""
+    return db.query(CrashBetHistory).filter(
+        CrashBetHistory.user_id == user_id
+    ).order_by(
+        CrashBetHistory.created_at.desc()
+    ).limit(limit).all()
+
+def get_all_crash_bet_history(db: Session, limit: int = 100):
+    """Получаем всю историю ставок"""
+    return db.query(CrashBetHistory).order_by(
+        CrashBetHistory.created_at.desc()
+    ).limit(limit).all()
+
+def get_crash_bet_by_id(db: Session, bet_id: int):
+    """Получаем ставку по ID"""
+    return db.query(CrashBetHistory).filter(CrashBetHistory.id == bet_id).first()
+
+def get_user_active_crash_bets(db: Session, user_id: int):
+    """Получаем активные ставки пользователя"""
+    return db.query(CrashBetHistory).filter(
+        CrashBetHistory.user_id == user_id,
+        CrashBetHistory.status == 'pending'
+    ).all()
+
+def get_wallet_by_address(db: Session, address: str):
+    return db.query(Wallet).filter(Wallet.address == address).first()
+
+def get_pending_transactions(db: Session, user_id: int):
+    """Получаем pending транзакции пользователя"""
+    return db.query(Transaction).filter(
+        Transaction.wallet_id.in_(
+            db.query(Wallet.id).filter(Wallet.user_id == user_id)
+        ),
+        Transaction.status == "pending"
+    ).all()
+
+def get_wallet_by_user(db: Session, user_id: int):
+    return db.query(Wallet).filter(Wallet.user_id == user_id).first()
+
+def create_wallet(db: Session, user_id: int, address: str, wallet_provider: str = "tonconnect"):
+    db_wallet = Wallet(
+        user_id=user_id,
+        address=address,
+        wallet_provider=wallet_provider
+    )
+    db.add(db_wallet)
+    db.commit()
+    db.refresh(db_wallet)
+    return db_wallet
+
+def create_transaction(db: Session, wallet_id: int, tx_hash: str, amount: float, transaction_type: str):
+    db_transaction = Transaction(
+        wallet_id=wallet_id,
+        tx_hash=tx_hash,
+        amount=amount,
+        transaction_type=transaction_type
+    )
+    db.add(db_transaction)
+    db.commit()
+    db.refresh(db_transaction)
+    return db_transaction
+
+def get_transaction_by_hash(db: Session, tx_hash: str):
+    return db.query(Transaction).filter(Transaction.tx_hash == tx_hash).first()
+
+def update_transaction_status(db: Session, tx_hash: str, status: str):
+    db_transaction = get_transaction_by_hash(db, tx_hash)
+    if db_transaction:
+        db_transaction.status = status
+        if status == "completed":
+            db_transaction.completed_at = func.now()
+        db.commit()
+        db.refresh(db_transaction)
+    return db_transaction
+
+def get_user_wallets(db: Session, user_id: int):
+    return db.query(Wallet).filter(Wallet.user_id == user_id).all()
+
+def create_crash_game_result(db: Session, game_id: int, multiplier: float, crashed_at: float, 
+                           total_players: int = 0, total_bet: float = 0.0, total_payout: float = 0.0):
+    """Создаем запись о результате краш-игры"""
+    db_result = CrashGameResult(
+        game_id=game_id,
+        multiplier=multiplier,
+        crashed_at=crashed_at,
+        total_players=total_players,
+        total_bet=total_bet,
+        total_payout=total_payout
+    )
+    db.add(db_result)
+    db.commit()
+    db.refresh(db_result)
+    return db_result
+
+def update_crash_bet_result(db: Session, bet_id: int, crash_coefficient: float, 
+                          win_amount: float, status: str):
+    """Обновляем результат ставки в краш-игре"""
+    bet = db.query(CrashBetHistory).filter(CrashBetHistory.id == bet_id).first()
+    if bet:
+        bet.crash_coefficient = crash_coefficient
+        bet.win_amount = win_amount
+        bet.status = status
+        bet.ended_at = func.now()
+        db.commit()
+        db.refresh(bet)
+    return bet
+
+def get_user_active_crash_bets(db: Session, user_id: int):
+    """Получаем активные ставки пользователя в краш-игре"""
+    return db.query(CrashBetHistory).filter(
+        CrashBetHistory.user_id == user_id,
+        CrashBetHistory.status == 'pending'
+    ).all()
+
+def get_crash_game_history(db: Session, limit: int = 50):
+    """Получаем историю краш-игр"""
+    return db.query(CrashGameResult).order_by(
+        CrashGameResult.timestamp.desc()
+    ).limit(limit).all()
+
+get_user = get_user_by_telegram_id
+
+
+def add_stars_payment_id(db: Session, telegram_id: int, payment_id: str) -> bool:
+    """Добавляем ID платежа в историю пользователя"""
+    user = get_user_by_telegram_id(db, telegram_id)
+    if not user:
+        return False
+    
+    if user.stars_payment_ids is None:
+        user.stars_payment_ids = []
+    
+    # Проверяем не добавляли ли уже этот ID
+    if payment_id not in user.stars_payment_ids:
+        user.stars_payment_ids.append(payment_id)
+        db.commit()
+        return True
+    
+    return False
+
+def has_stars_payment_id(db: Session, telegram_id: int, payment_id: str) -> bool:
+    """Проверяем есть ли уже такой ID платежа"""
+    user = get_user_by_telegram_id(db, telegram_id)
+    if not user or not user.stars_payment_ids:
+        return False
+    
+    return payment_id in user.stars_payment_ids
+
+
+def get_crash_game_settings(db: Session):
+    """Получаем текущие настройки игры"""
+    return db.query(CrashGameSettings).first()
+
+def update_crash_game_settings(db: Session, settings_data: dict):
+    """Обновляем настройки игры"""
+    settings = db.query(CrashGameSettings).first()
+    
+    if not settings:
+        settings = CrashGameSettings()
+        db.add(settings)
+    
+    for key, value in settings_data.items():
+        if hasattr(settings, key):
+            setattr(settings, key, value)
+    
+    db.commit()
+    db.refresh(settings)
+    return settings
+
+def get_game_stats(db: Session):
+    """Статистика игр для расчета фактического RTP"""
+    from sqlalchemy import func
+    
+    total_games = db.query(func.count(CrashGameResult.id)).scalar()
+    total_bet = db.query(func.sum(CrashGameResult.total_bet)).scalar() or 0
+    total_payout = db.query(func.sum(CrashGameResult.total_payout)).scalar() or 0
+    
+    actual_rtp = (total_payout / total_bet) if total_bet > 0 else 0
+    
+    return {
+        "total_games": total_games,
+        "total_bet": float(total_bet),
+        "total_payout": float(total_payout),
+        "house_profit": float(total_bet - total_payout),
+        "actual_rtp": float(actual_rtp)
+    }
+    
+def get_admin_settings(db: Session):
+    """Получаем настройки админки"""
+    return db.query(AdminSettings).first()
+
+def update_admin_settings(db: Session, admin_code: str = None, 
+                         crash_rtp: float = None, 
+                         crash_min_multiplier: float = None,
+                         crash_max_multiplier: float = None):
+    """Обновляем настройки админки"""
+    settings = db.query(AdminSettings).first()
+    
+    if not settings:
+        settings = AdminSettings()
+        db.add(settings)
+    
+    if admin_code is not None:
+        settings.admin_code = admin_code
+    if crash_rtp is not None:
+        settings.crash_rtp = crash_rtp
+    if crash_min_multiplier is not None:
+        settings.crash_min_multiplier = crash_min_multiplier
+    if crash_max_multiplier is not None:
+        settings.crash_max_multiplier = crash_max_multiplier
+    
+    db.commit()
+    db.refresh(settings)
+    return settings
+
+
+
+admin.py
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from app.database.session import get_db
+from app.dependencies import get_current_admin, require_permission
+from app.database import crud
+
+router = APIRouter(prefix="/admin", tags=["admin"])
+
+@router.get("/crash-settings")
+async def get_crash_settings(
+    db: Session = Depends(get_db),
+    admin: dict = Depends(require_permission("manage_games"))
+):
+    """Получить текущие настройки краш-игры"""
+    settings = crud.get_crash_game_settings(db)
+    if not settings:
+        raise HTTPException(404, "Настройки не найдены")
+    
+    return {
+        "rtp": settings.rtp,
+        "house_edge": settings.house_edge,
+        "min_multiplier": settings.min_multiplier,
+        "max_multiplier": settings.max_multiplier,
+        "crash_point_distribution": settings.crash_point_distribution,
+        "volatility": settings.volatility,
+        "is_active": settings.is_active
+    }
+
+@router.post("/crash-settings")
+async def update_crash_settings(
+    settings_data: dict,
+    db: Session = Depends(get_db),
+    admin: dict = Depends(require_permission("manage_games"))
+):
+    """Обновить настройки краш-игры"""
+    try:
+        # Валидация данных
+        if 'rtp' in settings_data and not (0.5 <= settings_data['rtp'] <= 0.99):
+            raise HTTPException(400, "RTP должен быть между 0.5 и 0.99")
+        
+        if 'house_edge' in settings_data and not (0.01 <= settings_data['house_edge'] <= 0.5):
+            raise HTTPException(400, "Комиссия должна быть между 1% и 50%")
+        
+        settings = crud.update_crash_game_settings(db, settings_data)
+        
+        return {
+            "status": "success",
+            "message": "Настройки обновлены",
+            "settings": {
+                "rtp": settings.rtp,
+                "house_edge": settings.house_edge,
+                "min_multiplier": settings.min_multiplier,
+                "max_multiplier": settings.max_multiplier,
+                "volatility": settings.volatility,
+                "distribution": settings.crash_point_distribution
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(500, f"Ошибка обновления настроек: {str(e)}")
+
+@router.get("/game-stats")
+async def get_game_stats(
+    db: Session = Depends(get_db),
+    admin: dict = Depends(require_permission("view_stats"))
+):
+    """Статистика игры для админки"""
+    stats = crud.get_game_stats(db)
+    
+    # Добавляем текущие теоретические настройки
+    settings = crud.get_crash_game_settings(db)
+    stats["theoretical_rtp"] = settings.rtp if settings else 0.95
+    stats["house_edge"] = settings.house_edge if settings else 0.05
+    
+    return stats
