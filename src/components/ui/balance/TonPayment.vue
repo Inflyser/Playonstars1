@@ -19,16 +19,6 @@
 
         <!-- Состояние: кошелек подключен -->
         <div v-else class="payment-section">
-            <div class="wallet-info">
-                <div class="wallet-header">
-                    <span>Подключенный кошелек:</span>
-                    <span class="wallet-address">{{ shortAddress }}</span>
-                </div>
-                <div class="balance-info">
-                    <span>Баланс кошелька:</span>
-                    <span class="balance-amount">{{ formattedBalance }} TON</span>
-                </div>
-            </div>
 
             <InputPanel
                 v-model="amount"
