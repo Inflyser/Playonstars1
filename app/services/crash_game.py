@@ -89,7 +89,7 @@ class CrashGame:
             "time_remaining": 15,
             "multiplier": 1.0,
             "settings": {
-                "rtp": self.settings.rtp if self.settings else 0.95,
+                "rtp": self.settings.crash_rtp if self.settings else 0.95,
                 "min_multiplier": self.settings.min_multiplier if self.settings else 1.1,
                 "max_multiplier": self.settings.max_multiplier if self.settings else 100.0
             }
