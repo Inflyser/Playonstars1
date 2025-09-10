@@ -1,24 +1,7 @@
 <template>
     <div class="home">
         <!-- Debug panel -->
-        <div class="debug-panel" v-if="showDebug">
-            <div class="debug-item">
-                <span>WebSocket: </span>
-                <span :class="connectionStatus">{{ connectionStatus }}</span>
-            </div>
-            <div class="debug-item" v-if="socketError">
-                <span>Error: </span>
-                <span class="error">{{ socketError }}</span>
-            </div>
-            <div class="debug-item">
-                <span>Game Phase: </span>
-                <span>{{ gameState.phase }}</span>
-            </div>
-            <div class="debug-item">
-                <span>Multiplier: </span>
-                <span>{{ currentMultiplier.toFixed(2) }}x</span>
-            </div>
-        </div>
+
 
         <TelegramHeader />
 
