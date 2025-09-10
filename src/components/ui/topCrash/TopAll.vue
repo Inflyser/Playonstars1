@@ -1,7 +1,7 @@
 <template>
   <div class="top-all-container">
     <div class="history-header">
-      <h3>История ставок</h3>
+      <h4 style="color: #F0F0F080;">Всего ставок:</h4>
       <button @click="refreshHistory" class="refresh-btn">
         <img src="@/assets/images/refresh-small.svg" alt="Refresh">
       </button>
