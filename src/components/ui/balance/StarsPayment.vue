@@ -35,11 +35,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import InputPanel from '@/components/layout/InputPanel.vue'
 import { api } from '@/services/api'
 import { useUserStore } from '@/stores/useUserStore'
+import { isInvoiceSupported, openInvoice } from '@telegram-apps/sdk'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -48,16 +49,6 @@ const amount = ref('')
 const isProcessing = ref(false)
 const error = ref('')
 const successMessage = ref('')
-const telegramWebApp = ref<any>(null)
-
-onMounted(() => {
-  // Проверяем доступность Telegram WebApp
-  if (window.Telegram?.WebApp) {
-    telegramWebApp.value = window.Telegram.WebApp
-    telegramWebApp.value.expand()
-    telegramWebApp.value.enableClosingConfirmation()
-  }
-})
 
 const isValidAmount = computed(() => {
   const numAmount = parseFloat(amount.value || '0')
@@ -66,101 +57,71 @@ const isValidAmount = computed(() => {
 
 const initiateTelegramPayment = async () => {
   if (!isValidAmount.value) {
-    error.value = 'Неверная сумма. Минимум 100 STARS, максимум 5000 STARS';
-    return;
+    error.value = 'Неверная сумма. Минимум 100 STARS, максимум 5000 STARS'
+    return
   }
 
-  isProcessing.value = true;
-  error.value = '';
-  successMessage.value = '';
+  isProcessing.value = true
+  error.value = ''
+  successMessage.value = ''
 
   try {
-    const starsAmount = parseFloat(amount.value);
+    const starsAmount = parseFloat(amount.value)
     
     // 1. Создаем инвойс на бекенде
     const invoiceResponse = await api.post('/api/stars/create-invoice', {
       amount: starsAmount
-    });
+    })
 
-    console.log('Invoice response:', invoiceResponse.data);
+    console.log('Invoice response:', invoiceResponse.data)
 
     if (invoiceResponse.data.status === 'success') {
-      // 2. Проверяем доступность Telegram WebApp и метода openInvoice
-      if (window.Telegram?.WebApp && 'openInvoice' in window.Telegram.WebApp) {
-        
-        if (window.Telegram?.WebApp) {
-  window.Telegram.WebApp.openInvoice(
-    invoiceResponse.data.invoice_link,
-    (status: Telegram.InvoiceStatus) => {
-      handlePaymentStatus(status, starsAmount);
-    }
-  );
-}
-        } else if (invoiceResponse.data.invoice_id) {
-          // ✅ ВАРИАНТ 2: Создаем URL из invoice_id
-          const invoiceUrl = `https://t.me/invoice/${invoiceResponse.data.invoice_id}`;
-          window.Telegram.WebApp.openInvoice!(
-            invoiceUrl,
-            (status: string) => {
-              handlePaymentStatus(status, starsAmount);
-            }
-          );
-        } else {
-          throw new Error('Неверный формат ответа от сервера');
-        }
+      // 2. ✅ Используем официальный SDK Telegram
+      if (isInvoiceSupported()) {
+        // Ожидаем статус оплаты от openInvoice
+        const result = await openInvoice(invoiceResponse.data.invoice_link)
+        handlePaymentStatus(result.status, starsAmount)
       } else {
-        // ❌ openInvoice недоступен
-        error.value = 'Оплата через Telegram недоступна в вашем клиенте';
-        console.error('openInvoice not available in this Telegram client');
+        // Fallback для старых версий Telegram
+        if (window.Telegram?.WebApp && typeof window.Telegram.WebApp.openInvoice === 'function') {
+          window.Telegram.WebApp.openInvoice(
+            invoiceResponse.data.invoice_link,
+            (status: string) => {
+              handlePaymentStatus(status as 'paid' | 'failed' | 'cancelled' | 'pending', starsAmount)
+            }
+          )
+        } else {
+          throw new Error('Оплата через Telegram недоступна в вашем клиенте')
+        }
       }
     } else {
-      throw new Error(invoiceResponse.data.detail || 'Ошибка создания инвойса');
+      throw new Error(invoiceResponse.data.detail || 'Ошибка создания инвойса')
     }
 
   } catch (err: any) {
-    console.error('Payment error:', err);
-    error.value = err.response?.data?.detail || err.message || 'Ошибка при создании платежа';
+    console.error('Payment error:', err)
+    error.value = err.message || 'Ошибка при создании платежа'
   } finally {
-    isProcessing.value = false;
-  }
-};
-
-const handlePaymentStatus = (status: string, starsAmount: number) => {
-  if (status === 'paid') {
-    userStore.fetchBalance().then(() => {
-      successMessage.value = `✅ Успешно пополнено ${starsAmount} STARS!`
-      setTimeout(() => router.back(), 2000)
-    })
-  } else if (status === 'failed') {
-    error.value = 'Оплата не удалась. Попробуйте снова.'
-  } else if (status === 'cancelled') {
-    console.log('Пользователь отменил оплату')
+    isProcessing.value = false
   }
 }
 
-const handleTestPayment = async (starsAmount: number) => {
-  try {
-    // Для тестирования без Telegram WebApp
-    const response = await api.post('/api/user/update-balance', {
-      currency: 'stars',
-      amount: starsAmount,
-      operation: 'add'
-    })
-
-    if (response.data.status === 'success') {
-      await userStore.fetchBalance()
-      successMessage.value = `✅ Успешно пополнено ${starsAmount} STARS! (тестовый режим)`
-      
-      setTimeout(() => {
-        router.back()
-      }, 2000)
-    }
-  } catch (err: any) {
-    error.value = err.response?.data?.detail || 'Ошибка при пополнении баланса'
+const handlePaymentStatus = (status: 'paid' | 'failed' | 'cancelled' | 'pending', starsAmount: number) => {
+  console.log('Payment status:', status);
+  
+  if (status === 'paid') {
+    userStore.fetchBalance().then(() => {
+      successMessage.value = `✅ Успешно пополнено ${starsAmount} STARS!`;
+      setTimeout(() => router.back(), 2000);
+    });
+  } else if (status === 'failed') {
+    error.value = 'Оплата не удалась. Попробуйте снова.';
+  } else if (status === 'cancelled') {
+    console.log('Пользователь отменил оплату');
+    error.value = 'Оплата отменена.';
   }
 }
 </script>
-
 
 <style scoped>
 .stars-payment {
