@@ -1,5 +1,8 @@
-// telegram.d.ts - полная версия
+// telegram.d.ts - исправленная версия
 declare namespace Telegram {
+  // Добавляем тип для статуса инвойса
+  type InvoiceStatus = 'paid' | 'cancelled' | 'failed' | 'pending';
+  
   interface WebApp {
     // Основные свойства
     initData: string;
@@ -14,6 +17,8 @@ declare namespace Telegram {
     headerColor: string;
     backgroundColor: string;
     
+    // ✅ ДОБАВЛЯЕМ МЕТОД openInvoice
+    openInvoice(url: string, callback?: (status: InvoiceStatus) => void): void;
     
     // Кнопки
     BackButton: BackButton;
@@ -32,7 +37,7 @@ declare namespace Telegram {
     showAlert(message: string): void;
     showConfirm(message: string, callback: (confirmed: boolean) => void): void;
     
-    // Дополнительные методы (если нужны)
+    // Дополнительные методы
     enableClosingConfirmation?(): void;
     disableClosingConfirmation?(): void;
     setHeaderColor?(color: string): void;
@@ -96,8 +101,6 @@ declare global {
     Telegram: {
       WebApp: Telegram.WebApp;
     };
-    tonProtocol: any; // Переносим из global.d.ts
+    tonProtocol: any;
   }
 }
-
-// Убираем export если это .d.ts файл
