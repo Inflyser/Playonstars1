@@ -14,7 +14,6 @@
           </button>
           
           <div v-else class="wallet-address">
-            <span class="connected-badge"></span>
             {{ walletStore.shortAddress }}
           </div>
         </div>
