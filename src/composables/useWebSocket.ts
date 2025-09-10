@@ -2,7 +2,6 @@ import { ref, onUnmounted } from 'vue'
 import { useUserStore } from '@/stores/useUserStore'
 import { useWalletStore } from '@/stores/useWalletStore'
 import { useGameStore } from '@/stores/useGameStore'
-import { api } from '@/services/api'
 
 interface WebSocketCallbacks {
   onNewBet?: (betData: any) => void
@@ -11,65 +10,99 @@ interface WebSocketCallbacks {
 
 export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
     const socket = ref<WebSocket | null>(null)
+    const crashSocket = ref<WebSocket | null>(null) // ✅ Отдельный сокет для краш-игры
     const isConnected = ref(false)
+    const isCrashConnected = ref(false)
     const reconnectAttempts = ref(0)
     const maxReconnectAttempts = 5
+    let pingInterval: number | null = null
 
     const getWebSocketUrl = (): string => {
         const envUrl = import.meta.env.VITE_WS_URL;
         
-        // Если в .env есть правильный URL - используем его
         if (envUrl && envUrl.startsWith('wss://')) {
             return envUrl;
         }
         
-        // Fallback: автоматически определяем URL на основе текущего хоста
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.host;
         
-        // ✅ Подключаемся к БАЗОВОМУ URL /ws (а не /ws/general или /ws/crash)
         return `${protocol}//${host}/ws`;
     };
 
+    // ✅ ОБЩЕЕ ПОДКЛЮЧЕНИЕ
     const connect = (url?: string): Promise<boolean> => {
         const targetUrl = url || getWebSocketUrl()
-        return connectToUrl(targetUrl)
+        return connectToUrl(targetUrl, 'general')
     }
 
-    const connectToUrl = async (url: string): Promise<boolean> => {
+    // ✅ ПОДКЛЮЧЕНИЕ К КРАШ-ИГРЕ
+    const connectToCrashGame = async (): Promise<boolean> => {
+        const baseUrl = getWebSocketUrl()
+        const url = baseUrl.endsWith('/') ? `${baseUrl}crash` : `${baseUrl}/crash`
+        return connectToUrl(url, 'crash')
+    }
+
+    const connectToUrl = async (url: string, socketType: 'general' | 'crash' = 'general'): Promise<boolean> => {
         try {
-            socket.value = new WebSocket(url)
+            const ws = new WebSocket(url)
             
             return new Promise((resolve, reject) => {
-                if (!socket.value) {
-                    reject(new Error('Failed to create WebSocket'))
-                    return
-                }
-
-                socket.value.onopen = () => {
-                    console.log('✅ WebSocket connected to:', url)
-                    isConnected.value = true
+                ws.onopen = () => {
+                    console.log(`✅ WebSocket connected to ${socketType}:`, url)
+                    
+                    if (socketType === 'general') {
+                        socket.value = ws
+                        isConnected.value = true
+                    } else {
+                        crashSocket.value = ws
+                        isCrashConnected.value = true
+                    }
+                    
                     reconnectAttempts.value = 0
+                    
+                    // Запускаем ping только для общего соединения
+                    if (socketType === 'general' && !pingInterval) {
+                        pingInterval = window.setInterval(() => {
+                            if (ws.readyState === WebSocket.OPEN) {
+                                ws.send(JSON.stringify({
+                                    type: 'ping',
+                                    timestamp: Date.now()
+                                }))
+                            }
+                        }, 30000)
+                    }
+                    
                     resolve(true)
                 }
 
-                socket.value.onmessage = (event) => {
+                ws.onmessage = (event) => {
                     try {
                         const data = JSON.parse(event.data)
-                        handleWebSocketMessage(data)
+                        handleWebSocketMessage(data, socketType)
                     } catch (error) {
                         console.error('Error parsing WebSocket message:', error)
                     }
                 }
 
-                socket.value.onclose = (event) => {
-                    console.log('WebSocket disconnected:', event.code, event.reason)
-                    isConnected.value = false
-                    attemptReconnect()
+                ws.onclose = (event) => {
+                    console.log(`WebSocket ${socketType} disconnected:`, event.code, event.reason)
+                    
+                    if (socketType === 'general') {
+                        isConnected.value = false
+                        socket.value = null
+                    } else {
+                        isCrashConnected.value = false
+                        crashSocket.value = null
+                    }
+                    
+                    if (socketType === 'general') {
+                        attemptReconnect()
+                    }
                 }
 
-                socket.value.onerror = (error) => {
-                    console.error('WebSocket error:', error)
+                ws.onerror = (error) => {
+                    console.error(`WebSocket ${socketType} error:`, error)
                     reject(error)
                 }
             })
@@ -79,9 +112,8 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
         }
     }
 
-    const handleWebSocketMessage = (data: any) => {
+    const handleWebSocketMessage = (data: any, socketType: string) => {
         const userStore = useUserStore();
-        const walletStore = useWalletStore();
         const gameStore = useGameStore();
 
         switch (data.type) {
@@ -95,6 +127,7 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
 
             case 'crash_result':
                 gameStore.processCrashResult(data.data);
+                // Обновляем баланс после завершения игры
                 setTimeout(() => {
                     userStore.fetchBalance();
                 }, 2000);
@@ -104,7 +137,6 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
                 userStore.setBalance(data.balance);
                 break;
 
-            // ✅ ОБРАБОТКА СТАВОК ЧЕРЕЗ CALLBACK
             case 'new_bet':
                 if (callbacks.onNewBet) {
                     callbacks.onNewBet(data.data);
@@ -117,35 +149,14 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
                 }
                 break;
 
-            case 'ping':
-                send({ type: 'pong', timestamp: data.timestamp });
+            case 'pong':
+                // Обработка pong ответа
                 break;
 
             default:
                 console.log('Unknown WebSocket message type:', data.type);
         }
     };
-
-    // ✅ Добавляем методы для краш-игры
-    const connectToCrashGame = async (): Promise<boolean> => {
-        const baseUrl = getWebSocketUrl()
-        const url = baseUrl.endsWith('/') ? `${baseUrl}crash` : `${baseUrl}/crash`
-        return connectToUrl(url)
-    }
-
-    const connectToGeneral = async (): Promise<boolean> => {
-        const baseUrl = getWebSocketUrl()
-        const url = baseUrl.endsWith('/') ? `${baseUrl}general` : `${baseUrl}/general`
-        return connectToUrl(url)
-    }
-
-    const connectToUserChannel = async (userId: number): Promise<boolean> => {
-        const baseUrl = getWebSocketUrl()
-        const url = baseUrl.endsWith('/') ? `${baseUrl}user/${userId}` : `${baseUrl}/user/${userId}`
-        return connectToUrl(url)
-    }
-
-
 
     const attemptReconnect = () => {
         if (reconnectAttempts.value < maxReconnectAttempts) {
@@ -160,67 +171,73 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
         }
     }
 
-    const disconnect = () => {
-        if (socket.value) {
+    const disconnect = (socketType: 'general' | 'crash' = 'general') => {
+        if (socketType === 'general' && socket.value) {
             socket.value.close()
             socket.value = null
             isConnected.value = false
+            
+            if (pingInterval) {
+                clearInterval(pingInterval)
+                pingInterval = null
+            }
+        } else if (socketType === 'crash' && crashSocket.value) {
+            crashSocket.value.close()
+            crashSocket.value = null
+            isCrashConnected.value = false
         }
     }
 
-    const send = (data: any) => {
-        if (socket.value && isConnected.value) {
-            socket.value.send(JSON.stringify(data))
+    const send = (data: any, socketType: 'general' | 'crash' = 'general') => {
+        const targetSocket = socketType === 'general' ? socket.value : crashSocket.value;
+        const isTargetConnected = socketType === 'general' ? isConnected.value : isCrashConnected.value;
+        
+        if (targetSocket && isTargetConnected && targetSocket.readyState === WebSocket.OPEN) {
+            targetSocket.send(JSON.stringify(data))
+            return true
         }
+        return false
     }
     
     const placeCrashBet = (amount: number, autoCashout?: number) => {
         try {
             const userStore = useUserStore();
-            
-            // ✅ ВАЖНО: Проверяем, что отправляем ID из БД, а не telegram_id
-            const userId = userStore.user?.id; // Это ID из БД
-            const telegramId = userStore.user?.telegram_id; // Это telegram_id
-            
-            console.log("🎯 [Frontend] User data:", {
-                db_id: userId, 
-                telegram_id: telegramId,
-                amount: amount
-            });
+            const userId = userStore.user?.id;
             
             if (!userId) {
-                console.error("❌ [Frontend] User ID not available");
-                return;
+                console.error("❌ User ID not available");
+                return false;
             }
             
             const betData = {
                 type: "place_bet",
-                user_id: userId, // ✅ Отправляем ID из БД
+                user_id: userId,
                 amount: amount,
                 auto_cashout: autoCashout,
                 currency: "stars"
             };
             
-            console.log("🎯 [Frontend] Sending bet:", betData);
-            send(betData);
+            console.log("🎯 Sending crash bet:", betData);
+            return send(betData, 'crash');
             
         } catch (error) {
-            console.error("❌ [Frontend] Failed to send bet:", error);
+            console.error("❌ Failed to send crash bet:", error);
+            return false;
         }
     };
 
     const cashOut = () => {
-        send({
+        return send({
             type: 'cash_out'
-        })
+        }, 'crash')
     }
 
     const getCrashHistory = () => {
-        send({
+        return send({
             type: 'get_history',
             game: 'crash',
             limit: 50
-        })
+        }, 'crash')
     }
 
     // ✅ Функция для периодического опроса (fallback)
@@ -239,25 +256,27 @@ export const useWebSocket = (callbacks: WebSocketCallbacks = {}) => {
         }
 
         poll()
-        return setInterval(poll, interval)
+        return window.setInterval(poll, interval)
     }
 
-    
-
     onUnmounted(() => {
-        disconnect()
+        disconnect('general')
+        disconnect('crash')
+        if (pingInterval) {
+            clearInterval(pingInterval)
+        }
     })
 
     return {
         socket,
+        crashSocket,
         isConnected,
+        isCrashConnected,
         connect,
+        connectToCrashGame,
         disconnect,
         send,
         startPolling,
-        connectToCrashGame,
-        connectToGeneral,
-        connectToUserChannel,
         placeCrashBet,
         cashOut,
         getCrashHistory

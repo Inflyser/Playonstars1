@@ -492,19 +492,18 @@ watch(() => gameState.value.phase, (newPhase) => {
 
 onMounted(async () => {
   try {
-    await connectToCrashGame()
-    await gameStore.loadGameHistory()
-    
-    // Инициализация графика
-    initGraph()
+    // ✅ Теперь это асинхронная функция
+    const connected = await connectToCrashGame()
+    if (connected) {
+      console.log('✅ Successfully connected to crash game')
+      await gameStore.loadGameHistory(10)
+      initGraph()
+    } else {
+      console.error('❌ Failed to connect to crash game')
+    }
   } catch (err) {
     console.error('Failed to initialize crash game:', err)
   }
-})
-
-// Перерисовываем график при изменении множителя
-watch(currentMultiplier, () => {
-  drawGraph()
 })
 
 
