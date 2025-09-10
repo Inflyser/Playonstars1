@@ -1188,5 +1188,43 @@ def generate_avatar_url(user: User) -> str:
     return f"https://t.me/i/userpic/320/{user.telegram_id}.jpg"
 
 
+
+@app.post("/api/webhook/telegram")
+async def handle_telegram_webhook(request: Request, db: Session = Depends(get_db)):
+    """Обработка вебхуков от Telegram"""
+    try:
+        payload = await request.json()
+        
+        # Обработка успешного платежа
+        if 'message' in payload and 'successful_payment' in payload['message']:
+            payment_data = payload['message']['successful_payment']
+            invoice_payload = json.loads(payment_data.get('invoice_payload', '{}'))
+            
+            user_id = invoice_payload.get('user_id')
+            amount = invoice_payload.get('amount')
+            
+            if user_id and amount:
+                # Обновляем баланс пользователя
+                user = crud.get_user_by_telegram_id(db, user_id)
+                if user:
+                    user.stars_balance += amount
+                    db.commit()
+                    
+                    # Отправляем уведомление через WebSocket
+                    await websocket_manager.send_to_user(
+                        f"user_{user_id}",
+                        {
+                            "type": "balance_update",
+                            "currency": "stars",
+                            "new_balance": user.stars_balance,
+                            "amount_added": amount
+                        }
+                    )
+        
+        return {"status": "ok"}
+        
+    except Exception as e:
+        print(f"Webhook error: {e}")
+        return {"status": "error"}
     
 # Подключаем роутеры
