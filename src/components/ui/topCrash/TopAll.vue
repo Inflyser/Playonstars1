@@ -1,7 +1,7 @@
 <template>
   <div class="top-all-container">
     <div class="history-header">
-      <h4 style="color: #F0F0F080;">Всего ставок:</h4>
+      <h4 style="color: #F0F0F080;">Всего ставок: {{ filteredBetHistory.length }}</h4>
       <button @click="refreshHistory" class="refresh-btn">
         <img src="@/assets/images/refresh-small.svg" alt="Refresh">
       </button>
@@ -9,13 +9,12 @@
     
     <div class="bets-list-vertical" ref="betsList">
       <div 
-        v-for="bet in betHistory" 
+        v-for="bet in filteredBetHistory" 
         :key="bet.id"
         class="bet-item-vertical"
         :class="{ 
           won: bet.status === 'won', 
-          lost: bet.status === 'lost',
-          pending: bet.status === 'pending'
+          lost: bet.status === 'lost'
         }"
       >
         <div class="bet-info-row">
@@ -35,7 +34,7 @@
           
           <div class="bet-profit-section" :class="{ 
             profit: bet.status === 'won', 
-            loss: bet.status !== 'won' 
+            loss: bet.status === 'lost' 
           }">
             <span class="bet-profit">{{ formatProfit(bet) }}</span>
             <img src="@/assets/images/coin.svg" class="currency-icon" alt="stars">
@@ -47,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
 import { useUserStore } from '@/stores/useUserStore'
 import { useBetHistory } from '@/composables/useBetHistory'
 import { api } from '@/services/api'
@@ -57,6 +56,11 @@ const userStore = useUserStore()
 const { betHistory, loading, addNewBet, setBetHistory } = useBetHistory()
 const error = ref<string | null>(null)
 const betsList = ref<HTMLElement | null>(null)
+
+// Фильтруем историю ставок, исключая pending
+const filteredBetHistory = computed(() => {
+  return betHistory.value.filter(bet => bet.status !== 'pending')
+})
 
 // Подключаем WebSocket и передаем callback функции
 const { connectToCrashGame } = useWebSocket({
@@ -76,7 +80,7 @@ const formatProfit = (bet: any) => {
   } else if (bet.status === 'lost') {
     return `-${formatAmount(bet.bet_amount)}`;
   } else {
-    // Для pending статуса или других случаев
+    // Для других статусов (на всякий случай)
     return formatAmount(0);
   }
 }
@@ -278,11 +282,11 @@ onMounted(async () => {
 }
 
 .bet-profit-section.profit {
-  color: #4caf50; /* Зеленый цвет для выигрыша */
+  color: #4caf50;
 }
 
 .bet-profit-section.loss {
-  color: #f44336; /* Красный цвет для проигрыша */
+  color: #f44336;
 }
 
 .bet-profit {
