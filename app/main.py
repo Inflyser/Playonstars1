@@ -491,7 +491,7 @@ async def run_crash_game():
         try:
             await crash_game.run_game_cycle()  # ✅ Используем существующий экземпляр
             # Пауза между играми
-            await asyncio.sleep(10)
+            await asyncio.sleep(5)
         except Exception as e:
             print(f"Error in crash game: {e}")
             await asyncio.sleep(10)

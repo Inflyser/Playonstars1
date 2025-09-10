@@ -26,31 +26,6 @@ class CrashGame:
         return self.settings
 
     def generate_multiplier(self) -> float:
-        """Генерация множителя с учетом RTP и настроек"""
-        if not self.settings:
-            return round(random.uniform(1.1, 10.0), 2)
-        
-        # Базовая вероятность краха (зависит от RTP)
-        base_crash_probability = 1 - self.settings.rtp
-        
-        # Корректируем вероятность в зависимости от волатильности
-        adjusted_probability = base_crash_probability * self.settings.volatility
-        
-        # Выбираем тип распределения
-        if self.settings.crash_point_distribution == 'exponential':
-            multiplier = self._generate_exponential_multiplier(adjusted_probability)
-        elif self.settings.crash_point_distribution == 'uniform':
-            multiplier = self._generate_uniform_multiplier()
-        else:
-            multiplier = self._generate_custom_multiplier(adjusted_probability)
-        
-        # Ограничиваем мин/макс значениями
-        multiplier = max(self.settings.min_multiplier, 
-                        min(self.settings.max_multiplier, multiplier))
-        
-        return round(multiplier, 2)
-
-    def generate_multiplier(self) -> float:
         """Простая генерация множителя"""
         db = SessionLocal()
         try:
