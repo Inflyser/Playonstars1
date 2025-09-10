@@ -1053,7 +1053,50 @@ async def get_crash_bet_history(
 
 # ----------------------------- ОСТАЛЬНЫЕ -------------------------------------
 
+@app.post("/api/webhook/stars")
+async def handle_stars_webhook(request: Request, db: Session = Depends(get_db)):
+    """Обработчик вебхука от Telegram Stars"""
+    try:
+        payload = await request.json()
+        print(f"📨 Received Stars webhook: {payload}")
+        
+        # Обрабатываем разные типы вебхуков
+        if payload.get('type') == 'payment_success':
+            # Обработка успешного платежа
+            await handle_stars_payment(payload, db)
+        
+        return {"status": "ok"}
+        
+    except Exception as e:
+        print(f"Error in Stars webhook: {e}")
+        return {"status": "error", "message": str(e)}
 
+async def handle_stars_payment(payload: dict, db: Session):
+    """Обработка успешного платежа Stars"""
+    try:
+        payment_data = payload.get('data', {})
+        telegram_id = payment_data.get('user_id')
+        amount = float(payment_data.get('amount', 0))
+        payment_id = payment_data.get('payment_id')
+        
+        if not all([telegram_id, amount, payment_id]):
+            print("⚠️ Missing required payment data")
+            return
+        
+        # Обновляем баланс пользователя
+        user = crud.update_user_balance(db, telegram_id, "stars", amount)
+        
+        # Сохраняем ID платежа
+        if user.stars_payment_ids is None:
+            user.stars_payment_ids = []
+        
+        user.stars_payment_ids.append(payment_id)
+        db.commit()
+        
+        print(f"✅ Added {amount} STARS to user {telegram_id}")
+        
+    except Exception as e:
+        print(f"Error handling Stars payment: {e}")
 
     
 @app.get("/api/webhook-info")
