@@ -32,10 +32,7 @@
             {{ bet.crash_coefficient ? bet.crash_coefficient.toFixed(2) + 'x' : 'x' }}
           </div>
           
-          <div class="bet-profit-section" :class="{ 
-            profit: bet.status === 'won', 
-            loss: bet.status === 'lost' 
-          }">
+          <div class="bet-profit-section">
             <span class="bet-profit">{{ formatProfit(bet) }}</span>
             <img src="@/assets/images/coin.svg" class="currency-icon" alt="stars">
           </div>
@@ -57,7 +54,7 @@ const { betHistory, loading, addNewBet, setBetHistory } = useBetHistory()
 const error = ref<string | null>(null)
 const betsList = ref<HTMLElement | null>(null)
 
-// Фильтруем историю ставок, исключая pending
+// Фильтруем историю ставок, исключая только pending
 const filteredBetHistory = computed(() => {
   return betHistory.value.filter(bet => bet.status !== 'pending')
 })
@@ -95,11 +92,10 @@ const formatProfit = (bet: any) => {
   if (bet.status === 'won') {
     // Рассчитываем выигрыш: ставка × коэффициент, округляем до целого
     const winAmount = Math.round(bet.bet_amount * bet.crash_coefficient);
-    return `+${formatAmount(winAmount)}`;
+    return formatAmount(winAmount); // Без плюсика
   } else if (bet.status === 'lost') {
-    return `-${formatAmount(bet.bet_amount)}`;
+    return formatAmount(bet.bet_amount); // Без минусика
   } else {
-    // Для других статусов (на всякий случай)
     return formatAmount(0);
   }
 }
@@ -325,18 +321,11 @@ onMounted(async () => {
   justify-content: flex-end;
 }
 
-.bet-profit-section.profit {
-  color: #4caf50;
-}
-
-.bet-profit-section.loss {
-  color: #f44336;
-}
-
 .bet-profit {
   font-weight: 600;
   font-size: 11px;
   white-space: nowrap;
+  color: #ffffff; /* Белый цвет для прибыли */
 }
 
 .currency-icon {
