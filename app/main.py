@@ -99,17 +99,14 @@ async def startup():
         await bot.set_webhook(webhook_url_telegram)
         print(f"📱 Telegram webhook set to: {webhook_url_telegram}")
     
-    # TON webhook - с улучшенной логикой
+    # TON webhook
     ton_api_key = os.getenv("TON_API_KEY")
     ton_wallet_address = os.getenv("TON_WALLET_ADDRESS")
     webhook_url_ton = os.getenv("WEBHOOK_URL_TON")
 
     if all([ton_api_key, ton_wallet_address, webhook_url_ton]):
         print(f"🔗 Setting up TON webhook...")
-
-        # Сначала проверяем доступность API
         api_accessible = await ton_service.check_ton_api_status()
-
         if api_accessible:
             success = await ton_service.setup_webhook()
             if success:
@@ -124,8 +121,9 @@ async def startup():
         if not ton_wallet_address: missing_vars.append("TON_WALLET_ADDRESS") 
         if not webhook_url_ton: missing_vars.append("WEBHOOK_URL_TON")
         print(f"⚠️ TON Webhook skipped - missing environment variables: {', '.join(missing_vars)}")
-        # Запускаем фоновую задачу для краш-игры
-        asyncio.create_task(run_crash_game())
+    
+    # ✅ Запускаем фоновую задачу для краш-игры ОДИН РАЗ
+    asyncio.create_task(run_crash_game())
   
     # Проверяем WebSocket библиотеки
     try:
@@ -139,7 +137,7 @@ async def startup():
         print("✅ WebSocket support: wsproto library installed") 
     except ImportError:
         print("❌ WebSocket support: wsproto library missing")
-
+        
 
 @app.post("/login")
 async def login_from_webapp(request: Request, data: dict, db: Session = Depends(get_db)):
