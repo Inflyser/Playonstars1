@@ -8,7 +8,7 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 
-from app.services.mock_ton_service import mock_ton_service
+
 
 load_dotenv()
 
@@ -227,59 +227,3 @@ async def check_user_deposits(
     }
       
       
-# ТЕСТ
-
-
-@router.post("/test/mock-deposit")
-async def create_mock_deposit(
-    request: Request,
-    deposit_data: dict,
-    db: Session = Depends(get_db)
-):
-    """Эндпоинт для создания тестового депозита"""
-    if os.getenv('ENVIRONMENT') != 'development':
-        raise HTTPException(status_code=403, detail="Only available in development")
-    
-    telegram_id = request.session.get("telegram_id")
-    if not telegram_id:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    amount = deposit_data.get("amount", 1.0)
-    
-    success = await mock_ton_service.simulate_deposit(telegram_id, amount)
-    
-    if success:
-        return {
-            "status": "success",
-            "message": f"Mock deposit of {amount} TON processed",
-            "mock": True
-        }
-    else:
-        raise HTTPException(status_code=500, detail="Failed to process mock deposit")
-
-@router.post("/test/mock-bet")
-async def create_mock_bet(
-    request: Request,
-    bet_data: dict,
-    db: Session = Depends(get_db)
-):
-    """Эндпоинт для тестовой ставки"""
-    if os.getenv('ENVIRONMENT') != 'development':
-        raise HTTPException(status_code=403, detail="Only available in development")
-    
-    telegram_id = request.session.get("telegram_id")
-    if not telegram_id:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    amount = bet_data.get("amount", 10.0)
-    
-    success = await mock_ton_service.simulate_game_bet(telegram_id, amount)
-    
-    if success:
-        return {
-            "status": "success", 
-            "message": f"Mock bet of {amount} stars placed",
-            "mock": True
-        }
-    else:
-        raise HTTPException(status_code=400, detail="Insufficient balance or other error")
