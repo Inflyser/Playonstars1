@@ -14,6 +14,12 @@ class WebSocketManager:
         self.crash_game_connections: Set[WebSocket] = set()
         self.connection_timestamps: Dict[WebSocket, float] = {}  # ✅ Таймстампы соединений
         self.crash_game = None  # ✅ Будет установлен извне
+        
+            
+    async def _broadcast_to_crash_game(self, message: str):
+        """Приватный метод для broadcast сообщений только к подключениям crash игры"""
+        if not self.crash_game_connections:
+            return
 
     def set_crash_game(self, crash_game):
         """Устанавливаем ссылку на crash game"""
