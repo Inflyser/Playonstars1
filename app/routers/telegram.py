@@ -179,3 +179,28 @@ def get_continue_message(lang: str) -> str:
         'zh': "很高兴再次见到你！今天我们要做什么？🎮"
     }
     return messages[lang]
+
+from aiogram.types import LabeledPrice, PreCheckoutQuery
+
+async def stars_payment_handler(message: Message):
+    """Обработчик команды покупки Stars"""
+    prices = [LabeledPrice(label="STARS", amount=1000)]  # 10.00 STARS
+    
+    await message.answer_invoice(
+        title="Пополнение STARS",
+        description="Пополнение баланса STARS для игр",
+        provider_token="",  # Для Stars оставляем пустым
+        currency="XTR",     # Валюта Stars
+        prices=prices,
+        payload="stars_deposit",
+        start_parameter="stars_payment"
+    )
+
+async def stars_pre_checkout_handler(pre_checkout_query: PreCheckoutQuery):
+    """Предварительная проверка платежа"""
+    await pre_checkout_query.answer(ok=True)
+
+async def stars_successful_payment_handler(message: Message):
+    """Обработка успешного платежа"""
+    payment_info = message.successful_payment
+    await message.answer(f"✅ Успешно пополнено {payment_info.total_amount / 100} STARS!")
