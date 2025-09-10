@@ -1,114 +1,126 @@
 <template>
     <div class="home">
-        <!-- Debug panel -->
-
-
         <TelegramHeader />
 
+
+
         <div class="game-history">
-            <div class="history-list">
-                <div
-                    v-for="(game, index) in gameState.history" 
-                    :key="index"
-                    class="history-item"
-                    :class="{
-                        'multiplier-low': game.multiplier < 2.9,
-                        'multiplier-medium': game.multiplier >= 2.9 && game.multiplier < 7,
-                        'multiplier-high': game.multiplier >= 7
-                    }"
-                >
-                    {{ game.multiplier.toFixed(2) }}x
-                </div>
+          <div class="history-list">
+            <div
+              v-for="(game, index) in gameState.history" 
+              :key="index"
+              class="history-item"
+              :class="{
+                'multiplier-low': game.multiplier < 2.9,
+                'multiplier-medium': game.multiplier >= 2.9 && game.multiplier < 7,
+                'multiplier-high': game.multiplier >= 7
+              }"
+            >
+              {{ game.multiplier.toFixed(2) }}x
             </div>
+          </div>
 
-            <div class="history-scroll-indicator">
-                <div class="indicator-icon">
-                    <img src="@/assets/images/clock.svg" alt="scroll">
-                </div>
-                <div class="indicator-shadow"></div>
+          <!-- Фиксированная панелька справа -->
+          <div class="history-scroll-indicator">
+            <div class="indicator-icon">
+              <img src="@/assets/images/clock.svg" alt="scroll">
             </div>
+            <div class="indicator-shadow"></div>
+          </div>
         </div>
 
+
+
+
+        <!-- График игры -->
         <div class="game-graph">
-            <template v-if="gameState.phase !== 'finished'">
-                <img src="@/assets/images/crashfon.svg" class="graph-background">
-                <img src="@/assets/images/kpanel.svg" class="panels-crash">
-                <div class="multiplier-display" :class="{ growing: isGameActive }">
-                    x{{ currentMultiplier.toFixed(2) }}
-                </div>
-                <canvas ref="graphCanvas" class="graph-canvas"></canvas>
-                <img 
-                    v-if="rocketPosition" 
-                    :src="rocketImageSrc" 
-                    class="rocket-overlay"
-                    :style="{
-                        left: rocketPosition.x + 'px',
-                        top: rocketPosition.y + 'px'
-                    }"
-                >
-            </template>
-
-            <div v-else class="game-results">
-                <img src="@/assets/images/crashfon.svg" class="graph-background">
-                <img src="@/assets/images/kpanel.svg" class="panels-crash">
-                <div class="multiplier-display">
-                    x{{ currentMultiplier.toFixed(2) }}
-                </div>
-                <div class="result-header">
-                    <h3>Игра завершена!</h3>
-                </div>
-
-                <div class="player-result" v-if="currentUserBet">
-                    <div class="result-icon" :class="{ success: (currentUserBet.profit || 0) > 0, failure: (currentUserBet.profit || 0) <= 0 }">
-                        {{ (currentUserBet.profit || 0) > 0 ? '🎉' : '💥' }}
-                    </div>
-                    <div class="result-details">
-                        <p>Ваша ставка: <strong>{{ currentUserBet.amount }} stars</strong></p>
-                        <p :class="{ profit: (currentUserBet.profit || 0) > 0, loss: (currentUserBet.profit || 0) <= 0 }">
-                            Результат: <strong>{{ (currentUserBet.profit || 0) > 0 ? '+' + (currentUserBet.profit || 0).toFixed(2) : '0' }} stars</strong>
-                        </p>
-                        <p v-if="currentUserBet.cashoutMultiplier" class="cashout-info">
-                            Вывели на: x{{ currentUserBet.cashoutMultiplier.toFixed(2) }}
-                        </p>
-                        <p v-else class="cashout-info">
-                            Не успели вывести
-                        </p>
-                    </div>
-                </div>
-
-                <div class="no-bet" v-else>
-                    <div class="result-icon">👀</div>
-                    <p style="margin: -10px;">Вы не делали ставку в этой игре</p>
-                </div>
+          <template v-if="gameState.phase !== 'finished'">
+            <img src="@/assets/images/crashfon.svg" class="graph-background">
+            <img src="@/assets/images/kpanel.svg" class="panels-crash">
+            <div class="multiplier-display" :class="{ growing: isGameActive }">
+              x{{ currentMultiplier.toFixed(2) }}
             </div>
+            <canvas ref="graphCanvas" class="graph-canvas"></canvas>
+            <img 
+              v-if="rocketPosition" 
+              :src="rocketImageSrc" 
+              class="rocket-overlay"
+              :style="{
+                left: rocketPosition.x + 'px',
+                top: rocketPosition.y + 'px'
+              }"
+            >
+          </template>
+
+          <!-- Результаты игры -->
+          <div v-else class="game-results">
+            <img src="@/assets/images/crashfon.svg" class="graph-background">
+            <img src="@/assets/images/kpanel.svg" class="panels-crash">
+            <div class="multiplier-display" :class="{ growing: isGameActive }">
+              x{{ currentMultiplier.toFixed(2) }}
+            </div>
+            <div class="result-header">
+              <h3>Игра завершена!</h3>
+            </div>
+
+            <div class="player-result" v-if="currentUserBet">
+              <div class="result-icon" :class="{ success: (currentUserBet.profit || 0) > 0, failure: (currentUserBet.profit || 0) <= 0 }">
+                {{ (currentUserBet.profit || 0) > 0 ? '🎉' : '💥' }}
+              </div>
+              <div class="result-details">
+                <p>Ваша ставка: <strong>{{ currentUserBet.amount }} stars</strong></p>
+                <p :class="{ profit: (currentUserBet.profit || 0) > 0, loss: (currentUserBet.profit || 0) <= 0 }">
+                  Результат: <strong>{{ (currentUserBet.profit || 0) > 0 ? '+' + (currentUserBet.profit || 0).toFixed(2) : '0' }} stars</strong>
+                </p>
+                <p v-if="currentUserBet.cashoutMultiplier" class="cashout-info">
+                  Вывели на: x{{ currentUserBet.cashoutMultiplier.toFixed(2) }}
+                </p>
+                <p v-else class="cashout-info">
+                  Не успели вывести
+                </p>
+              </div>
+            </div>
+
+            <div class="no-bet" v-else>
+              <div class="result-icon">👀</div>
+              <p style="margin: -10px;">Вы не делали ставку в этой игре</p>
+            </div>
+          </div>
         </div>
 
+        <!-- Статус игры -->
         <div class="game-status">
             <div class="timer" v-if="gameState.phase === 'betting'">
-                {{ bettingTimer }}s
+              {{ bettingTimer }}s
             </div>
         </div>
 
+
+     
         <BettingPanel 
-            v-model:betAmount="firstBetAmount"
-            :maxAmount="userStore.balance.stars_balance"
-            :gamePhase="gameState.phase"
-            :currentMultiplier="currentMultiplier"
-            @place-bet="handleFirstBet"
-            @cash-out="doFirstCashOut"
+          v-model:betAmount="firstBetAmount"
+          :maxAmount="userStore.balance.stars_balance"
+          :gamePhase="gameState.phase"
+          :currentMultiplier="currentMultiplier"
+          @place-bet="handleFirstBet"
+          @cash-out="doFirstCashOut"
         />
 
+        <!-- Вторая панель ставок -->
         <BettingPanel 
-            v-model:betAmount="secondBetAmount"
-            :maxAmount="userStore.balance.stars_balance"
-            :gamePhase="gameState.phase"
-            :currentMultiplier="currentMultiplier"
-            @place-bet="handleSecondBet"
-            @cash-out="doSecondCashOut"
+          v-model:betAmount="secondBetAmount"
+          :maxAmount="userStore.balance.stars_balance"
+          :gamePhase="gameState.phase"
+          :currentMultiplier="currentMultiplier"
+          @place-bet="handleSecondBet"
+          @cash-out="doSecondCashOut"
         />
+     
+
 
         <div class="divider"></div>
 
+        <!-- Топ игроков -->
         <div class="balance-view">
             <ButtonTop v-model="selectedPaymentMethod" />
             
@@ -124,7 +136,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useGameStore } from '@/stores/useGameStore'
 import { useUserStore } from '@/stores/useUserStore'
 import { useWebSocket } from '@/composables/useWebSocket'
@@ -135,52 +147,40 @@ import Top10 from '@/components/ui/topCrash/Top10.vue'
 import TopAll from '@/components/ui/topCrash/TopAll.vue'
 import TopMy from '@/components/ui/topCrash/TopMy.vue'
 import BettingPanel from '@/components/layout/BettingPanel.vue' 
-import rocketImageSrc from '@/assets/images/space-monkey-character.svg'
+
 
 const gameStore = useGameStore()
 const userStore = useUserStore()
-const showDebug = ref(true)
+const { connectToCrashGame, placeCrashBet, cashOut } = useWebSocket()
 
-// WebSocket с колбэками
-const { 
-    connectToCrashGame, 
-    placeCrashBet, 
-    cashOut, 
-    isCrashConnected,
-    disconnect 
-} = useWebSocket({
-    onCrashUpdate: (data) => {
-        console.log('🎮 Crash update received:', data)
-        gameStore.setCrashGameState({
-            ...data,
-            players: data.players || [],
-            bets: data.bets || []
-        })
-    },
-    onCrashResult: (data) => {
-        console.log('💥 Crash result received:', data)
-        gameStore.processCrashResult(data)
-        setTimeout(() => userStore.fetchBalance(), 2000)
-    },
-    onBalanceUpdate: (balance) => {
-        console.log('💰 Balance update received:', balance)
-        userStore.setBalance(balance)
-    }
-})
-
-const connectionStatus = ref('disconnected')
-const socketError = ref<string | null>(null)
-const betAmountNumber = ref(100)
+const betAmountNumber = ref(100) // ✅ Теперь number
 const autoCashout = ref('')
 const selectedPaymentMethod = ref('top')
 const firstBetAmount = ref(100)
-const secondBetAmount = ref(50)
-const graphCanvas = ref<HTMLCanvasElement | null>(null)
-const graphContext = ref<CanvasRenderingContext2D | null>(null)
-const rocketPosition = ref<{x: number; y: number} | null>(null)
-const animationFrame = ref<number | null>(null)
-const bettingTimer = ref(0)
+const secondBetAmount = ref(50) // Можно задать разное начальное значение
 
+interface CrashGameHistory {
+  id: number
+  game_id: number
+  multiplier: number
+  crashed_at: number
+  total_players: number
+  total_bet: number
+  total_payout: number
+  timestamp: string
+}
+
+interface CrashGameState {
+  // ... другие поля ...
+  history: CrashGameHistory[]
+}
+
+const crashGame = ref<CrashGameState>({
+  // ... другие поля ...
+  history: []
+})
+
+// Computed properties
 const gameState = computed(() => gameStore.crashGame)
 const currentMultiplier = computed(() => gameState.value.multiplier)
 const isGameActive = computed(() => gameStore.isGameActive)
@@ -191,229 +191,324 @@ const currentUserBet = computed(() => gameStore.userBet)
 const currentProfit = computed(() => gameStore.currentProfit)
 const gameError = computed(() => gameStore.error)
 
-// Отслеживаем статус соединения
-watch(isCrashConnected, (connected) => {
-    connectionStatus.value = connected ? 'connected' : 'disconnected'
-    if (connected) socketError.value = null
-})
-
-const connectToGame = async () => {
-    try {
-        connectionStatus.value = 'connecting'
-        socketError.value = null
-        
-        const connected = await connectToCrashGame()
-        
-        if (connected) {
-            connectionStatus.value = 'connected'
-            console.log('✅ Successfully connected to crash game')
-            await gameStore.loadGameHistory(10)
-            initGraph()
-        } else {
-            connectionStatus.value = 'failed'
-            socketError.value = 'Failed to connect to game server'
-        }
-    } catch (err) {
-        connectionStatus.value = 'error'
-        socketError.value = err instanceof Error ? err.message : 'Unknown error'
-        console.error('Failed to connect to crash game:', err)
-    }
-}
 
 const handleFirstBet = (betData: any) => {
-    console.log('Ставка с первой панели:', betData)
-    const amount = betData.amount
-    const cashoutValue = betData.coefficient ? parseFloat(betData.coefficient) : undefined
-    
-    if (!amount || amount <= 0) return
-    
-    try {
-        gameStore.placeBet(amount, cashoutValue)
-        const success = placeCrashBet(amount, cashoutValue)
-        if (!success) {
-            console.error('Failed to send bet via WebSocket')
-        }
-    } catch (err) {
-        console.error('Failed to place bet from first panel:', err)
-    }
+  console.log('Ставка с первой панели:', betData)
+  // Ваша логика обработки ставки
+  const amount = betData.amount
+  const cashoutValue = betData.coefficient ? parseFloat(betData.coefficient) : undefined
+  
+  if (!amount || amount <= 0) return
+  
+  try {
+    gameStore.placeBet(amount, cashoutValue)
+    placeCrashBet(amount, cashoutValue)
+  } catch (err) {
+    console.error('Failed to place bet from first panel:', err)
+  }
 }
 
 const handleSecondBet = (betData: any) => {
-    console.log('Ставка со второй панели:', betData)
+  console.log('Ставка со второй панели:', betData)
+  // Можно добавить разную логику для второй панели
+  const amount = betData.amount
+  const cashoutValue = betData.coefficient ? parseFloat(betData.coefficient) : undefined
+  
+  if (!amount || amount <= 0) return
+  
+  try {
+    gameStore.placeBet(amount, cashoutValue)
+    placeCrashBet(amount, cashoutValue)
+  } catch (err) {
+    console.error('Failed to place bet from second panel:', err)
+  }
+}
+
+const doFirstCashOut = async () => {
+  try {
+    await gameStore.cashOut();
+    cashOut();
+    // Дополнительная логика для первой панели
+  } catch (error) {
+    console.error('Failed to cash out from first panel:', error);
+  }
+};
+
+const doSecondCashOut = async () => {
+  try {
+    await gameStore.cashOut();
+    cashOut();
+    // Дополнительная логика для второй панели
+  } catch (error) {
+    console.error('Failed to cash out from second panel:', error);
+  }
+};
+
+
+const totalBet = computed(() => {
+    return gameState.value.players.reduce((sum: number, player: any) => sum + player.betAmount, 0)
+})
+
+const phaseText = computed(() => {
+    const phases = {
+        waiting: 'Ожидание',
+        betting: 'Ставки',
+        flying: 'Игра идет!',
+        crashed: 'Крах!',
+        finished: 'Завершено'
+    }
+    return phases[gameState.value.phase] || 'Ожидание'
+})
+
+const visiblePlayers = computed(() => {
+    return gameState.value.players.slice(0, 10)
+})
+
+// Methods
+const setBetAmount = (amount: number) => {
+    betAmountNumber.value = amount // ✅ Просто присваиваем number
+}
+
+const placeBet = async (betData?: any) => {
+    // ✅ Теперь betAmountNumber уже number, не нужно парсить
+    const amount = betData?.amount || betAmountNumber.value
+    const cashoutValue = betData?.coefficient || (autoCashout.value ? parseFloat(autoCashout.value) : undefined)
+
+    if (!amount || amount <= 0) return
+    
+    try {
+        await gameStore.placeBet(amount, cashoutValue)
+        placeCrashBet(amount, cashoutValue)
+    } catch (err) {
+        console.error('Failed to place bet:', err)
+    }
+}
+
+// Новый метод для обработки ставки
+const handlePlaceBet = (betData: any) => {
     const amount = betData.amount
     const cashoutValue = betData.coefficient ? parseFloat(betData.coefficient) : undefined
-    
+
     if (!amount || amount <= 0) return
     
     try {
         gameStore.placeBet(amount, cashoutValue)
-        const success = placeCrashBet(amount, cashoutValue)
-        if (!success) {
-            console.error('Failed to send bet via WebSocket')
-        }
+        placeCrashBet(amount, cashoutValue)
     } catch (err) {
-        console.error('Failed to place bet from second panel:', err)
+        console.error('Failed to place bet:', err)
     }
 }
 
-const doFirstCashOut = async () => {
+const doCashOut = async () => {
     try {
-        await gameStore.cashOut()
-        const success = cashOut()
-        if (!success) {
-            console.error('Failed to send cashout via WebSocket')
-        }
+        await gameStore.cashOut();
+        cashOut();
+        
+        
+        // ✅ ДВОЙНАЯ ПРОВЕРКА СИНХРОНИЗАЦИИ
+        setTimeout(async () => {
+            const syncedBalance = await userStore.syncBalance();
+            if (syncedBalance) {
+                console.log('Balance synced successfully:', syncedBalance);
+            }
+        }, 1000);
+        
     } catch (error) {
-        console.error('Failed to cash out from first panel:', error)
+        console.error('Failed to cash out:', error);
     }
-}
+};
 
-const doSecondCashOut = async () => {
-    try {
-        await gameStore.cashOut()
-        const success = cashOut()
-        if (!success) {
-            console.error('Failed to send cashout via WebSocket')
-        }
-    } catch (error) {
-        console.error('Failed to cash out from second panel:', error)
-    }
-}
+// Добавляем watch для отслеживания изменений баланса
+watch(() => userStore.balance, (newBalance) => {
+    console.log('Balance changed:', newBalance);
+}, { deep: true });
 
-const initGraph = () => {
-    if (!graphCanvas.value) return
-    
-    graphCanvas.value.width = graphCanvas.value.offsetWidth
-    graphCanvas.value.height = graphCanvas.value.offsetHeight
-    
-    graphContext.value = graphCanvas.value.getContext('2d')
-    drawGraph()
-}
-
-const drawGraph = () => {
-    if (!graphContext.value || !graphCanvas.value) return
-    
-    const ctx = graphContext.value
-    const width = graphCanvas.value.width
-    const height = graphCanvas.value.height
-    
-    ctx.clearRect(0, 0, width, height)
-    
-    const freezeMultiplier = 2.5
-    const freezePointX = width * 0.67
-    let progress = currentMultiplier.value / freezeMultiplier
-    let renderProgress = Math.min(progress, 1)
-    
-    const baseStartY = height * 0.9
-    const startY = baseStartY - (baseStartY * 0.3 * renderProgress)
-    const endX = freezePointX * renderProgress
-    const endY = startY - (startY * renderProgress * renderProgress * 0.7)
-    
-    const gradient = ctx.createLinearGradient(0, 0, 0, height)
-    gradient.addColorStop(0.0, '#534081B2')
-    gradient.addColorStop(1.0, '#2C214330')
-    
-    ctx.beginPath()
-    ctx.fillStyle = gradient
-    ctx.moveTo(0, baseStartY)
-    
-    const points = 20
-    for (let i = 1; i <= points; i++) {
-        const t = i / points
-        const x = endX * t
-        const y = startY - (startY * t * t * renderProgress * 0.7)
-        ctx.lineTo(x, y)
-    }
-    
-    ctx.lineTo(endX, baseStartY)
-    ctx.lineTo(0, baseStartY)
-    ctx.closePath()
-    ctx.fill()
-    
-    ctx.beginPath()
-    ctx.lineWidth = 2
-    ctx.strokeStyle = '#534081'
-    ctx.moveTo(0, startY)
-    
-    for (let i = 1; i <= points; i++) {
-        const t = i / points
-        const x = endX * t
-        const y = startY - (startY * t * t * renderProgress * 0.7)
-        ctx.lineTo(x, y)
-    }
-    
-    ctx.stroke()
-    updateRocketPosition(endX, endY)
-    
-    if (isGameActive.value) {
-        animationFrame.value = requestAnimationFrame(drawGraph)
-    }
-}
-
-const updateRocketPosition = (endX: number, endY: number) => {
-    if (!graphCanvas.value) return
-    
-    const canvasRect = graphCanvas.value.getBoundingClientRect()
-    const scrollX = window.scrollX || window.pageXOffset
-    const scrollY = window.scrollY - 160 || window.pageYOffset
-    
-    rocketPosition.value = {
-        x: canvasRect.left + endX + scrollX,
-        y: canvasRect.top + endY + scrollY + 10
-    }
-}
 
 const prepareNewGame = () => {
-    gameStore.resetBet()
-    betAmountNumber.value = 10
-    autoCashout.value = ''
-    if (animationFrame.value) {
-        cancelAnimationFrame(animationFrame.value)
-        animationFrame.value = null
-    }
+  gameStore.resetBet()
+  betAmountNumber.value = 10
+  autoCashout.value = ''
+  // Останавливаем анимацию графика если она идет
+  if (animationFrame.value) {
+    cancelAnimationFrame(animationFrame.value)
+    animationFrame.value = null
+  }
 }
 
-watch(currentMultiplier, () => {
-    if (isGameActive.value && !animationFrame.value) {
-        animationFrame.value = requestAnimationFrame(drawGraph)
-    }
+// ГРАФИК
+
+import rocketImageSrc from '@/assets/images/space-monkey-character.svg'
+
+// Переменные
+const graphCanvas = ref<HTMLCanvasElement | null>(null)
+const graphContext = ref<CanvasRenderingContext2D | null>(null)
+const rocketPosition = ref<{x: number; y: number} | null>(null)
+const animationFrame = ref<number | null>(null)
+
+// Инициализация графика
+const initGraph = () => {
+  if (!graphCanvas.value) return
+  
+  graphCanvas.value.width = graphCanvas.value.offsetWidth
+  graphCanvas.value.height = graphCanvas.value.offsetHeight
+  
+  graphContext.value = graphCanvas.value.getContext('2d')
+  drawGraph()
+}
+
+// Функция отрисовки графика
+const drawGraph = () => {
+  if (!graphContext.value || !graphCanvas.value) return
+  
+  const ctx = graphContext.value
+  const width = graphCanvas.value.width
+  const height = graphCanvas.value.height
+  
+  // Очистка canvas
+  ctx.clearRect(0, 0, width, height)
+  
+  // Параметры графика
+  const freezeMultiplier = 2.5
+  const freezePointX = width * 0.67
+  
+  // Вычисляем прогресс
+  let progress = currentMultiplier.value / freezeMultiplier
+  let renderProgress = Math.min(progress, 1)
+  
+  // Координаты
+  const baseStartY = height * 0.9
+  const startY = baseStartY - (baseStartY * 0.3 * renderProgress)
+  const endX = freezePointX * renderProgress
+  const endY = startY - (startY * renderProgress * renderProgress * 0.7)
+  
+  // Градиент для области
+  const gradient = ctx.createLinearGradient(0, 0, 0, height)
+  gradient.addColorStop(0.0, '#534081B2')
+  gradient.addColorStop(1.0, '#2C214330')
+  
+  // Рисуем область под графиком
+  ctx.beginPath()
+  ctx.fillStyle = gradient
+  ctx.moveTo(0, baseStartY)
+  
+  const points = 20
+  for (let i = 1; i <= points; i++) {
+    const t = i / points
+    const x = endX * t
+    const y = startY - (startY * t * t * renderProgress * 0.7)
+    ctx.lineTo(x, y)
+  }
+  
+  ctx.lineTo(endX, baseStartY)
+  ctx.lineTo(0, baseStartY)
+  ctx.closePath()
+  ctx.fill()
+  
+  // Рисуем линию графика
+  ctx.beginPath()
+  ctx.lineWidth = 2
+  ctx.strokeStyle = '#534081'
+  ctx.moveTo(0, startY)
+  
+  for (let i = 1; i <= points; i++) {
+    const t = i / points
+    const x = endX * t
+    const y = startY - (startY * t * t * renderProgress * 0.7)
+    ctx.lineTo(x, y)
+  }
+  
+  ctx.stroke()
+  
+  // Обновляем позицию ракеты
+  updateRocketPosition(endX, endY)
+  
+  // Продолжаем анимацию если игра активна
+  if (isGameActive.value) {
+    animationFrame.value = requestAnimationFrame(drawGraph)
+  }
+}
+
+// Функция обновления позиции ракеты
+const updateRocketPosition = (endX: number, endY: number) => {
+  if (!graphCanvas.value) return
+  
+  const canvasRect = graphCanvas.value.getBoundingClientRect()
+  const scrollX = window.scrollX || window.pageXOffset
+  const scrollY = window.scrollY-160 || window.pageYOffset
+  
+  rocketPosition.value = {
+    x: canvasRect.left + endX + scrollX,
+    y: canvasRect.top + endY + scrollY + 10
+  }
+}
+
+// Загрузка при монтировании
+onMounted(async () => {
+  try {
+    await connectToCrashGame()
+    await gameStore.loadGameHistory(10) // ✅ Этот вызов должен быть
+    initGraph()
+  } catch (err) {
+    console.error('Failed to initialize crash game:', err)
+  }
 })
 
-watch(() => gameState.value.phase, (newPhase) => {
-    if (newPhase === 'finished') {
-        setTimeout(prepareNewGame, 5000)
-    } else if (newPhase === 'waiting' || newPhase === 'betting') {
-        if (animationFrame.value) {
-            cancelAnimationFrame(animationFrame.value)
-            animationFrame.value = null
-        }
-        rocketPosition.value = null
-        drawGraph()
-    }
-    if (newPhase === 'betting') {
-        bettingTimer.value = gameState.value.timeRemaining || 5
-        const timerInterval = setInterval(() => {
-            if (bettingTimer.value > 0) {
-                bettingTimer.value--
-            } else {
-                clearInterval(timerInterval)
-            }
-        }, 1000)
-    }
+
+// Следим за изменением множителя
+watch(currentMultiplier, () => {
+  if (isGameActive.value && !animationFrame.value) {
+    animationFrame.value = requestAnimationFrame(drawGraph)
+  }
 })
+
+const bettingTimer = ref(0)
+// Следим за фазой игры
+watch(() => gameState.value.phase, (newPhase) => {
+  if (newPhase === 'finished') {
+    setTimeout(prepareNewGame, 5000)
+  } else if (newPhase === 'waiting' || newPhase === 'betting') {
+    if (animationFrame.value) {
+      cancelAnimationFrame(animationFrame.value)
+      animationFrame.value = null
+    }
+    rocketPosition.value = null
+    drawGraph()
+  }
+  if (newPhase === 'betting') {
+    bettingTimer.value = gameState.value.timeRemaining || 5
+
+    const timerInterval = setInterval(() => {
+      if (bettingTimer.value > 0) {
+        bettingTimer.value--
+      } else {
+        clearInterval(timerInterval)
+      }
+    }, 1000)
+  }
+})
+
+
+// Lifecycle
 
 onMounted(async () => {
-    await connectToGame()
+  try {
+    await connectToCrashGame()
+    await gameStore.loadGameHistory()
+    
+    // Инициализация графика
+    initGraph()
+  } catch (err) {
+    console.error('Failed to initialize crash game:', err)
+  }
 })
 
-onUnmounted(() => {
-    disconnect('crash')
-    if (animationFrame.value) {
-        cancelAnimationFrame(animationFrame.value)
-    }
+// Перерисовываем график при изменении множителя
+watch(currentMultiplier, () => {
+  drawGraph()
 })
+
+
 </script>
-
 
 <style scoped>
 

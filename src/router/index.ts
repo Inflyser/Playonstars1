@@ -37,37 +37,11 @@ const routes = [
     name: 'telegram-only',
     component: () => import('@/views/LoginView.vue')
   },
-  {
-    path: '/admin-login',
-    name: 'AdminLogin',
-    component: () => import('@/views/AdminLogin.vue')
-  },
-  {
-    path: '/admin',
-    name: 'Admin',
-    component: () => import('@/views/AdminView.vue'),
-    meta: { requiresAuth: true }
-  }
 ]
-
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
-})
-
-// Навигационный guard для проверки авторизации
-router.beforeEach((to, from, next) => {
-  if (to.meta.requiresAuth) {
-    const adminToken = localStorage.getItem('admin_token')
-    if (!adminToken) {
-      next('/login?redirect=' + to.fullPath)
-    } else {
-      next()
-    }
-  } else {
-    next()
-  }
 })
 
 export default router
