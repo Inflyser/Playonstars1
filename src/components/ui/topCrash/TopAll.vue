@@ -17,18 +17,18 @@
           lost: bet.status === 'lost'
         }"
       >
-        <div class="bet-info-row">
-          <div class="bet-number">{{ bet.bet_number }}</div>
-          <div class="bet-time">{{ formatTime(bet.created_at) }}</div>
-        </div>
-        
-        <div class="bet-details-row">
+        <div class="bet-single-row">
+          <div class="bet-number-time">
+            <div class="bet-number">{{ bet.bet_number }}</div>
+            <div class="bet-time">{{ formatTime(bet.created_at) }}</div>
+          </div>
+          
           <div class="bet-amount-section">
             <span class="bet-amount">{{ formatAmount(bet.bet_amount) }}</span>
             <img src="@/assets/images/coin.svg" class="currency-icon" alt="stars">
           </div>
           
-          <div class="bet-multiplier-panel">
+          <div class="bet-multiplier-panel" :class="getMultiplierClass(bet)">
             {{ bet.crash_coefficient ? bet.crash_coefficient.toFixed(2) + 'x' : 'x' }}
           </div>
           
@@ -61,6 +61,25 @@ const betsList = ref<HTMLElement | null>(null)
 const filteredBetHistory = computed(() => {
   return betHistory.value.filter(bet => bet.status !== 'pending')
 })
+
+// Функция для определения класса множителя
+const getMultiplierClass = (bet: any) => {
+  if (bet.status === 'lost') {
+    return 'multiplier-low'; // Для проигранных ставок - синий
+  }
+  
+  if (!bet.crash_coefficient) {
+    return 'multiplier-low'; // По умолчанию синий
+  }
+  
+  if (bet.crash_coefficient < 2) {
+    return 'multiplier-low'; // Меньше 2 - синий
+  } else if (bet.crash_coefficient >= 2 && bet.crash_coefficient < 7) {
+    return 'multiplier-medium'; // От 2 до 6.99 - фиолетовый
+  } else {
+    return 'multiplier-high'; // 7 и больше - зеленый
+  }
+}
 
 // Подключаем WebSocket и передаем callback функции
 const { connectToCrashGame } = useWebSocket({
@@ -201,9 +220,7 @@ onMounted(async () => {
 }
 
 .bet-item-vertical {
-  display: flex;
-  flex-direction: column;
-  padding: 10px;
+  padding: 8px 10px;
   margin-bottom: 6px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.05);
@@ -221,31 +238,35 @@ onMounted(async () => {
   background: #1D1131;
 }
 
-.bet-info-row {
+.bet-single-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.bet-number-time {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 50px;
+  flex-shrink: 0;
 }
 
 .bet-number {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: #ffffff;
+  line-height: 1.2;
 }
 
 .bet-time {
-  font-size: 10px;
+  font-size: 9px;
   color: #a0a0b0;
   opacity: 0.8;
-}
-
-.bet-details-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: nowrap;
-  width: 100%;
+  line-height: 1.2;
+  margin-top: 2px;
 }
 
 .bet-amount-section {
@@ -253,25 +274,46 @@ onMounted(async () => {
   align-items: center;
   gap: 3px;
   flex-shrink: 0;
+  min-width: 60px;
+  justify-content: flex-end;
 }
 
 .bet-amount {
   font-weight: 600;
   color: #ffffff;
-  font-size: 12px;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
+/* Стили для панели множителя */
 .bet-multiplier-panel {
-  background: rgba(255, 255, 255, 0.1);
   border-radius: 5px;
   padding: 4px 6px;
   text-align: center;
   font-weight: 600;
   color: #ffffff;
   font-size: 11px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid;
   flex-shrink: 0;
-  margin: 0 4px;
+  min-width: 45px;
+}
+
+/* Коэффициент меньше 2 - синий */
+.bet-multiplier-panel.multiplier-low {
+  border-color: #4B7ED0;
+  background: #355391;
+}
+
+/* Коэффициент от 2 до 6.99 - фиолетовый */
+.bet-multiplier-panel.multiplier-medium {
+  border-color: #764BD0;
+  background: #5A3A9E;
+}
+
+/* Коэффициент больше 7 - зеленый */
+.bet-multiplier-panel.multiplier-high {
+  border-color: #83CE38;
+  background: #67A32B;
 }
 
 .bet-profit-section {
@@ -279,6 +321,8 @@ onMounted(async () => {
   align-items: center;
   gap: 3px;
   flex-shrink: 0;
+  min-width: 60px;
+  justify-content: flex-end;
 }
 
 .bet-profit-section.profit {
@@ -291,12 +335,13 @@ onMounted(async () => {
 
 .bet-profit {
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 .currency-icon {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   object-fit: contain;
   filter: brightness(0.9);
   flex-shrink: 0;
@@ -310,30 +355,40 @@ onMounted(async () => {
   }
   
   .bet-item-vertical {
-    padding: 8px;
+    padding: 6px 8px;
+  }
+  
+  .bet-single-row {
+    gap: 6px;
   }
   
   .bet-number {
-    font-size: 11px;
+    font-size: 10px;
+  }
+  
+  .bet-time {
+    font-size: 8px;
   }
   
   .bet-amount,
   .bet-profit {
-    font-size: 11px;
+    font-size: 10px;
   }
   
   .bet-multiplier-panel {
     font-size: 10px;
     padding: 3px 5px;
+    min-width: 40px;
   }
   
   .currency-icon {
-    width: 11px;
-    height: 11px;
+    width: 10px;
+    height: 10px;
   }
   
-  .bet-time {
-    font-size: 9px;
+  .bet-amount-section,
+  .bet-profit-section {
+    min-width: 55px;
   }
 }
 
@@ -345,26 +400,45 @@ onMounted(async () => {
   }
   
   .bet-item-vertical {
-    padding: 6px;
+    padding: 5px 6px;
     margin-bottom: 4px;
   }
   
+  .bet-single-row {
+    gap: 4px;
+  }
+  
+  .bet-number-time {
+    min-width: 45px;
+  }
+  
   .bet-number {
-    font-size: 10px;
+    font-size: 9px;
+  }
+  
+  .bet-time {
+    font-size: 7px;
   }
   
   .bet-amount,
   .bet-profit {
-    font-size: 10px;
+    font-size: 9px;
+  }
+  
+  .bet-multiplier-panel {
+    font-size: 9px;
+    padding: 2px 4px;
+    min-width: 35px;
   }
   
   .currency-icon {
-    width: 10px;
-    height: 10px;
+    width: 9px;
+    height: 9px;
   }
   
-  .bet-time {
-    font-size: 9px;
+  .bet-amount-section,
+  .bet-profit-section {
+    min-width: 50px;
   }
 }
 
