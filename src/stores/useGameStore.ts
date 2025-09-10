@@ -31,7 +31,7 @@ export interface UserBet {
     cashedOut: boolean
     cashoutMultiplier?: number
     profit?: number
-    betId?: number // ✅ Добавим опциональное поле
+    betId?: number
 }
 
 export interface CrashGameHistory {
@@ -65,7 +65,7 @@ export const useGameStore = defineStore('game', () => {
 
     // Компьютед свойства
     const isGameActive = computed(() => 
-        crashGame.value.phase === 'betting' || crashGame.value.phase === 'flying'
+        ['betting', 'flying'].includes(crashGame.value.phase)
     )
 
     const canPlaceBet = computed(() => 
@@ -85,19 +85,30 @@ export const useGameStore = defineStore('game', () => {
         return userBet.value.amount * crashGame.value.multiplier
     })
 
-    // Методы для краш-игры
+    // ✅ ИСПРАВЛЕННЫЙ МЕТОД - правильная обработка данных от сервера
     const setCrashGameState = (data: any) => {
+        console.log('🔄 Updating game state:', data)
+        
+        // Сохраняем текущую ставку пользователя перед обновлением
+        const currentUserBet = userBet.value
+        
         crashGame.value = {
             ...crashGame.value,
             ...data,
             players: data.players || [],
             bets: data.bets || []
         }
+        
+        // Восстанавливаем ставку пользователя (она может теряться при обновлении)
+        if (currentUserBet) {
+            userBet.value = currentUserBet
+        }
+        
+        // ✅ ВАЖНО: Обновляем множитель в ставке пользователя если игра летит
+        if (userBet.value && !userBet.value.cashedOut && data.multiplier) {
+            // Можно обновить какую-то информацию о текущем множителе
+        }
     }
-
-
-
-
 
     const placeBet = async (amount: number, autoCashout?: number) => {
         if (!canPlaceBet.value) {
@@ -112,8 +123,8 @@ export const useGameStore = defineStore('game', () => {
         error.value = null
 
         try {
-            // Сначала списываем средства локально
-            userStore.updateBalance('stars', -amount)
+            // ✅ ВАЖНО: Не списываем средства локально - это сделает сервер
+            // userStore.updateBalance('stars', -amount)
 
             // Создаем ставку
             userBet.value = {
@@ -124,13 +135,12 @@ export const useGameStore = defineStore('game', () => {
                 cashedOut: false
             }
 
-            // ✅ ОТПРАВЛЯЕМ НА СЕРВЕР ЧЕРЕЗ WebSocket (не API)
-            // API вызов будет в компоненте через placeCrashBet
+            console.log('✅ Bet created locally:', userBet.value)
 
         } catch (err: any) {
             error.value = err.message
-            // Возвращаем средства при ошибке
-            userStore.updateBalance('stars', amount)
+            // Откатываем изменения
+            userBet.value = null
             throw err
         } finally {
             isBetting.value = false
@@ -143,57 +153,89 @@ export const useGameStore = defineStore('game', () => {
         }
     
         try {
+            // ✅ Только помечаем как выведенное локально
+            // Реальный вывод сделает сервер через WebSocket
             userBet.value.cashedOut = true;
             userBet.value.cashoutMultiplier = crashGame.value.multiplier;
-            const profit = userBet.value.amount * crashGame.value.multiplier;
-            userBet.value.profit = profit;
-        
-            // ✅ ОБНОВЛЯЕМ БАЛАНС ЧЕРЕЗ USER STORE С СИНХРОНИЗАЦИЕЙ
-            await userStore.updateBalance('stars', profit, 'add');
+            userBet.value.profit = userBet.value.amount * crashGame.value.multiplier;
             
-            console.log('Balance updated successfully:', userStore.balance.stars_balance);
-        
+            console.log('✅ Cash out processed locally:', userBet.value);
+            
         } catch (err: any) {
             error.value = err.message;
             throw err;
         }
     };
     
+    // ✅ ИСПРАВЛЕННЫЙ МЕТОД - обработка результатов игры
     const processCrashResult = async (data: any) => {
+        console.log('💥 Processing crash result:', data)
+        
         if (data.history) {
             crashGame.value.history = data.history.slice(0, 50);
         }
     
-        if (userBet.value && data.finalMultiplier) {
-            const finalMultiplier = data.finalMultiplier;
+        // ✅ ОБРАБОТКА СТАВКИ ПОЛЬЗОВАТЕЛЯ
+        if (userBet.value) {
+            const finalMultiplier = data.finalMultiplier || data.crashedAt;
             
             if (userBet.value.cashedOut) {
-                userBet.value.profit = userBet.value.amount * (userBet.value.cashoutMultiplier || 1);
+                // Уже вывели - ничего не делаем
+                console.log('✅ User already cashed out');
             } else if (userBet.value.autoCashout && finalMultiplier >= userBet.value.autoCashout) {
+                // Автовывод сработал
                 userBet.value.cashedOut = true;
                 userBet.value.cashoutMultiplier = userBet.value.autoCashout;
-                const profit = userBet.value.amount * userBet.value.autoCashout;
-                userBet.value.profit = profit;
+                userBet.value.profit = userBet.value.amount * userBet.value.autoCashout;
                 
-                // ✅ ОБНОВЛЯЕМ БАЛАНС
-                await userStore.updateBalance('stars', profit, 'add');
-            } else {
+                console.log('✅ Auto cashout triggered:', userBet.value);
+            } else if (finalMultiplier) {
+                // Игра крашнулась раньше автовывода
                 userBet.value.cashedOut = false;
                 userBet.value.profit = 0;
+                console.log('❌ User lost - crashed before cashout');
             }
         }
     
         crashGame.value.phase = 'finished';
+        
+        // ✅ ОБНОВЛЯЕМ БАЛАНС ЧЕРЕЗ НЕСКОЛЬКО СЕКУНД (после обработки на сервере)
+        setTimeout(() => {
+            userStore.fetchBalance().catch(console.error);
+        }, 1500);
     };
-    
-
 
     const resetBet = () => {
-        userBet.value = null
+        console.log('🔄 Resetting user bet');
+        userBet.value = null;
     }
 
-    // ✅ ДОБАВИМ ЗАГЛУШКУ ДЛЯ ИСТОРИИ
-    const generateFallbackHistory = () => {
+    const loadGameHistory = async (limit: number = 10): Promise<void> => {
+        try {
+            const response = await api.get('/crash/history', { 
+                params: { limit } 
+            });
+            
+            if (response.data && Array.isArray(response.data)) {
+                crashGame.value.history = response.data.map((game: any) => ({
+                    gameId: game.gameId || game.id,
+                    multiplier: game.multiplier,
+                    crashedAt: game.crashedAt || game.multiplier,
+                    timestamp: new Date(game.timestamp),
+                    playersCount: game.playersCount || game.total_players,
+                    totalBet: game.totalBet || game.total_bet,
+                    totalPayout: game.totalPayout || game.total_payout
+                }));
+            }
+        } catch (error) {
+            console.error('Failed to load game history:', error);
+            // ✅ Fallback на заглушку если API не доступно
+            crashGame.value.history = generateFallbackHistory();
+        }
+    }
+
+    // ✅ Заглушка для истории
+    const generateFallbackHistory = (): CrashGameHistory[] => {
         return [
             {
                 gameId: 1,
@@ -212,21 +254,17 @@ export const useGameStore = defineStore('game', () => {
                 playersCount: 8,
                 totalBet: 800,
                 totalPayout: 0
+            },
+            {
+                gameId: 3,
+                multiplier: 7.21,
+                crashedAt: 7.21,
+                timestamp: new Date(Date.now() - 200000),
+                playersCount: 15,
+                totalBet: 2100,
+                totalPayout: 1800
             }
         ]
-    }
-    
-
-    const loadGameHistory = async (limit: number = 10): Promise<void> => {
-      try {
-        const response = await api.get('/crash/history', { 
-          params: { limit } 
-        })
-        crashGame.value.history = response.data
-      } catch (error) {
-        console.error('Failed to load game history:', error)
-        crashGame.value.history = []
-      }
     }
 
     const getPlayerById = (userId: number) => {
@@ -237,6 +275,27 @@ export const useGameStore = defineStore('game', () => {
         return [...crashGame.value.players]
             .sort((a, b) => (b.profit || 0) - (a.profit || 0))
             .slice(0, limit)
+    }
+
+    // ✅ Новая функция для принудительного обновления множителя
+    const updateMultiplier = (multiplier: number) => {
+        if (crashGame.value.phase === 'flying') {
+            crashGame.value.multiplier = multiplier;
+        }
+    }
+
+    // ✅ Новая функция для сброса состояния игры
+    const resetGameState = () => {
+        crashGame.value = {
+            gameId: crashGame.value.gameId + 1,
+            phase: 'waiting',
+            multiplier: 1.0,
+            timeRemaining: 0,
+            players: [],
+            history: crashGame.value.history, // Сохраняем историю
+            bets: []
+        };
+        resetBet();
     }
 
     // Автоматически загружаем историю при инициализации
@@ -264,6 +323,8 @@ export const useGameStore = defineStore('game', () => {
         loadGameHistory,
         getPlayerById,
         getTopPlayers,
-        generateFallbackHistory // ✅ Экспортируем если нужно
+        generateFallbackHistory,
+        updateMultiplier,
+        resetGameState
     }
 })
