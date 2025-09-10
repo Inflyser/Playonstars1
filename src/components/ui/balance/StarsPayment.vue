@@ -72,55 +72,62 @@ const initiateTelegramPayment = async () => {
 
   isProcessing.value = true
   error.value = ''
+  successMessage.value = ''
 
   try {
     const starsAmount = parseFloat(amount.value)
     
-    // Просто вызываем метод - он не возвращает success
-    await userStore.updateBalance('stars', starsAmount, 'add')
-    
-    // Если не было ошибки - значит успешно
-    successMessage.value = `✅ Успешно пополнено ${starsAmount} STARS!`
-    
-    // Возвращаемся назад через 2 секунды
-    setTimeout(() => {
-      router.back()
-    }, 2000)
+    // 1. Создаем инвойс на бекенде
+    const invoiceResponse = await api.post('/api/stars/create-invoice', { // ✅ ПРАВИЛЬНЫЙ ПУТЬ
+      amount: starsAmount
+    })
+
+    if (invoiceResponse.data.status === 'success') {
+      // 2. Используем Telegram WebApp для оплаты
+      if (window.Telegram?.WebApp && 'openInvoice' in window.Telegram.WebApp) {
+        // Используем any для обхода типов
+        (window.Telegram.WebApp as any).openInvoice(
+          invoiceResponse.data.invoice_id,
+          (status: string) => {
+            if (status === 'paid') {
+              userStore.fetchBalance().then(() => {
+                successMessage.value = `✅ Успешно пополнено ${starsAmount} STARS!`
+                setTimeout(() => router.back(), 2000)
+              })
+            } else if (status === 'failed') {
+              error.value = 'Оплата не удалась. Попробуйте снова.'
+            }
+          }
+        )
+      } else {
+        await handleTestPayment(starsAmount)
+      }
+    }
 
   } catch (err: any) {
     console.error('Payment error:', err)
-    error.value = err.response?.data?.detail || 'Ошибка при пополнении баланса'
+    error.value = err.response?.data?.detail || 'Ошибка при создании платежа'
   } finally {
     isProcessing.value = false
   }
 }
 
-const handleSuccessfulPayment = async (starsAmount: number) => {
-  successMessage.value = `✅ Успешно пополнено ${starsAmount} STARS!`
-  
-  // Обновляем баланс
-  await userStore.fetchBalance()
-  
-  // Закрываем веб-апп или возвращаемся
-  if (telegramWebApp.value) {
-    setTimeout(() => {
-      telegramWebApp.value.close()
-    }, 2000)
-  } else {
-    setTimeout(() => {
-      router.back()
-    }, 2000)
-  }
-}
-
-const handleDirectPayment = async (starsAmount: number) => {
+const handleTestPayment = async (starsAmount: number) => {
   try {
-    const response = await api.post('/stars/purchase', {
-      amount: starsAmount
+    // Для тестирования без Telegram WebApp
+    const response = await api.post('/api/user/update-balance', {
+      currency: 'stars',
+      amount: starsAmount,
+      operation: 'add'
     })
 
     if (response.data.status === 'success') {
-      await handleSuccessfulPayment(starsAmount)
+      await userStore.fetchBalance()
+      successMessage.value = `✅ Успешно пополнено ${starsAmount} STARS! (тестовый режим)`
+      
+      setTimeout(() => {
+        router.back()
+      }, 2000)
     }
   } catch (err: any) {
     error.value = err.response?.data?.detail || 'Ошибка при пополнении баланса'

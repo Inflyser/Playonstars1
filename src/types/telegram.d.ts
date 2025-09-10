@@ -14,6 +14,7 @@ declare namespace Telegram {
     headerColor: string;
     backgroundColor: string;
     
+    
     // Кнопки
     BackButton: BackButton;
     MainButton: MainButton;
