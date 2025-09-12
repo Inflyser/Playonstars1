@@ -9,6 +9,8 @@ from app.bot.bot import webapp_builder
 from aiogram.types import Message
 from app.database import crud
 
+import json
+
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.fsm.context import FSMContext
@@ -217,29 +219,31 @@ logger = logging.getLogger(__name__)
 async def cmd_buy_stars(message: Message, db: Session = Depends(get_db)):
     """Команда для покупки Stars"""
     try:
-        # Получаем пользователя
         user = get_user(db, message.from_user.id)
         if not user:
             await message.answer("❌ Пользователь не найден")
             return
 
-        # Создаем инвойс для покупки 100 Stars (10.00 USD эквивалент)
-        prices = [LabeledPrice(label="10 STARS", amount=10)]  # 10000 = 100.00 Stars
+        # ✅ ПРАВИЛЬНЫЙ формат цен для Stars
+        stars_amount = 100  # 100 STARS
+        prices = [LabeledPrice(label=f"{stars_amount} STARS", amount=stars_amount * 100)]
         
         await message.answer_invoice(
             title="Пополнение STARS",
-            description="Пополнение баланса STARS для игр в PlayOnStars",
-            provider_token="",  # ✅ ДЛЯ STARS ОСТАВЛЯЕМ ПУСТЫМ!
+            description=f"Пополнение баланса на {stars_amount} STARS",
+            provider_token="",  # ✅ ДЛЯ STARS ОСТАВЛЯЕМ ПУСТЫМ
             currency="XTR",     # ✅ ВАЛЮТА TELEGRAM STARS
             prices=prices,
-            payload=f"stars_deposit:{message.from_user.id}:100",  # user_id:amount
+            payload=json.dumps({  # ✅ ПРОСТОЙ JSON
+                "type": "stars_payment",
+                "user_id": message.from_user.id,
+                "amount": stars_amount
+            }),
             start_parameter="stars_payment",
             need_name=False,
             need_phone_number=False,
             need_email=False,
-            need_shipping_address=False,
-            is_flexible=False,
-            max_tip_amount=0
+            need_shipping_address=False
         )
         
     except Exception as e:
