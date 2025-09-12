@@ -353,4 +353,3 @@ def update_game_settings(db: Session, admin_password: str = None,
     db.commit()
     db.refresh(settings)
     return settings
-
