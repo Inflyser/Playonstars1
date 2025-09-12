@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.database.session import SessionLocal
 from app.database import crud
 import aiohttp
+from app.database.models import Wallet
 
 class TonService:
     def __init__(self):
@@ -194,7 +195,97 @@ class TonService:
         except Exception as e:
             print(f"Error processing TON webhook: {e}")
             raise HTTPException(status_code=500, detail=str(e))
-        
+
+
+    async def check_deposits_to_user_wallets(self):
+        """Проверяем депозиты на все кошельки пользователей"""
+        try:
+            db = SessionLocal()
+
+            # Получаем все кошельки пользователей
+            user_wallets = db.query(Wallet).all()
+
+            for wallet in user_wallets:
+                print(f"🔍 Checking deposits for wallet: {wallet.address}")
+
+                # Получаем транзакции для этого кошелька
+                transactions = await self.get_wallet_transactions(wallet.address)
+
+                for tx in transactions:
+                    await self.process_deposit_transaction(db, tx, wallet)
+
+            db.close()
+
+        except Exception as e:
+            print(f"Error checking user wallet deposits: {e}")
+            if 'db' in locals():
+                db.close()       
+
+
+    async def get_wallet_transactions(self, wallet_address: str):
+        """Получаем транзакции кошелька через TON API"""
+        try:
+            url = f"{self.base_url}/accounts/{wallet_address}/transactions"
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Accept": "application/json"
+            }
+            
+            response = requests.get(url, headers=headers)
+            
+            if response.status_code == 200:
+                return response.json().get('transactions', [])
+            else:
+                print(f"TON API transactions error: {response.status_code}")
+                return []
+                
+        except Exception as e:
+            print(f"Error getting transactions: {e}")
+            return []
+
+
+
+    async def process_deposit_transaction(self, db: Session, tx_data: dict, wallet: Wallet):
+        """Обрабатываем депозитную транзакцию"""
+        try:
+            tx_hash = tx_data.get('hash')
+
+            # Проверяем не обрабатывали ли уже эту транзакцию
+            existing_tx = crud.get_transaction_by_hash(db, tx_hash)
+            if existing_tx:
+                return
+
+            # Ищем входящие сообщения (депозиты)
+            in_msg = tx_data.get('in_msg')
+            if in_msg and in_msg.get('destination') == wallet.address:
+                value = in_msg.get('value', 0)
+                amount = float(value) / 1e9  # нанотоны → TON
+
+                if amount > 0:
+                    # Создаем запись о транзакции
+                    transaction = crud.create_transaction(
+                        db, 
+                        wallet.id, 
+                        tx_hash, 
+                        amount, 
+                        "deposit"
+                    )
+
+                    # Зачисляем средства на баланс пользователя
+                    user = crud.update_user_balance(
+                        db, 
+                        wallet.user.telegram_id, 
+                        "ton", 
+                        amount
+                    )
+
+                    # Обновляем статус транзакции
+                    crud.update_transaction_status(db, tx_hash, "completed")
+
+                    print(f"✅ Processed deposit: {amount} TON to {wallet.user.telegram_id}")
+
+        except Exception as e:
+            print(f"Error processing deposit transaction: {e}")
 
     async def check_ton_api_status(self):
         """Проверяем доступность TON API"""
@@ -210,69 +301,55 @@ class TonService:
         except Exception as e:
             print(f"TON API health check error: {e}")
             return False
+            
         
-    
     async def handle_transaction_event(self, transaction_data: dict):
-        """Обрабатываем событие транзакции"""
+        """Обрабатываем событие транзакции - ТЕПЕРЬ ПРАВИЛЬНО"""
         try:
             db = SessionLocal()
             
-            # Логируем полученные данные для отладки
             print(f"📊 Transaction data: {transaction_data}")
             
-            # Извлекаем данные в зависимости от структуры API
+            # Ищем информацию о транзакции
             tx_hash = transaction_data.get('hash') or transaction_data.get('transaction_id')
+            in_msg = transaction_data.get('in_msg') or transaction_data.get('message', {})
             
-            # Ищем информацию о входящем сообщении
-            in_msg = None
-            if 'in_msg' in transaction_data:
-                in_msg = transaction_data['in_msg']
-            elif 'message' in transaction_data:
-                in_msg = transaction_data['message']
+            destination = in_msg.get('destination') or in_msg.get('to')
+            value = in_msg.get('value') or in_msg.get('amount', 0)
             
-            if in_msg and tx_hash:
-                destination = in_msg.get('destination') or in_msg.get('to')
-                source = in_msg.get('source') or in_msg.get('from')
-                value = in_msg.get('value') or in_msg.get('amount')
+            if destination and value:
+                amount = float(value) / 1e9
                 
-                # Проверяем что это входящая транзакция на наш кошелек
-                if destination and destination == self.wallet_address and source != self.wallet_address:
-                    
-                    amount = float(value or 0) / 1e9  # нанотоны → TON
-                    from_address = source
-                    
-                    print(f"💰 Incoming transaction: {amount} TON from {from_address}")
-                    
-                    # Ищем кошелек отправителя в нашей базе
-                    sender_wallet = crud.get_wallet_by_address(db, from_address)
-                    
-                    if sender_wallet:
-                        # Проверяем не обрабатывали ли уже эту транзакцию
-                        existing_tx = crud.get_transaction_by_hash(db, tx_hash)
-                        if not existing_tx:
-                            # Создаем запись о транзакции
-                            transaction = crud.create_transaction(
-                                db, 
-                                sender_wallet.id, 
-                                tx_hash, 
-                                amount, 
-                                "deposit"
-                            )
-                            
-                            # Зачисляем средства на баланс пользователя
-                            user = crud.update_user_balance(
-                                db, 
-                                sender_wallet.user.telegram_id, 
-                                "ton", 
-                                amount
-                            )
-                            
-                            # Обновляем статус транзакции
-                            crud.update_transaction_status(db, tx_hash, "completed")
-                            
-                            print(f"✅ Processed deposit: {amount} TON from {from_address}")
-                    else:
-                        print(f"⚠️ Unknown sender wallet: {from_address}")
+                # Ищем кошелек получателя в нашей базе
+                recipient_wallet = crud.get_wallet_by_address(db, destination)
+                
+                if recipient_wallet:
+                    # Проверяем не обрабатывали ли уже эту транзакцию
+                    existing_tx = crud.get_transaction_by_hash(db, tx_hash)
+                    if not existing_tx:
+                        # Создаем запись о транзакции
+                        transaction = crud.create_transaction(
+                            db, 
+                            recipient_wallet.id, 
+                            tx_hash, 
+                            amount, 
+                            "deposit"
+                        )
+                        
+                        # Зачисляем средства на баланс пользователя
+                        user = crud.update_user_balance(
+                            db, 
+                            recipient_wallet.user.telegram_id, 
+                            "ton", 
+                            amount
+                        )
+                        
+                        # Обновляем статус транзакции
+                        crud.update_transaction_status(db, tx_hash, "completed")
+                        
+                        print(f"✅ Processed deposit: {amount} TON to user {recipient_wallet.user.telegram_id}")
+                else:
+                    print(f"⚠️ Unknown recipient wallet: {destination}")
             
             db.close()
             
@@ -280,7 +357,7 @@ class TonService:
             print(f"Error handling transaction event: {e}")
             if 'db' in locals():
                 db.close()
-                
+    
                 
                 
     

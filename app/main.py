@@ -87,10 +87,20 @@ app.include_router(websocket.router)
 
 # ----------------------------- ЗАПУСК -------------------------------------
 
-
+async def check_deposits_periodically():
+    """Периодическая проверка депозитов на кошельки пользователей"""
+    while True:
+        try:
+            print("🔍 Checking user wallet deposits...")
+            await ton_service.check_deposits_to_user_wallets()
+            await asyncio.sleep(60)  # Проверяем каждую минуту
+        except Exception as e:
+            print(f"Error in deposit check: {e}")
+            await asyncio.sleep(60)
 
 @app.on_event("startup")
 async def startup():
+    asyncio.create_task(check_deposits_periodically())
     Base.metadata.create_all(bind=engine)
     
     # Telegram webhook
