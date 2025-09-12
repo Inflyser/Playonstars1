@@ -103,16 +103,32 @@ async def check_deposits_periodically():
             print(f"Error in deposit check: {e}")
             await asyncio.sleep(300)
 
+@app.on_event("shutdown")
+async def shutdown():
+    """Очистка ресурсов при завершении"""
+    print("🛑 Shutting down...")
+    
+    # Закрываем сессии aiogram
+    await bot.session.close()
+    
+    # Останавливаем игры
+    crash_game.stop()
+
 @app.on_event("startup")
 async def startup():
     asyncio.create_task(check_deposits_periodically())
     Base.metadata.create_all(bind=engine)
+   
     
     # Telegram webhook
     webhook_url_telegram = os.getenv("WEBHOOK_URL_TELEGRAM")
     if webhook_url_telegram:
-        await bot.set_webhook(webhook_url_telegram)
-        print(f"📱 Telegram webhook set to: {webhook_url_telegram}")
+        try:
+            await bot.set_webhook(webhook_url_telegram)
+            print(f"📱 Telegram webhook set to: {webhook_url_telegram}")
+        except Exception as e:
+            print(f"⚠️ Failed to set Telegram webhook: {e}")
+            print("⚠️ Continuing without webhook...")
     
     # TON webhook
     ton_api_key = os.getenv("TON_API_KEY")

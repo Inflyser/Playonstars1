@@ -337,7 +337,7 @@ class TonService:
         except Exception as e:
             print(f"TON API health check error: {e}")
             return False
-
+    
     async def get_wallet_transactions(self, wallet_address: str, limit: int = 100):
         """Получаем транзакции кошелька через TON API"""
         try:
@@ -345,17 +345,27 @@ class TonService:
                 print("⚠️ TON API key not set")
                 return []
             
-            url = f"{self.base_url}/accounts/{wallet_address}/transactions"
+            # ✅ КОНВЕРТИРУЕМ user-friendly адрес в raw формат
+            # UQ... адрес -> EQ... адрес
+            if wallet_address.startswith('UQ'):
+                raw_address = wallet_address.replace('UQ', 'EQ')
+            else:
+                raw_address = wallet_address
+            
+            url = f"{self.base_url}/accounts/{raw_address}/transactions"
             params = {'limit': limit}
             
-            print(f"🌐 Fetching transactions for: {wallet_address}")
+            print(f"🌐 Fetching transactions for: {raw_address}")
             response = requests.get(url, headers=self.headers, params=params, timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
                 return data.get('transactions', [])
+            elif response.status_code == 404:
+                print(f"❌ Wallet {raw_address} not found or no transactions")
+                return []
             else:
-                print(f"❌ TON API transactions error: {response.status_code}")
+                print(f"❌ TON API transactions error: {response.status_code} - {response.text}")
                 return []
                 
         except Exception as e:
