@@ -289,7 +289,7 @@ onMounted(() => {
 }
 
 .confirmation-modal {
-    background: white;
+    background: rgb(0, 0, 0);
     padding: 20px;
     border-radius: 12px;
     max-width: 400px;
