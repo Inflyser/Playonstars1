@@ -9,6 +9,9 @@ from app.database import crud
 import aiohttp
 from app.database.models import Wallet
 
+import base64
+from tonsdk.utils import bytes_to_b64str, b64str_to_bytes
+
 class TonService:
     def __init__(self):
         self.api_key = os.getenv('TON_API_KEY', '')
@@ -21,6 +24,64 @@ class TonService:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         } if self.api_key else {}
+        
+
+    def convert_raw_to_user_friendly(self, raw_address: str) -> str:
+        """Конвертирует raw адрес (0:...) в user-friendly (EQ...)"""
+        try:
+            if raw_address.startswith('0:'):
+                # Убираем '0:' префикс
+                hex_part = raw_address[2:]
+                
+                # Конвертируем hex в bytes
+                addr_bytes = bytes.fromhex(hex_part)
+                
+                # Добавляем флаги: bounceable + workchain 0
+                flags = 0x11  # bounceable = true, testnet = false
+                workchain = 0
+                
+                # Создаем полный payload
+                full_payload = bytes([flags, workchain]) + addr_bytes
+                
+                # Base64 encode с padding
+                encoded = base64.urlsafe_b64encode(full_payload).decode('utf-8').rstrip('=')
+                
+                return f"EQ{encoded}"
+            else:
+                # Уже в правильном формате
+                return raw_address
+                
+        except Exception as e:
+            print(f"Error converting address {raw_address}: {e}")
+            return raw_address
+
+    def convert_user_friendly_to_raw(self, user_friendly: str) -> str:
+        """Конвертирует user-friendly адрес (EQ...) в raw (0:...)"""
+        try:
+            if user_friendly.startswith(('EQ', 'UQ')):
+                # Убираем префикс
+                base64_part = user_friendly[2:]
+                
+                # Добавляем padding если нужно
+                padding = 4 - (len(base64_part) % 4)
+                if padding != 4:
+                    base64_part += '=' * padding
+                
+                # Base64 decode
+                decoded = base64.urlsafe_b64decode(base64_part)
+                
+                # Извлекаем workchain и hash
+                workchain = decoded[1]  # второй байт - workchain
+                addr_hash = decoded[2:34]  # остальные 32 байта - хэш
+                
+                return f"{workchain}:{addr_hash.hex()}"
+            else:
+                # Уже в raw формате
+                return user_friendly
+                
+        except Exception as e:
+            print(f"Error converting address {user_friendly}: {e}")
+            return user_friendly
         
         
     async def check_deposits_to_wallet(self):
@@ -176,8 +237,14 @@ class TonService:
                 print("⚠️ TON API key not set - returning 0")
                 return 0.0
             
-            # ✅ ПРАВИЛЬНЫЙ endpoint для получения информации о кошельке в tonapi.io v2
-            url = f"{self.base_url}/accounts/{wallet_address}"
+            # ✅ КОНВЕРТИРУЕМ RAW АДРЕС В USER-FRIENDLY
+            if wallet_address.startswith('0:'):
+                user_friendly_address = self.convert_raw_to_user_friendly(wallet_address)
+                print(f"🔁 Converted {wallet_address} -> {user_friendly_address}")
+            else:
+                user_friendly_address = wallet_address
+            
+            url = f"{self.base_url}/accounts/{user_friendly_address}"
             
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
@@ -191,9 +258,8 @@ class TonService:
                 data = response.json()
                 print(f"✅ TON API response: {data}")
                 
-                # ✅ ПРАВИЛЬНЫЙ путь к балансу в tonapi.io v2
                 balance_nano = data.get('balance', 0)
-                balance_ton = int(balance_nano) / 1e9  # Конвертируем нанотоны в TON
+                balance_ton = int(balance_nano) / 1e9
                 
                 print(f"💰 Balance: {balance_ton} TON")
                 return balance_ton
@@ -258,26 +324,7 @@ class TonService:
                 db.close()       
 
 
-    async def get_wallet_transactions(self, wallet_address: str):
-        """Получаем транзакции кошелька через TON API"""
-        try:
-            url = f"{self.base_url}/accounts/{wallet_address}/transactions"
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Accept": "application/json"
-            }
-            
-            response = requests.get(url, headers=headers)
-            
-            if response.status_code == 200:
-                return response.json().get('transactions', [])
-            else:
-                print(f"TON API transactions error: {response.status_code}")
-                return []
-                
-        except Exception as e:
-            print(f"Error getting transactions: {e}")
-            return []
+
 
 
 
@@ -337,37 +384,39 @@ class TonService:
         except Exception as e:
             print(f"TON API health check error: {e}")
             return False
-    
+
     async def get_wallet_transactions(self, wallet_address: str, limit: int = 100):
         """Получаем транзакции кошелька через TON API"""
         try:
             if not self.api_key:
                 print("⚠️ TON API key not set")
                 return []
-            
-            # ✅ КОНВЕРТИРУЕМ user-friendly адрес в raw формат
-            # UQ... адрес -> EQ... адрес
-            if wallet_address.startswith('UQ'):
-                raw_address = wallet_address.replace('UQ', 'EQ')
+
+            # ✅ КОНВЕРТИРУЕМ RAW АДРЕС В USER-FRIENDLY
+            if wallet_address.startswith('0:'):
+                user_friendly_address = self.convert_raw_to_user_friendly(wallet_address)
+                print(f"🔁 Converted {wallet_address} -> {user_friendly_address}")
             else:
-                raw_address = wallet_address
-            
-            url = f"{self.base_url}/accounts/{raw_address}/transactions"
+                user_friendly_address = wallet_address
+
+            url = f"{self.base_url}/accounts/{user_friendly_address}/transactions"
             params = {'limit': limit}
-            
-            print(f"🌐 Fetching transactions for: {raw_address}")
+
+            print(f"🌐 Fetching transactions for: {user_friendly_address}")
             response = requests.get(url, headers=self.headers, params=params, timeout=10)
-            
+
             if response.status_code == 200:
                 data = response.json()
-                return data.get('transactions', [])
+                transactions = data.get('transactions', [])
+                print(f"✅ Found {len(transactions)} transactions")
+                return transactions
             elif response.status_code == 404:
-                print(f"❌ Wallet {raw_address} not found or no transactions")
+                print(f"❌ Wallet {user_friendly_address} not found or no transactions")
                 return []
             else:
                 print(f"❌ TON API transactions error: {response.status_code} - {response.text}")
                 return []
-                
+
         except Exception as e:
             print(f"❌ Error getting transactions: {e}")
             return []
