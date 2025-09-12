@@ -88,15 +88,20 @@ app.include_router(websocket.router)
 # ----------------------------- ЗАПУСК -------------------------------------
 
 async def check_deposits_periodically():
-    """Периодическая проверка депозитов на кошельки пользователей"""
+    """Периодическая проверка депозитов (fallback)"""
     while True:
         try:
-            print("🔍 Checking user wallet deposits...")
-            await ton_service.check_deposits_to_user_wallets()
-            await asyncio.sleep(60)  # Проверяем каждую минуту
+            # ✅ ИСПРАВЛЕННЫЙ ВЫЗОВ - используем правильное имя метода
+            deposits = await ton_service.check_deposits_to_user_wallets()
+            
+            if deposits:
+                print(f"✅ Found {len(deposits)} deposits")
+                
+            await asyncio.sleep(300)  # Проверяем каждые 5 минут
+            
         except Exception as e:
             print(f"Error in deposit check: {e}")
-            await asyncio.sleep(60)
+            await asyncio.sleep(300)
 
 @app.on_event("startup")
 async def startup():
