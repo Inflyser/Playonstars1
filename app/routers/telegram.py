@@ -224,7 +224,7 @@ async def cmd_buy_stars(message: Message, db: Session = Depends(get_db)):
             return
 
         # Создаем инвойс для покупки 100 Stars (10.00 USD эквивалент)
-        prices = [LabeledPrice(label="100 STARS", amount=10000)]  # 10000 = 100.00 Stars
+        prices = [LabeledPrice(label="10 STARS", amount=10)]  # 10000 = 100.00 Stars
         
         await message.answer_invoice(
             title="Пополнение STARS",

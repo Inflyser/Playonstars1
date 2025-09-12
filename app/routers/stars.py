@@ -27,7 +27,7 @@ async def create_stars_invoice(
         
         amount = int(amount)
         if amount < 10:
-            raise HTTPException(status_code=400, detail="Минимальная сумма 100 STARS")
+            raise HTTPException(status_code=400, detail="Минимальная сумма 10 STARS")
         
         # Создаем инвойс через Telegram Bot API
         bot_token = os.getenv("BOT_TOKEN")
