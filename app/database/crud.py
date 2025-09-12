@@ -353,3 +353,51 @@ def update_game_settings(db: Session, admin_password: str = None,
     db.commit()
     db.refresh(settings)
     return settings
+
+
+
+def get_user_deposits(db: Session, user_id: int, limit: int = 50, offset: int = 0):
+    """Получить депозиты пользователя из DepositHistory"""
+    return db.query(models.DepositHistory)\
+        .filter(models.DepositHistory.user_id == user_id)\
+        .order_by(models.DepositHistory.deposit_datetime.desc())\
+        .offset(offset)\
+        .limit(limit)\
+        .all()
+
+def get_user_deposits_count(db: Session, user_id: int):
+    """Получить количество депозитов пользователя"""
+    return db.query(models.DepositHistory)\
+        .filter(models.DepositHistory.user_id == user_id)\
+        .count()
+
+def get_user_transactions(db: Session, user_id: int, transaction_type: str = None, 
+                         limit: int = 50, offset: int = 0):
+    """Получить транзакции пользователя с фильтром по типу"""
+    query = db.query(models.Transaction)\
+        .join(models.Wallet)\
+        .filter(models.Wallet.user_id == user_id)
+    
+    if transaction_type:
+        query = query.filter(models.Transaction.transaction_type == transaction_type)
+    
+    return query.order_by(models.Transaction.created_at.desc())\
+        .offset(offset)\
+        .limit(limit)\
+        .all()
+
+def get_pending_transactions(db: Session, user_id: int):
+    """Получить pending транзакции пользователя"""
+    return db.query(models.Transaction)\
+        .join(models.Wallet)\
+        .filter(
+            models.Wallet.user_id == user_id,
+            models.Transaction.status == "pending"
+        )\
+        .all()
+
+def get_transaction_by_hash(db: Session, tx_hash: str):
+    """Получить транзакцию по хэшу"""
+    return db.query(models.Transaction)\
+        .filter(models.Transaction.tx_hash == tx_hash)\
+        .first()

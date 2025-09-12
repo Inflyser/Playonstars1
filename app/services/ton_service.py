@@ -193,6 +193,9 @@ class TonService:
         except Exception as e:
             print(f"Error processing TON webhook: {e}")
             raise HTTPException(status_code=500, detail=str(e))
+        
+        
+        
     
     async def handle_transaction_event(self, transaction_data: dict):
         """Обрабатываем событие транзакции"""
@@ -262,5 +265,11 @@ class TonService:
             print(f"Error handling transaction event: {e}")
             if 'db' in locals():
                 db.close()
+                
+                
+                
+    
 
 ton_service = TonService()
+
+
