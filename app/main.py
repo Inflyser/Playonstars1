@@ -1265,14 +1265,3 @@ async def create_deposit_endpoint(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-    
-@app.post("/api/stars/webhook")
-async def handle_stars_webhook(request: Request, db: Session = Depends(get_db)):
-    """Глобальный обработчик вебхуков Stars"""
-    try:
-        from app.routers.stars import stars_webhook
-        return await stars_webhook(request, db)
-    except Exception as e:
-        print(f"Stars webhook error: {e}")
-        return {"status": "error"}
