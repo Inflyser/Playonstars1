@@ -29,7 +29,7 @@
             />
             
             <p style="color: #6A717B; font-size: 13px; margin: -10px 10px 15px 20px;">
-                Минимальная сумма: 0.1 TON
+                Минимальная сумма: 00.1 TON
             </p>
 
             <div class="two-buttons-container">

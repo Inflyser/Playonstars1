@@ -9,7 +9,7 @@
     />
 
     <p style="color: #6A717B; font-size: 13px; margin: -10px 10px 15px 20px;">
-      Минимальная сумма: 100 STARS
+      Минимальная сумма: 10 STARS
     </p>
     
     <div class="two-buttons-container">
@@ -52,7 +52,7 @@ const successMessage = ref('')
 
 const isValidAmount = computed(() => {
   const numAmount = parseFloat(amount.value || '0')
-  return numAmount >= 100 && numAmount <= 5000
+  return numAmount >= 10 && numAmount <= 5000
 })
 
 const initiateTelegramPayment = async () => {
