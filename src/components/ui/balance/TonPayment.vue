@@ -105,7 +105,7 @@ const appWalletAddress = ref(import.meta.env.VITE_APP_WALLET_ADDRESS || 'UQDrohh
 const maxAmount = computed(() => tonBalance.value?.toString() || '1000')
 const isValidAmount = computed(() => {
     const numAmount = parseFloat(amount.value || '0')
-    return numAmount >= 0.1 && numAmount <= (tonBalance.value || 0)
+    return numAmount >= 0.01 && numAmount <= (tonBalance.value || 0)
 })
 
 // Методы
