@@ -6,6 +6,7 @@ from fastapi import Request, HTTPException
 from sqlalchemy.orm import Session
 from app.database.session import SessionLocal
 from app.database import crud
+import aiohttp
 
 class TonService:
     def __init__(self):
@@ -194,7 +195,21 @@ class TonService:
             print(f"Error processing TON webhook: {e}")
             raise HTTPException(status_code=500, detail=str(e))
         
-        
+
+    async def check_ton_api_status(self):
+        """Проверяем доступность TON API"""
+        try:
+            url = f"{self.base_url}/v2/health"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=self.headers) as response:
+                    if response.status == 200:
+                        return True
+                    else:
+                        print(f"TON API health check failed: {response.status}")
+                        return False
+        except Exception as e:
+            print(f"TON API health check error: {e}")
+            return False
         
     
     async def handle_transaction_event(self, transaction_data: dict):

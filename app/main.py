@@ -1230,4 +1230,38 @@ async def handle_telegram_webhook(request: Request, db: Session = Depends(get_db
         print(f"Webhook error: {e}")
         return {"status": "error"}
     
-# Подключаем роутеры
+@app.post("/wallet/deposit")
+async def create_deposit_endpoint(
+    request: Request,
+    deposit_data: dict,
+    db: Session = Depends(get_db)
+):
+    """Создаем запись о депозите (публичный endpoint без аутентификации)"""
+    try:
+        # Для депозитов может не быть сессии, используем данные из запроса
+        telegram_id = deposit_data.get("telegram_id")
+        if not telegram_id:
+            raise HTTPException(status_code=400, detail="Telegram ID required")
+        
+        user = crud.get_user_by_telegram_id(db, telegram_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Создаем pending транзакцию
+        transaction = crud.create_transaction(
+            db=db,
+            user_id=user.id,
+            tx_hash=deposit_data.get("tx_hash"),
+            amount=float(deposit_data.get("amount", 0)),
+            transaction_type="deposit",
+            status="pending"
+        )
+        
+        return {
+            "status": "success",
+            "transaction_id": transaction.id,
+            "message": "Transaction created, waiting for confirmation"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
