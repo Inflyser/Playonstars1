@@ -87,21 +87,14 @@ app.include_router(websocket.router)
 
 # ----------------------------- ЗАПУСК -------------------------------------
 
-async def check_deposits_periodically():
-    """Периодическая проверка депозитов (fallback)"""
-    while True:
-        try:
-            # ✅ ИСПРАВЛЕННЫЙ ВЫЗОВ - используем правильное имя метода
-            deposits = await ton_service.check_deposits_to_user_wallets()
-            
-            if deposits:
-                print(f"✅ Found {len(deposits)} deposits")
-                
-            await asyncio.sleep(300)  # Проверяем каждые 5 минут
-            
-        except Exception as e:
-            print(f"Error in deposit check: {e}")
-            await asyncio.sleep(300)
+async def start_polling():
+    """Запускаем бота в polling режиме если webhook не работает"""
+    try:
+        print("🔄 Starting bot in polling mode...")
+        await dp.start_polling(bot)
+    except Exception as e:
+        print(f"❌ Polling failed: {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -120,38 +113,30 @@ async def startup():
     Base.metadata.create_all(bind=engine)
    
     
-    # Telegram webhook
+    # Telegram webhook - УЛУЧШЕННАЯ ОБРАБОТКА ОШИБОК
     webhook_url_telegram = os.getenv("WEBHOOK_URL_TELEGRAM")
     if webhook_url_telegram:
         try:
+            # Сначала удаляем старый webhook
+            await bot.delete_webhook()
+            await asyncio.sleep(1)
+            
+            # Затем устанавливаем новый
             await bot.set_webhook(webhook_url_telegram)
             print(f"📱 Telegram webhook set to: {webhook_url_telegram}")
+            
+            # Проверяем что webhook установлен
+            webhook_info = await bot.get_webhook_info()
+            print(f"📋 Webhook info: {webhook_info.url}")
+            
         except Exception as e:
             print(f"⚠️ Failed to set Telegram webhook: {e}")
-            print("⚠️ Continuing without webhook...")
-    
-    # TON webhook
-    ton_api_key = os.getenv("TON_API_KEY")
-    ton_wallet_address = os.getenv("TON_WALLET_ADDRESS")
-    webhook_url_ton = os.getenv("WEBHOOK_URL_TON")
-
-    if all([ton_api_key, ton_wallet_address, webhook_url_ton]):
-        print(f"🔗 Setting up TON webhook...")
-        api_accessible = await ton_service.check_ton_api_status()
-        if api_accessible:
-            success = await ton_service.setup_webhook()
-            if success:
-                print("✅ TON Webhook successfully registered")
-            else:
-                print("⚠️ TON Webhook registration failed - continuing without")
-        else:
-            print("⚠️ TON API not accessible - skipping webhook registration")
+            print("⚠️ Bot will work in polling mode")
+            # Запускаем polling в фоне если webhook не работает
+            asyncio.create_task(start_polling())
     else:
-        missing_vars = []
-        if not ton_api_key: missing_vars.append("TON_API_KEY")
-        if not ton_wallet_address: missing_vars.append("TON_WALLET_ADDRESS") 
-        if not webhook_url_ton: missing_vars.append("WEBHOOK_URL_TON")
-        print(f"⚠️ TON Webhook skipped - missing environment variables: {', '.join(missing_vars)}")
+        print("⚠️ WEBHOOK_URL_TELEGRAM not set, using polling mode")
+        asyncio.create_task(start_polling())
     
     # ✅ Запускаем фоновую задачу для краш-игры ОДИН РАЗ
     asyncio.create_task(run_crash_game())

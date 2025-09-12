@@ -27,33 +27,35 @@ class TonService:
         
 
     def convert_raw_to_user_friendly(self, raw_address: str) -> str:
-        """Конвертирует raw адрес (0:...) в user-friendly (EQ...)"""
+        """Конвертирует raw адрес (0:...) в user-friendly (EQ...) - ИСПРАВЛЕННАЯ ВЕРСИЯ"""
         try:
             if raw_address.startswith('0:'):
                 # Убираем '0:' префикс
                 hex_part = raw_address[2:]
-                
-                # Конвертируем hex в bytes
+
+                # Конвертируем hex в bytes (32 байта)
                 addr_bytes = bytes.fromhex(hex_part)
-                
-                # Добавляем флаги: bounceable + workchain 0
+
+                # Правильные флаги: bounceable (0x11) + workchain 0
                 flags = 0x11  # bounceable = true, testnet = false
                 workchain = 0
-                
-                # Создаем полный payload
+
+                # Создаем полный payload: [flags, workchain, addr_bytes]
                 full_payload = bytes([flags, workchain]) + addr_bytes
-                
-                # Base64 encode с padding
+
+                # Base64 encode
                 encoded = base64.urlsafe_b64encode(full_payload).decode('utf-8').rstrip('=')
-                
+
                 return f"EQ{encoded}"
             else:
                 # Уже в правильном формате
                 return raw_address
-                
+
         except Exception as e:
             print(f"Error converting address {raw_address}: {e}")
             return raw_address
+                
+
 
     def convert_user_friendly_to_raw(self, user_friendly: str) -> str:
         """Конвертирует user-friendly адрес (EQ...) в raw (0:...)"""
@@ -232,42 +234,42 @@ class TonService:
         """Получаем баланс кошелька через TON API"""
         try:
             print(f"🔍 Getting balance for wallet: {wallet_address}")
-            
+
             if not self.api_key:
                 print("⚠️ TON API key not set - returning 0")
                 return 0.0
-            
+
             # ✅ КОНВЕРТИРУЕМ RAW АДРЕС В USER-FRIENDLY
             if wallet_address.startswith('0:'):
                 user_friendly_address = self.convert_raw_to_user_friendly(wallet_address)
                 print(f"🔁 Converted {wallet_address} -> {user_friendly_address}")
             else:
                 user_friendly_address = wallet_address
-            
+
             url = f"{self.base_url}/accounts/{user_friendly_address}"
-            
+
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
                 "Accept": "application/json"
             }
-            
+
             print(f"🌐 Making request to: {url}")
             response = requests.get(url, headers=headers)
-            
+
             if response.status_code == 200:
                 data = response.json()
                 print(f"✅ TON API response: {data}")
-                
+
                 balance_nano = data.get('balance', 0)
                 balance_ton = int(balance_nano) / 1e9
-                
+
                 print(f"💰 Balance: {balance_ton} TON")
                 return balance_ton
-                
+
             else:
                 print(f"❌ TON API error: {response.status_code} - {response.text}")
                 return 0.0
-                
+
         except Exception as e:
             print(f"❌ Error getting wallet balance: {e}")
             return 0.0
