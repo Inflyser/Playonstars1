@@ -184,7 +184,7 @@ from aiogram.types import LabeledPrice, PreCheckoutQuery
 
 async def stars_payment_handler(message: Message):
     """Обработчик команды покупки Stars"""
-    prices = [LabeledPrice(label="STARS", amount=1000)]  # 10.00 STARS
+    prices = [LabeledPrice(label="STARS", amount=10)]  # 10.00 STARS
     
     await message.answer_invoice(
         title="Пополнение STARS",
