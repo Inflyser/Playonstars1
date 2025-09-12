@@ -7,10 +7,6 @@ from sqlalchemy.orm import Session
 from app.database.session import SessionLocal
 from app.database import crud
 import aiohttp
-from app.database.models import Wallet
-
-import base64
-from tonsdk.utils import bytes_to_b64str, b64str_to_bytes
 
 class TonService:
     def __init__(self):
@@ -19,101 +15,6 @@ class TonService:
         self.webhook_secret = os.getenv('WEBHOOK_SECRET', os.urandom(24).hex())
         # ✅ ПРАВИЛЬНЫЙ БАЗОВЫЙ URL для TON API v2
         self.base_url = "https://tonapi.io/v2"
-        
-        self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        } if self.api_key else {}
-        
-
-    def convert_raw_to_user_friendly(self, raw_address: str) -> str:
-        """Конвертирует raw адрес (0:...) в user-friendly (EQ...) - ИСПРАВЛЕННАЯ ВЕРСИЯ"""
-        try:
-            if raw_address.startswith('0:'):
-                # Убираем '0:' префикс
-                hex_part = raw_address[2:]
-
-                # Конвертируем hex в bytes (32 байта)
-                addr_bytes = bytes.fromhex(hex_part)
-
-                # Правильные флаги: bounceable (0x11) + workchain 0
-                flags = 0x11  # bounceable = true, testnet = false
-                workchain = 0
-
-                # Создаем полный payload: [flags, workchain, addr_bytes]
-                full_payload = bytes([flags, workchain]) + addr_bytes
-
-                # Base64 encode
-                encoded = base64.urlsafe_b64encode(full_payload).decode('utf-8').rstrip('=')
-
-                return f"EQ{encoded}"
-            else:
-                # Уже в правильном формате
-                return raw_address
-
-        except Exception as e:
-            print(f"Error converting address {raw_address}: {e}")
-            return raw_address
-                
-
-
-    def convert_user_friendly_to_raw(self, user_friendly: str) -> str:
-        """Конвертирует user-friendly адрес (EQ...) в raw (0:...)"""
-        try:
-            if user_friendly.startswith(('EQ', 'UQ')):
-                # Убираем префикс
-                base64_part = user_friendly[2:]
-                
-                # Добавляем padding если нужно
-                padding = 4 - (len(base64_part) % 4)
-                if padding != 4:
-                    base64_part += '=' * padding
-                
-                # Base64 decode
-                decoded = base64.urlsafe_b64decode(base64_part)
-                
-                # Извлекаем workchain и hash
-                workchain = decoded[1]  # второй байт - workchain
-                addr_hash = decoded[2:34]  # остальные 32 байта - хэш
-                
-                return f"{workchain}:{addr_hash.hex()}"
-            else:
-                # Уже в raw формате
-                return user_friendly
-                
-        except Exception as e:
-            print(f"Error converting address {user_friendly}: {e}")
-            return user_friendly
-        
-        
-    async def check_deposits_to_wallet(self):
-        """Проверяем депозиты на основной кошелек (для обратной совместимости)"""
-        try:
-            if not self.api_key or not self.wallet_address:
-                print("⚠️ TON API key or wallet address not set")
-                return []
-
-            print(f"🔍 Checking deposits for main wallet: {self.wallet_address}")
-
-            # Используем существующий метод
-            transactions = await self.get_wallet_transactions(self.wallet_address)
-            deposits = []
-
-            for tx in transactions:
-                # Логика обработки транзакций
-                in_msg = tx.get('in_msg', {})
-                if in_msg and in_msg.get('destination') == self.wallet_address:
-                    deposits.append({
-                        'tx_hash': tx.get('hash'),
-                        'amount': float(in_msg.get('value', 0)) / 1e9,
-                        'from_address': in_msg.get('source')
-                    })
-
-            return deposits
-
-        except Exception as e:
-            print(f"Error checking wallet deposits: {e}")
-            return []
     
     async def setup_webhook(self):
         """Настраиваем веб-перехватчик для TON API"""
@@ -190,21 +91,20 @@ class TonService:
             return False
     
     async def check_ton_api_status(self):
-        """Проверяем доступность TON API - ИСПРАВЛЕННАЯ ВЕРСИЯ"""
+        """Проверяем статус TON API"""
         try:
             url = f"{self.base_url}/health"
-            print(f"🌐 Checking TON API health: {url}")
-
-            # Используем requests вместо aiohttp для простоты
-            response = requests.get(url, headers=self.headers, timeout=10)
-
+            headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
+            
+            response = requests.get(url, headers=headers)
+            
             if response.status_code == 200:
                 print("✅ TON API is accessible and healthy")
                 return True
             else:
                 print(f"❌ TON API health check failed: {response.status_code}")
                 return False
-
+                
         except Exception as e:
             print(f"❌ TON API health check error: {e}")
             return False
@@ -234,42 +134,37 @@ class TonService:
         """Получаем баланс кошелька через TON API"""
         try:
             print(f"🔍 Getting balance for wallet: {wallet_address}")
-
+            
             if not self.api_key:
                 print("⚠️ TON API key not set - returning 0")
                 return 0.0
-
-            # ✅ КОНВЕРТИРУЕМ RAW АДРЕС В USER-FRIENDLY
-            if wallet_address.startswith('0:'):
-                user_friendly_address = self.convert_raw_to_user_friendly(wallet_address)
-                print(f"🔁 Converted {wallet_address} -> {user_friendly_address}")
-            else:
-                user_friendly_address = wallet_address
-
-            url = f"{self.base_url}/accounts/{user_friendly_address}"
-
+            
+            # ✅ ПРАВИЛЬНЫЙ endpoint для получения информации о кошельке в tonapi.io v2
+            url = f"{self.base_url}/accounts/{wallet_address}"
+            
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
                 "Accept": "application/json"
             }
-
+            
             print(f"🌐 Making request to: {url}")
             response = requests.get(url, headers=headers)
-
+            
             if response.status_code == 200:
                 data = response.json()
                 print(f"✅ TON API response: {data}")
-
+                
+                # ✅ ПРАВИЛЬНЫЙ путь к балансу в tonapi.io v2
                 balance_nano = data.get('balance', 0)
-                balance_ton = int(balance_nano) / 1e9
-
+                balance_ton = int(balance_nano) / 1e9  # Конвертируем нанотоны в TON
+                
                 print(f"💰 Balance: {balance_ton} TON")
                 return balance_ton
-
+                
             else:
                 print(f"❌ TON API error: {response.status_code} - {response.text}")
                 return 0.0
-
+                
         except Exception as e:
             print(f"❌ Error getting wallet balance: {e}")
             return 0.0
@@ -299,78 +194,7 @@ class TonService:
         except Exception as e:
             print(f"Error processing TON webhook: {e}")
             raise HTTPException(status_code=500, detail=str(e))
-
-
-    async def check_deposits_to_user_wallets(self):
-        """Проверяем депозиты на все кошельки пользователей"""
-        try:
-            db = SessionLocal()
-
-            # Получаем все кошельки пользователей
-            user_wallets = db.query(Wallet).all()
-
-            for wallet in user_wallets:
-                print(f"🔍 Checking deposits for wallet: {wallet.address}")
-
-                # Получаем транзакции для этого кошелька
-                transactions = await self.get_wallet_transactions(wallet.address)
-
-                for tx in transactions:
-                    await self.process_deposit_transaction(db, tx, wallet)
-
-            db.close()
-
-        except Exception as e:
-            print(f"Error checking user wallet deposits: {e}")
-            if 'db' in locals():
-                db.close()       
-
-
-
-
-
-
-    async def process_deposit_transaction(self, db: Session, tx_data: dict, wallet: Wallet):
-        """Обрабатываем депозитную транзакцию"""
-        try:
-            tx_hash = tx_data.get('hash')
-
-            # Проверяем не обрабатывали ли уже эту транзакцию
-            existing_tx = crud.get_transaction_by_hash(db, tx_hash)
-            if existing_tx:
-                return
-
-            # Ищем входящие сообщения (депозиты)
-            in_msg = tx_data.get('in_msg')
-            if in_msg and in_msg.get('destination') == wallet.address:
-                value = in_msg.get('value', 0)
-                amount = float(value) / 1e9  # нанотоны → TON
-
-                if amount > 0:
-                    # Создаем запись о транзакции
-                    transaction = crud.create_transaction(
-                        db, 
-                        wallet.id, 
-                        tx_hash, 
-                        amount, 
-                        "deposit"
-                    )
-
-                    # Зачисляем средства на баланс пользователя
-                    user = crud.update_user_balance(
-                        db, 
-                        wallet.user.telegram_id, 
-                        "ton", 
-                        amount
-                    )
-
-                    # Обновляем статус транзакции
-                    crud.update_transaction_status(db, tx_hash, "completed")
-
-                    print(f"✅ Processed deposit: {amount} TON to {wallet.user.telegram_id}")
-
-        except Exception as e:
-            print(f"Error processing deposit transaction: {e}")
+        
 
     async def check_ton_api_status(self):
         """Проверяем доступность TON API"""
@@ -386,98 +210,77 @@ class TonService:
         except Exception as e:
             print(f"TON API health check error: {e}")
             return False
-
-    async def get_wallet_transactions(self, wallet_address: str, limit: int = 100):
-        """Получаем транзакции кошелька через TON API"""
-        try:
-            if not self.api_key:
-                print("⚠️ TON API key not set")
-                return []
-
-            # ✅ КОНВЕРТИРУЕМ RAW АДРЕС В USER-FRIENDLY
-            if wallet_address.startswith('0:'):
-                user_friendly_address = self.convert_raw_to_user_friendly(wallet_address)
-                print(f"🔁 Converted {wallet_address} -> {user_friendly_address}")
-            else:
-                user_friendly_address = wallet_address
-
-            url = f"{self.base_url}/accounts/{user_friendly_address}/transactions"
-            params = {'limit': limit}
-
-            print(f"🌐 Fetching transactions for: {user_friendly_address}")
-            response = requests.get(url, headers=self.headers, params=params, timeout=10)
-
-            if response.status_code == 200:
-                data = response.json()
-                transactions = data.get('transactions', [])
-                print(f"✅ Found {len(transactions)} transactions")
-                return transactions
-            elif response.status_code == 404:
-                print(f"❌ Wallet {user_friendly_address} not found or no transactions")
-                return []
-            else:
-                print(f"❌ TON API transactions error: {response.status_code} - {response.text}")
-                return []
-
-        except Exception as e:
-            print(f"❌ Error getting transactions: {e}")
-            return []
-
+        
+    
     async def handle_transaction_event(self, transaction_data: dict):
-        """Обрабатываем событие транзакции - ТЕПЕРЬ ПРАВИЛЬНО"""
+        """Обрабатываем событие транзакции"""
         try:
             db = SessionLocal()
-
+            
+            # Логируем полученные данные для отладки
             print(f"📊 Transaction data: {transaction_data}")
-
-            # Ищем информацию о транзакции
+            
+            # Извлекаем данные в зависимости от структуры API
             tx_hash = transaction_data.get('hash') or transaction_data.get('transaction_id')
-            in_msg = transaction_data.get('in_msg') or transaction_data.get('message', {})
-
-            destination = in_msg.get('destination') or in_msg.get('to')
-            value = in_msg.get('value') or in_msg.get('amount', 0)
-
-            if destination and value:
-                amount = float(value) / 1e9
-
-                # Ищем кошелек получателя в нашей базе
-                recipient_wallet = crud.get_wallet_by_address(db, destination)
-
-                if recipient_wallet:
-                    # Проверяем не обрабатывали ли уже эту транзакцию
-                    existing_tx = crud.get_transaction_by_hash(db, tx_hash)
-                    if not existing_tx:
-                        # Создаем запись о транзакции
-                        transaction = crud.create_transaction(
-                            db, 
-                            recipient_wallet.id, 
-                            tx_hash, 
-                            amount, 
-                            "deposit"
-                        )
-
-                        # Зачисляем средства на баланс пользователя
-                        user = crud.update_user_balance(
-                            db, 
-                            recipient_wallet.user.telegram_id, 
-                            "ton", 
-                            amount
-                        )
-
-                        # Обновляем статус транзакции
-                        crud.update_transaction_status(db, tx_hash, "completed")
-
-                        print(f"✅ Processed deposit: {amount} TON to user {recipient_wallet.user.telegram_id}")
-                else:
-                    print(f"⚠️ Unknown recipient wallet: {destination}")
-
+            
+            # Ищем информацию о входящем сообщении
+            in_msg = None
+            if 'in_msg' in transaction_data:
+                in_msg = transaction_data['in_msg']
+            elif 'message' in transaction_data:
+                in_msg = transaction_data['message']
+            
+            if in_msg and tx_hash:
+                destination = in_msg.get('destination') or in_msg.get('to')
+                source = in_msg.get('source') or in_msg.get('from')
+                value = in_msg.get('value') or in_msg.get('amount')
+                
+                # Проверяем что это входящая транзакция на наш кошелек
+                if destination and destination == self.wallet_address and source != self.wallet_address:
+                    
+                    amount = float(value or 0) / 1e9  # нанотоны → TON
+                    from_address = source
+                    
+                    print(f"💰 Incoming transaction: {amount} TON from {from_address}")
+                    
+                    # Ищем кошелек отправителя в нашей базе
+                    sender_wallet = crud.get_wallet_by_address(db, from_address)
+                    
+                    if sender_wallet:
+                        # Проверяем не обрабатывали ли уже эту транзакцию
+                        existing_tx = crud.get_transaction_by_hash(db, tx_hash)
+                        if not existing_tx:
+                            # Создаем запись о транзакции
+                            transaction = crud.create_transaction(
+                                db, 
+                                sender_wallet.id, 
+                                tx_hash, 
+                                amount, 
+                                "deposit"
+                            )
+                            
+                            # Зачисляем средства на баланс пользователя
+                            user = crud.update_user_balance(
+                                db, 
+                                sender_wallet.user.telegram_id, 
+                                "ton", 
+                                amount
+                            )
+                            
+                            # Обновляем статус транзакции
+                            crud.update_transaction_status(db, tx_hash, "completed")
+                            
+                            print(f"✅ Processed deposit: {amount} TON from {from_address}")
+                    else:
+                        print(f"⚠️ Unknown sender wallet: {from_address}")
+            
             db.close()
-
+            
         except Exception as e:
             print(f"Error handling transaction event: {e}")
             if 'db' in locals():
                 db.close()
-
+                
                 
                 
     

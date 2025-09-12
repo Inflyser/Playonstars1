@@ -8,8 +8,6 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 
-from app.database.models import Transaction
-
 load_dotenv()
 
 router = APIRouter()
@@ -199,9 +197,15 @@ async def check_user_deposits(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Проверяем депозиты пользователя - РАБОЧАЯ ВЕРСИЯ"""
+    """Проверяем депозиты пользователя"""
     try:
-        telegram_id = request.session.get("telegram_id")
+        # Пробуем разные способы получения telegram_id
+        telegram_id = (
+            request.session.get("telegram_id") or 
+            request.query_params.get("telegram_id") or
+            (await request.json()).get("telegram_id") if await request.body() else None
+        )
+        
         if not telegram_id:
             raise HTTPException(status_code=400, detail="Telegram ID required")
         
@@ -209,16 +213,8 @@ async def check_user_deposits(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Получаем кошелек пользователя
-        wallet = crud.get_wallet_by_user(db, user.id)
-        if not wallet:
-            return {"pending_transactions": []}
-        
-        # Проверяем pending транзакции для этого кошелька
-        pending_txs = db.query(Transaction).filter(
-            Transaction.wallet_id == wallet.id,
-            Transaction.status == "pending"
-        ).all()
+        # Проверяем все pending транзакции пользователя
+        pending_txs = crud.get_pending_transactions(db, user.id)
         
         return {
             "pending_transactions": [
@@ -232,5 +228,4 @@ async def check_user_deposits(
         }
         
     except Exception as e:
-        print(f"Error checking deposits: {e}")
-        return {"pending_transactions": []}
+        raise HTTPException(status_code=500, detail=str(e))
