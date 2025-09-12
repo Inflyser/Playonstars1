@@ -55,7 +55,7 @@ async def create_stars_invoice(
             "currency": "XTR",     # ✅ ВАЛЮТА TELEGRAM STARS
             "prices": [{
                 "label": f"{amount} STARS",
-                "amount": amount * 100  # ✅ УМНОЖАЕМ НА 100!
+                "amount": amount
             }]
         }
         

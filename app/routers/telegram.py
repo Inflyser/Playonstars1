@@ -205,7 +205,7 @@ async def stars_pre_checkout_handler(pre_checkout_query: PreCheckoutQuery):
 async def stars_successful_payment_handler(message: Message):
     """Обработка успешного платежа"""
     payment_info = message.successful_payment
-    await message.answer(f"✅ Успешно пополнено {payment_info.total_amount / 100} STARS!")
+    await message.answer(f"✅ Успешно пополнено {payment_info.total_amount} STARS!")
     
     
 from aiogram.types import LabeledPrice, PreCheckoutQuery, SuccessfulPayment
@@ -226,7 +226,7 @@ async def cmd_buy_stars(message: Message, db: Session = Depends(get_db)):
 
         # ✅ ПРАВИЛЬНЫЙ формат цен для Stars
         stars_amount = 100  # 100 STARS
-        prices = [LabeledPrice(label=f"{stars_amount} STARS", amount=stars_amount * 100)]
+        prices = [LabeledPrice(label=f"{stars_amount} STARS", amount=stars_amount)]
         
         await message.answer_invoice(
             title="Пополнение STARS",
