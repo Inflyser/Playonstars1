@@ -179,6 +179,8 @@ const addToBet = (amount: number) => {
 import { useI18n } from 'vue-i18n' // ← ДОБАВИТЬ ТОЛЬКО ЭТО
 const { t } = useI18n() // ← И ЭТО
 
+
+
 // Computed свойство для определения текста и стиля кнопки
 const buttonConfig = computed(() => {
   if (props.gamePhase === 'flying') {
