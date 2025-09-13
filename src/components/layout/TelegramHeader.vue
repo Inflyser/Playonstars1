@@ -9,31 +9,31 @@
         <button 
           class="currency-section flag-section" 
           @click="toggleLanguageSelector"
-          :disabled="isLoading"
+          :disabled="languageStore.isLoading"
         >
-          <img :src="currentFlag" :alt="currentLocale" class="flag-icon" />
-          <span v-if="isLoading" class="loading-spinner">⟳</span>
+          <img :src="currentFlag" :alt="languageStore.currentLanguage" class="flag-icon" />
+          <span v-if="languageStore.isLoading" class="loading-spinner">⟳</span>
         </button>
 
-        <div class="divider" v-if="!showLanguageSelector && !isLoading"></div>
+        <div class="divider" v-if="!showLanguageSelector && !languageStore.isLoading"></div>
 
-        <div class="currency-section wallet-section" v-if="!showLanguageSelector && !isLoading">
+        <div class="currency-section wallet-section" v-if="!showLanguageSelector && !languageStore.isLoading">
           <img src="@/assets/images/wallet.svg" class="wallet-icon" />
           <span class="balance-amount">{{ userStore.balance.stars_balance }}</span>
           <img src="@/assets/images/coin.svg" class="coin-icon" />
         </div>
 
-        <div class="language-selector" v-if="showLanguageSelector && !isLoading">
+        <div class="language-selector" v-if="showLanguageSelector && !languageStore.isLoading">
           <button 
             v-for="lang in languages" 
             :key="lang.code"
             class="language-option" 
             :class="{ 
-              selected: lang.code === currentLocale,
-              loading: isLoading
+              selected: lang.code === languageStore.currentLanguage,
+              loading: languageStore.isLoading
             }"
             @click="selectLanguage(lang.code)"
-            :disabled="isLoading"
+            :disabled="languageStore.isLoading"
             :aria-label="lang.name"
           >
             <img :src="lang.flag" :alt="lang.name" />
@@ -47,12 +47,12 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useUserStore } from '@/stores/useUserStore'
-import { useLanguageStore } from '@/stores/useLanguageStore'
-import { useI18n } from 'vue-i18n' // ✅ Добавляем импорт vue-i18n
+import { useLanguageStore, type AppLanguage } from '@/stores/useLanguageStore' // ✅ Импортируем тип
+import { useI18n } from 'vue-i18n'
 
 const userStore = useUserStore()
 const languageStore = useLanguageStore()
-const { locale } = useI18n() // ✅ Получаем текущую локаль из vue-i18n
+const { locale } = useI18n()
 
 const showLanguageSelector = ref(false)
 
@@ -61,13 +61,12 @@ import flagEn from '@/assets/images/united_kingdom.svg'
 import flagCn from '@/assets/images/vietnam.svg'
 
 const languages = [
-  { code: 'ru', name: 'Русский', flag: flagRu },
-  { code: 'en', name: 'English', flag: flagEn },
-  { code: 'cn', name: '中文', flag: flagCn }
+  { code: 'ru' as AppLanguage, name: 'Русский', flag: flagRu },
+  { code: 'en' as AppLanguage, name: 'English', flag: flagEn },
+  { code: 'cn' as AppLanguage, name: '中文', flag: flagCn }
 ]
 
-// ✅ Используем locale.value из vue-i18n вместо languageStore.currentLanguage
-const currentLocale = computed(() => locale.value)
+const currentLocale = computed(() => locale.value as AppLanguage)
 const isLoading = computed(() => languageStore.isLoading)
 
 const currentFlag = computed(() => {
@@ -81,19 +80,18 @@ const toggleLanguageSelector = () => {
   }
 }
 
-const selectLanguage = async (lang: string) => {
+// ✅ Указываем конкретный тип параметра
+const selectLanguage = async (lang: AppLanguage) => {
   if (isLoading.value || lang === currentLocale.value) {
     showLanguageSelector.value = false
     return
   }
 
   try {
-    // ✅ Передаем выбранный язык в хранилище
     const success = await languageStore.setLanguage(lang)
     
     if (success) {
       showLanguageSelector.value = false
-      // Язык автоматически обновится через синхронизацию в хранилище
     } else {
       console.error('Language change failed')
     }
