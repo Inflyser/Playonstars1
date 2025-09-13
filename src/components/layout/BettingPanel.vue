@@ -76,12 +76,12 @@
       <!-- Правая часть: кнопка ставки -->
       <button 
         :class="buttonConfig.class"
-        @click="handleButtonClick"
+        @click="placeBet"
         :disabled="buttonConfig.disabled"
       >
-        <span class="shine-effect" :class="{ red: hasActiveBet && gamePhase === 'flying' }"></span>
+        <span class="shine-effect" :class="{ red: gamePhase === 'flying' }"></span>
         {{ buttonConfig.text }}
-        <div class="divider-bet" :class="{ red: hasActiveBet && gamePhase === 'flying' }"></div>
+        <div class="divider-bet" :class="{ red: gamePhase === 'flying' }"></div>
       </button>
     </div>
   </div>
@@ -100,17 +100,13 @@ const props = defineProps({
     type: Number,
     default: 1000
   },
-  gamePhase: {
+  gamePhase: { // ✅ Добавляем prop для фазы игры
     type: String as () => 'betting' | 'flying' | 'finished',
     default: 'betting'
   },
-  currentMultiplier: {
+  currentMultiplier: { // ✅ Текущий множитель для режима полета
     type: Number,
     default: 1.0
-  },
-  hasActiveBet: { // ✅ Новый prop: есть ли активная ставка у пользователя
-    type: Boolean,
-    default: false
   }
 })
 
@@ -141,6 +137,7 @@ const isDisabled = computed(() => {
 })
 
 const quickAmounts = computed(() => {
+  // Динамические быстрые суммы на основе макс. суммы
   const max = props.maxAmount
   return [
     Math.floor(max * 0.1),
@@ -148,25 +145,6 @@ const quickAmounts = computed(() => {
     Math.floor(max * 0.5),
     Math.floor(max * 0.75)
   ].filter(amount => amount > 0)
-})
-
-// Computed свойство для определения текста и стиля кнопки
-const buttonConfig = computed(() => {
-  // Если у пользователя есть активная ставка И игра в фазе полета
-  if (props.hasActiveBet && props.gamePhase === 'flying') {
-    return {
-      text: `ЗАБРАТЬ x${props.currentMultiplier.toFixed(2)}`,
-      class: 'cashout-btn',
-      disabled: false
-    }
-  }
-  
-  // Во всех остальных случаях - обычная кнопка ставки
-  return {
-    text: 'СТАВКА',
-    class: 'place-bet-btn',
-    disabled: isDisabled.value
-  }
 })
 
 // Методы
@@ -198,10 +176,28 @@ const addToBet = (amount: number) => {
   }
 }
 
-const handleButtonClick = () => {
-  if (props.hasActiveBet && props.gamePhase === 'flying') {
-    // Режим "Забрать ставку" - только если есть активная ставка
-    emit('cash-out')
+// Computed свойство для определения текста и стиля кнопки
+const buttonConfig = computed(() => {
+  if (props.gamePhase === 'flying') {
+    return {
+      text: `ЗАБРАТЬ x${props.currentMultiplier.toFixed(2)}`,
+      class: 'cashout-btn', // Красный стиль
+      disabled: false
+    }
+  }
+  
+  return {
+    text: 'СТАВКА',
+    class: 'place-bet-btn', // Зеленый стиль
+    disabled: isDisabled.value
+  }
+})
+
+// Обновляем метод placeBet
+const placeBet = () => {
+  if (props.gamePhase === 'flying') {
+    // Режим "Забрать ставку"
+    emit('cash-out') // ✅ Новое событие для вывода
   } else {
     // Режим обычной ставки
     if (!isDisabled.value) {
@@ -215,7 +211,7 @@ const handleButtonClick = () => {
   }
 }
 
-// Форматирование коэффициента
+// Форматирование коэффициента (остается без изменений)
 const formatCoefficient = (event: Event) => {
   const target = event.target as HTMLInputElement
   let value = target.value
@@ -267,8 +263,6 @@ const validateCoefficient = () => {
 </script>
 
 <style scoped>
-/* Стили остаются практически без изменений, только обновляем селекторы для .red */
-
 .betting-container {
   margin: 20px 0px 20px 2.5%;
   width: 95%;
@@ -337,14 +331,15 @@ const validateCoefficient = () => {
 }
 
 .coef-input {
-  width: 70px;
-  padding: 6px 20px 6px 8px;
+  width: 70px; /* Немного шире для двух знаков */
+  padding: 6px 20px 6px 8px; /* Правое padding для символа x */
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid #2A2642;
   border-radius: 6px;
   color: white;
   text-align: center;
   font-size: 12px;
+  /* Убираем стрелочки */
   -moz-appearance: textfield;
 }
 
@@ -364,7 +359,7 @@ const validateCoefficient = () => {
   right: 8px;
   color: rgba(255, 255, 255, 0.6);
   font-size: 12px;
-  pointer-events: none;
+  pointer-events: none; /* Чтобы не мешало кликам */
 }
 
 /* Второй блок: управление суммой ставки */
@@ -486,6 +481,7 @@ const validateCoefficient = () => {
   transform: translateY(-2px);
 }
 
+
 .divider {
   width: 100%;
   height: 1px;
@@ -537,7 +533,7 @@ const validateCoefficient = () => {
   transform: translateY(-2px);
 }
 
-/* Красный shine эффект - ТОЛЬКО когда есть активная ставка */
+/* Красный shine эффект */
 .shine-effect.red {
   background: radial-gradient(
     circle at center,
@@ -550,9 +546,73 @@ const validateCoefficient = () => {
     0 0 20px rgba(255, 100, 100, 0.4) !important;
 }
 
-/* Красный divider - ТОЛЬКО когда есть активная ставка */
+/* Красный divider */
 .divider-bet.red {
   background: linear-gradient(135deg, #ff6b6b, #ee5a52) !important;
+}
+
+/* Анимация пульсации для кнопки вывода */
+
+
+/* Адаптивность */
+
+@media (max-width: 768px) {
+  .amount-value {
+    min-width: 70%;
+    text-align: center;
+  }
+  
+  .bet-settings {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .betting-container {
+    padding: 16px;
+  }
+  
+  .coefficient-input {
+    margin-left: 0;
+    margin-right: auto;
+  }
+  
+  .bet-amount-control {
+    flex-direction: row; /* ← Оставляем row вместо column */
+    align-items: stretch; /* ← Добавляем */
+    gap: 16px;
+  }
+
+  
+  .amount-section {
+    flex: 1;
+  }
+  
+  .quick-buttons {
+    flex-wrap: wrap;
+    gap: 4px; /* ← Уменьшаем gap между кнопками */
+  }
+  
+  .quick-btn {
+    padding: 5px 6px; /* ← Уменьшаем padding */
+    font-size: 10px;
+    flex: 1;
+ 
+  }
+
+  
+  .cashout-btn {
+    width: auto; /* ← Убираем width: 100% */
+    height: 100%; /* ← Оставляем */
+    padding: 26px 55px; /* ← Корректируем padding */
+    min-width: 80px; /* ← Добавляем минимальную ширину */
+  }
+  
+  .place-bet-btn {
+    width: auto; /* ← Убираем width: 100% */
+    height: 100%; /* ← Оставляем */
+    padding: 26px 55px; /* ← Корректируем padding */
+    min-width: 80px; /* ← Добавляем минимальную ширину */
+  }
+
 }
 
 @media (max-width: 480px) {
