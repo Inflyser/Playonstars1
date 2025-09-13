@@ -912,6 +912,33 @@ async def get_user_language_api(
         return {"error": str(e)}
 
 
+# Добавить в ваш FastAPI app
+@app.post("/api/user/language")
+async def set_user_language_api(
+    request: Request,
+    language_data: dict,
+    db: Session = Depends(get_db)
+):
+    try:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return {"error": "Not authenticated"}
+        
+        language = language_data.get("language")
+        if language not in ["ru", "en", "cn"]:
+            return {"error": "Invalid language"}
+        
+        # Обновляем язык пользователя
+        user = get_user_by_telegram_id(db, user_id)
+        if user:
+            user.language = language
+            db.commit()
+        
+        return {"success": True, "language": language}
+        
+    except Exception as e:
+        return {"error": str(e)}
+
 
     
     
