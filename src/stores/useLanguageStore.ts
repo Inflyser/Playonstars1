@@ -23,14 +23,16 @@ export const useLanguageStore = defineStore('language', () => {
 
   const setLanguage = async (lang: string) => {
     try {
-      isLoading.value = true
-      await api.post('/api/user/language', { language: lang })
-      currentLanguage.value = lang
+      isLoading.value = true;
+      // Ждем подтверждения от бэкенда
+      await api.post('/api/user/language', { language: lang });
+      // Только затем обновляем состояние
+      currentLanguage.value = lang;
     } catch (error) {
-      console.error('Failed to save language:', error)
-      throw error
+      console.error('Failed to save language:', error);
+      throw error; // Пробрасываем ошибку, чтобы обработать её в компоненте
     } finally {
-      isLoading.value = false
+      isLoading.value = false;
     }
   }
 
