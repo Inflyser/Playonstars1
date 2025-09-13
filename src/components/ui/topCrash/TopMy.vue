@@ -18,7 +18,6 @@
     </div>
     
     <div v-else-if="myBets.length === 0" class="empty-container">
-      <img src="@/assets/images/coin.svg" alt="No bets" class="empty-icon">
       <span>У вас еще нет ставок</span>
     </div>
     
@@ -70,11 +69,18 @@ const userStore = useUserStore()
 const loading = ref(false)
 const error = ref<string | null>(null)
 const betsList = ref<HTMLElement | null>(null)
-const myBets = ref<any[]>([])
+const allBets = ref<any[]>([]) // Все ставки с сервера
 
-// Вычисляемое свойство для отфильтрованных ставок пользователя
-const filteredMyBets = computed(() => {
-  return myBets.value.slice(0, 50) // Ограничиваем количество отображаемых ставок
+// Фильтруем только ставки текущего пользователя
+const myBets = computed(() => {
+  if (!userStore.user) return []
+  
+  return allBets.value
+    .filter(bet => 
+      bet.user_id === userStore.user?.id || 
+      bet.telegram_id === userStore.user?.telegram_id
+    )
+    .slice(0, 50) // Ограничиваем количество
 })
 
 // Функция для определения класса множителя
@@ -99,13 +105,16 @@ const getMultiplierClass = (bet: any) => {
 // Обработчик новых ставок из WebSocket
 const handleNewBet = (newBet: any) => {
   // Проверяем, принадлежит ли ставка текущему пользователю
-  if (newBet.user_id === userStore.user?.id || newBet.telegram_id === userStore.user?.telegram_id) {
-    // Добавляем ставку в начало списка
-    myBets.value.unshift(newBet);
+  const isMyBet = newBet.user_id === userStore.user?.id || 
+                 newBet.telegram_id === userStore.user?.telegram_id
+  
+  if (isMyBet) {
+    // Добавляем ставку в начало списка всех ставок
+    allBets.value.unshift(newBet)
     
-    // Ограничиваем количество ставок (например, последние 50)
-    if (myBets.value.length > 50) {
-      myBets.value = myBets.value.slice(0, 50);
+    // Ограничиваем количество ставок
+    if (allBets.value.length > 100) {
+      allBets.value = allBets.value.slice(0, 100)
     }
   }
 }
@@ -121,12 +130,12 @@ const formatAmount = (amount: number) => {
 
 const formatProfit = (bet: any) => {
   if (bet.status === 'won') {
-    const winAmount = Math.round(bet.bet_amount * bet.crash_coefficient);
-    return formatAmount(winAmount);
+    const winAmount = Math.round(bet.bet_amount * bet.crash_coefficient)
+    return formatAmount(winAmount)
   } else if (bet.status === 'lost') {
-    return '—';
+    return '—'
   } else {
-    return formatAmount(0);
+    return formatAmount(0)
   }
 }
 
@@ -138,21 +147,18 @@ const formatTime = (timestamp: string) => {
   })
 }
 
-const loadMyBetHistory = async () => {
+const loadBetHistory = async () => {
   try {
     loading.value = true
     error.value = null
     
-    const response = await api.get('/api/crash/my-bets', {
-      params: { 
-        limit: 50,
-        user_id: userStore.user?.id
-      }
+    const response = await api.get('/api/crash/bet-history', {
+      params: { limit: 100 }
     })
     
-    myBets.value = response.data.bets || []
+    allBets.value = response.data.bets || []
   } catch (err: any) {
-    console.error('Failed to load my bet history:', err)
+    console.error('Failed to load bet history:', err)
     error.value = err.response?.data?.detail || 'Ошибка загрузки истории ставок'
   } finally {
     loading.value = false
@@ -160,24 +166,16 @@ const loadMyBetHistory = async () => {
 }
 
 const refreshHistory = () => {
-  loadMyBetHistory()
-}
-
-const scrollToTop = () => {
-  nextTick(() => {
-    if (betsList.value) {
-      betsList.value.scrollTop = 0
-    }
-  })
+  loadBetHistory()
 }
 
 onMounted(async () => {
   if (userStore.user) {
-    await loadMyBetHistory()
+    await loadBetHistory()
     await connectToCrashGame()
     
     // Обновляем историю каждые 30 секунд
-    setInterval(loadMyBetHistory, 30000)
+    setInterval(loadBetHistory, 30000)
   } else {
     error.value = 'Требуется авторизация'
   }
@@ -275,11 +273,8 @@ onMounted(async () => {
   background: rgba(108, 77, 177, 0.5);
 }
 
-.empty-icon {
-  width: 48px;
-  height: 48px;
-  margin-bottom: 12px;
-  opacity: 0.5;
+.empty-container {
+  padding: 40px 20px;
 }
 
 .bets-list-vertical {
