@@ -899,17 +899,19 @@ async def get_user_language_api(
 ):
     try:
         user_id = request.session.get("user_id")
+        # Если пользователь не аутентифицирован, возвращаем язык по умолчанию
         if not user_id:
-            return {"error": "Not authenticated"}
+            return {"language": "ru"}  # Язык по умолчанию для неаутентифицированных пользователей
         
-        # Получаем пользователя и его язык
         user = get_user_by_telegram_id(db, user_id)
+        # Если пользователь найден, возвращаем его язык, иначе - язык по умолчанию
         language = user.language if user else 'ru'
         
         return {"language": language}
         
     except Exception as e:
-        return {"error": str(e)}
+        # В случае любой ошибки также возвращаем язык по умолчанию
+        return {"language": "ru"}
 
 
 # Добавить в ваш FastAPI app
