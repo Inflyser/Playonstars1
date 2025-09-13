@@ -176,19 +176,21 @@ const addToBet = (amount: number) => {
   }
 }
 
+import { useI18n } from 'vue-i18n' // ← ДОБАВИТЬ ТОЛЬКО ЭТО
+const { t } = useI18n() // ← И ЭТО
 
 // Computed свойство для определения текста и стиля кнопки
 const buttonConfig = computed(() => {
   if (props.gamePhase === 'flying') {
     return {
-      text: `${$t('button_stavka2')} x${props.currentMultiplier.toFixed(2)}`,
+      text: `${t('button_stavka1')} x${props.currentMultiplier.toFixed(2)}`,
       class: 'cashout-btn', // Красный стиль
       disabled: false
     }
   }
   
   return {
-    text: `${$t('button_stavka1')}`,
+    text: t('button_stavka1'),
     class: 'place-bet-btn', // Зеленый стиль
     disabled: isDisabled.value
   }

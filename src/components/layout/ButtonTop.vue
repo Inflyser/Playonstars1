@@ -31,10 +31,14 @@ interface GroupButton {
   label: string
 }
 
+import { useI18n } from 'vue-i18n' // ← ДОБАВИТЬ ТОЛЬКО ЭТО
+
+const { t } = useI18n() // ← И ЭТО
+
 const buttons: GroupButton[] = [
-  { id: 'top', label: `${$t('top1')}` },
-  { id: 'top10', label: `${$t('top2')}` },
-  { id: 'mytop', label: `${$t('top3')}` }
+  { id: 'top', label: t('top1') },
+  { id: 'top10', label: t('top2') },
+  { id: 'mytop', label: t('top3') }
 ]
 
 // Используем переданное значение из v-model
