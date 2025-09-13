@@ -42,15 +42,19 @@ import { useUserStore } from '@/stores/useUserStore'
 const userStore = useUserStore()
 const showLanguageSelector = ref(false)
 
+import flagRu from '@/assets/images/flag.svg'
+import flagEn from '@/assets/images/united_kingdom.svg'
+import flagCn from '@/assets/images/vietnam.svg'
+
 const languages = [
-  { code: 'ru', name: 'Русский', flag: '/src/assets/images/flag.svg' },
-  { code: 'en', name: 'English', flag: '/src/assets/images/united_kingdom.svg' },
-  { code: 'cn', name: '中文', flag: '/src/assets/images/vietnam.svg' }
+  { code: 'ru', name: 'Русский', flag: flagRu },
+  { code: 'en', name: 'English', flag: flagEn },
+  { code: 'cn', name: '中文', flag: flagCn }
 ]
 
 const currentFlag = computed(() => {
   const lang = languages.find(l => l.code === userStore.currentLanguage)
-  return lang ? lang.flag : '/src/assets/images/flag.svg'
+  return lang ? lang.flag : flagRu
 })
 
 onMounted(async () => {
