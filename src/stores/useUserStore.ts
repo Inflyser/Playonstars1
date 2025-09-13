@@ -7,7 +7,6 @@ export interface TelegramUser {
   first_name?: string;
   last_name?: string;
   photo_url?: string;
-  language?: string;
 }
 
 export interface User {
@@ -19,7 +18,6 @@ export interface User {
   ton_balance: number;
   stars_balance: number;
   photo_url?: string;
-  language: string; // Добавляем язык пользователя
 }
 
 export interface UserBalance {
@@ -31,78 +29,17 @@ export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null);
   const telegramUser = ref<TelegramUser | null>(null);
   const balance = ref<UserBalance>({ ton_balance: 0, stars_balance: 0 });
-  const currentLanguage = ref('ru'); // Язык по умолчанию
 
   const setUser = (userData: User) => {
     user.value = userData;
-    // Устанавливаем язык из данных пользователя
-    if (userData.language) {
-      currentLanguage.value = userData.language;
-    }
   };
 
   const setTelegramUser = (telegramData: TelegramUser) => {
     telegramUser.value = telegramData;
-    // Устанавливаем язык из Telegram пользователя
-    if (telegramData.language) {
-      currentLanguage.value = telegramData.language;
-    }
   };
 
   const setBalance = (newBalance: UserBalance) => {
     balance.value = newBalance;
-  };
-
-  // Метод для установки языка
-  const setLanguage = async (lang: string) => {
-    try {
-      currentLanguage.value = lang;
-      
-      // Обновляем язык у пользователя, если он есть
-      if (user.value) {
-        user.value.language = lang;
-      }
-      
-      // Сохраняем язык на сервере
-      const { api } = await import('@/services/api');
-      await api.post('/api/user/language', { language: lang });
-      
-      // Отправляем событие о смене языка
-      window.dispatchEvent(new CustomEvent('language-changed', { 
-        detail: { language: lang } 
-      }));
-      
-      return true;
-    } catch (error) {
-      console.error('Failed to set language:', error);
-      // Восстанавливаем предыдущий язык в случае ошибки
-      if (user.value?.language) {
-        currentLanguage.value = user.value.language;
-      }
-      throw error;
-    }
-  };
-
-  // Метод для загрузки языка из БД
-  const loadLanguage = async () => {
-    try {
-      const { api } = await import('@/services/api');
-      const response = await api.get('/api/user/language');
-      
-      if (response.data.language) {
-        currentLanguage.value = response.data.language;
-        
-        // Обновляем язык у пользователя, если он есть
-        if (user.value) {
-          user.value.language = response.data.language;
-        }
-      }
-      
-      return currentLanguage.value;
-    } catch (error) {
-      console.error('Failed to load language:', error);
-      return currentLanguage.value;
-    }
   };
 
   const updateBalance = async (currency: 'ton' | 'stars', amount: number, operation: 'add' | 'set' = 'add') => {
@@ -175,16 +112,13 @@ export const useUserStore = defineStore('user', () => {
          console.error('Balance sync failed:', error);
          return null;
      }
-  };
+    };
 
   const fetchUserData = async () => {
     try {
       const { telegramService } = await import('@/services/telegram.service');
       const response = await telegramService.getUserData();
       setTelegramUser(response.user_data);
-      
-      // Загружаем язык после получения данных пользователя
-      await loadLanguage();
     } catch (err) {
       console.error('Failed to fetch user data:', err);
     }
@@ -194,7 +128,6 @@ export const useUserStore = defineStore('user', () => {
     user.value = null;
     telegramUser.value = null;
     balance.value = { ton_balance: 0, stars_balance: 0 };
-    currentLanguage.value = 'ru'; // Сбрасываем язык
   };
 
   // Computed properties
@@ -238,19 +171,17 @@ export const useUserStore = defineStore('user', () => {
     return telegramUser.value?.username || user.value?.username || '';
   });
 
-  // Computed property для текущего языка
-  const getCurrentLanguage = computed(() => currentLanguage.value);
+
+  
+
 
   return {
     user,
     telegramUser,
     balance,
-    currentLanguage: getCurrentLanguage, // Экспортируем как computed
     setUser,
     setTelegramUser,
     setBalance,
-    setLanguage, // Добавляем метод установки языка
-    loadLanguage, // Добавляем метод загрузки языка
     updateBalance,
     clearUser,
     fetchUserData,
