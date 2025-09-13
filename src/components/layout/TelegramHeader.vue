@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useUserStore } from '@/stores/useUserStore'
 import { useLanguageStore } from '@/stores/useLanguageStore'
 
@@ -99,11 +99,6 @@ const selectLanguage = async (lang: string) => {
 }
 
 
-onMounted(async () => {
-  console.log("Mounting header, about to load language");
-  await languageStore.loadLanguage();
-  console.log("Current language after load:", languageStore.currentLanguage);
-});
 </script>
 
 <style scoped>

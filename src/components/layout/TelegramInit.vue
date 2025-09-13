@@ -7,10 +7,12 @@ import { useWalletStore } from '@/stores/useWalletStore';
 import { useWebSocket } from '@/composables/useWebSocket';
 import TGLoader from '@/components/ui/TGLoader.vue';
 import AppLayout from '@/components/layout/AppLayout.vue';
+import { useLanguageStore } from '@/stores/useLanguageStore'; 
 
 const { initTelegram, fetchUserData, fetchBalance, isLoading, error } = useTelegram();
 const userStore = useUserStore();
 const walletStore = useWalletStore();
+const languageStore = useLanguageStore();
 const { connect: connectWebSocket } = useWebSocket();
 const isInitialized = ref(false);
 const initializationError = ref<string | null>(null);
@@ -31,6 +33,10 @@ const initializeApp = async () => {
   try {
     const isTelegram = initTelegramWebApp();
     console.log('📱 Is Telegram environment:', isTelegram);
+
+    console.log('🌐 Loading user language...');
+    await languageStore.loadLanguage();
+    console.log('✅ Language loaded:', languageStore.currentLanguage);
 
     // 1. ✅ Инициализируем TonConnect
     console.log('🔗 Initializing TonConnect...');
