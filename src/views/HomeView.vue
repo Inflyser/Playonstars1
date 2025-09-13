@@ -20,7 +20,7 @@
           <!-- Слой 1: Текст -->
           <div class="card-content">
             <h3>Space Monkey</h3>
-            <p>Ставь ставку и сражайся с другими игроками</p>
+            <p>{{ $t('welcome_message') }}</p>
           </div>
         </button>
       
@@ -58,6 +58,7 @@
 </template>
 
 <script setup lang="ts">
+
 import { useUserStore } from '@/stores/useUserStore'
 import { computed } from 'vue'
 
@@ -84,6 +85,8 @@ const PageCrash = () => {
 const PagePvp = () => {
   router.push('/pvp')
 }
+
+
 </script>
 
 <style scoped>
