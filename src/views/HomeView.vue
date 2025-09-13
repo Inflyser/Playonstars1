@@ -19,8 +19,8 @@
 
           <!-- Слой 1: Текст -->
           <div class="card-content">
-            <h3>Space Monkey</h3>
-            <p>{{ $t('welcome_message') }}</p>
+            <h3>{{ $t('logo_place_bet') }}</h3>
+            <p>{{ $t('place_bet') }}</p>
           </div>
         </button>
       
@@ -37,8 +37,8 @@
 
           <!-- Слой 1: Текст -->
           <div class="card-content">
-            <h3>PvP-арена</h3>
-            <p>Сражайся с игроками и побеждай!</p>
+            <h3>{{ $t('logo_place_bet1') }}</h3>
+            <p>{{ $t('place_bet1') }}</p>
           </div>
         </button>
       </div>

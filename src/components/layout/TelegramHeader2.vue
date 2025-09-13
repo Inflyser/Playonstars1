@@ -10,7 +10,7 @@
             :disabled="walletStore.isLoading"
           >
             <img src="@/assets/images/wallet-icon.svg" alt="Кошелек" class="button-icon" />
-            {{ walletStore.isLoading ? 'Подключение...' : 'Подключить кошелёк' }}
+            {{ walletStore.isLoading ? 'Подключение...' : $t('wallet') }}
           </button>
           
           <div v-else class="wallet-address">

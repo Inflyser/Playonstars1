@@ -3,7 +3,7 @@ import { type LanguageStore } from '@/stores/useLanguageStore'; // Предпо�
 
 declare module 'vue' {
   interface ComponentCustomProperties {
-    $t: (key: string) => string;
+    $t: (key: string, values?: object) => string;
     $language: string; // Если вы также используете $language
   }
 }

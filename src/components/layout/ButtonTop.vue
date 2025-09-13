@@ -32,9 +32,9 @@ interface GroupButton {
 }
 
 const buttons: GroupButton[] = [
-  { id: 'top', label: 'Все' },
-  { id: 'top10', label: 'ТОП-10' },
-  { id: 'mytop', label: 'Мои' }
+  { id: 'top', label: `${$t('top1')}` },
+  { id: 'top10', label: `${$t('top2')}` },
+  { id: 'mytop', label: `${$t('top3')}` }
 ]
 
 // Используем переданное значение из v-model

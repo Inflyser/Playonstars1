@@ -11,7 +11,7 @@
         >
           <span class="checkmark">✓</span>
         </button>
-        <span class="setting-label">Авто ставка</span>
+        <span class="setting-label">{{ $t('auto_stavka') }}</span>
       </div>
 
       <!-- Быстрая ставка -->
@@ -23,7 +23,7 @@
         >
           <span class="checkmark">✓</span>
         </button>
-        <span class="setting-label">Авто вывод</span>
+        <span class="setting-label">{{ $t('auto_weivod') }}</span>
       </div>
 
       <!-- Коэффициент -->
@@ -176,18 +176,19 @@ const addToBet = (amount: number) => {
   }
 }
 
+
 // Computed свойство для определения текста и стиля кнопки
 const buttonConfig = computed(() => {
   if (props.gamePhase === 'flying') {
     return {
-      text: `ЗАБРАТЬ x${props.currentMultiplier.toFixed(2)}`,
+      text: `${$t('button_stavka2')} x${props.currentMultiplier.toFixed(2)}`,
       class: 'cashout-btn', // Красный стиль
       disabled: false
     }
   }
   
   return {
-    text: 'СТАВКА',
+    text: `${$t('button_stavka1')}`,
     class: 'place-bet-btn', // Зеленый стиль
     disabled: isDisabled.value
   }
