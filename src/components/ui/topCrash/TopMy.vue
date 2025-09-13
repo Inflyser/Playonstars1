@@ -18,7 +18,7 @@
     </div>
     
     <div v-else-if="myBets.length === 0" class="empty-container">
-      <img src="@/assets/images/empty-bets.svg" alt="No bets" class="empty-icon">
+      <img src="@/assets/images/coin.svg" alt="No bets" class="empty-icon">
       <span>У вас еще нет ставок</span>
     </div>
     
