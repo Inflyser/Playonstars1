@@ -42,8 +42,8 @@ class CrashGame:
                 "multiplier": 1.0
             })
 
-        # Генерируем множитель с RTP 95%
-        multiplier = self.generate_multiplier_rtp_95()
+        # Генерируем множитель с RTP 92%
+        multiplier = self.generate_multiplier_rtp_92()
         
         # Фаза полета
         current_multiplier = 1.0
@@ -79,51 +79,79 @@ class CrashGame:
             "timestamp": datetime.now().isoformat()
         })
 
-    def generate_multiplier_rtp_95(self) -> float:
+    def generate_multiplier_rtp_92(self) -> float:
         """
-        Генерация множителя с RTP 95%
+        Генерация множителя с RTP 92%
         
         Формула: P(x) = (1 - RTP) / x^2
-        Где RTP = 0.95, поэтому P(x) = 0.05 / x^2
+        Где RTP = 0.92, поэтому P(x) = 0.08 / x^2
         
-        Интеграл от 1 до ∞: ∫(0.05/x^2)dx = 0.05
-        
-        Метод обратного преобразования:
-        u = ∫(1/x^2)dx от 1 до x = 1 - 1/x
-        x = 1/(1 - u)
+        Вероятность краха на 1x: 8%
+        Остальные множители: x = 1/(1 - u) с масштабированием
         """
         u = random.random()
         
-        # 5% вероятность краха на 1x (RTP 95%)
-        if u < 0.05:
+        # 8% вероятность краха на 1x (RTP 92%)
+        if u < 0.08:
             return 1.0
         
-        # Генерируем множитель по формуле x = 1/(1 - u)
-        # Но нам нужно учесть, что u уже > 0.05, поэтому масштабируем
-        scaled_u = 0.05 + u * 0.95  # Масштабируем до [0.05, 1.0]
+        # Масштабируем оставшиеся 92% до [0, 1]
+        scaled_u = (u - 0.08) / 0.92
+        
+        # Генерируем множитель по формуле x = 1/(1 - scaled_u)
         multiplier = 1.0 / (1.0 - scaled_u)
         
-        # Ограничиваем максимальный множитель (например, 1000x)
+        # Добавляем минимальный множитель 1.01x для игр, которые не крашатся сразу
+        multiplier = max(multiplier, 1.01)
+        
+        # Ограничиваем максимальный множитель
         multiplier = min(multiplier, 1000.0)
         
         # Округляем до 2 знаков после запятой
         return round(multiplier, 2)
 
-    # Альтернативная реализация с экспоненциальным распределением
-    def generate_multiplier_exponential(self) -> float:
+    def generate_multiplier_rtp_92_v2(self) -> float:
         """
-        Альтернативная реализация с экспоненциальным распределением
-        для достижения RTP 95%
+        Версия 2: Более агрессивное распределение для RTP 92%
         """
-        # Параметр для экспоненциального распределения
-        # E[x] = 1/λ = 20, поэтому λ = 0.05
-        lambda_param = 0.05
-        
-        # Генерируем случайную величину
         u = random.random()
+        
+        # 8% - мгновенный крах
+        if u < 0.08:
+            return 1.0
+        
+        # 25% - очень низкие множители (1.01x-1.5x)
+        elif u < 0.33:
+            return round(random.uniform(1.01, 1.5), 2)
+        
+        # 30% - низкие множители (1.5x-3x)
+        elif u < 0.63:
+            return round(random.uniform(1.5, 3.0), 2)
+        
+        # 20% - средние множители (3x-8x)
+        elif u < 0.83:
+            return round(random.uniform(3.0, 8.0), 2)
+        
+        # 15% - высокие множители (8x-30x)
+        elif u < 0.98:
+            return round(random.uniform(8.0, 30.0), 2)
+        
+        # 2% - экстремальные множители (30x-1000x)
+        else:
+            return round(random.uniform(30.0, 1000.0), 2)
+
+    def generate_multiplier_rtp_92_v3(self) -> float:
+        """
+        Версия 3: Экспоненциальное распределение с RTP 92%
+        E[x] = 1/λ = 12.5, поэтому λ = 0.08
+        """
+        lambda_param = 0.08
+        u = random.random()
+        
+        # Генерируем экспоненциально распределенную величину
         multiplier = -math.log(1 - u) / lambda_param
         
-        # Ограничиваем минимальный множитель 1.0
+        # Минимальный множитель 1.0
         multiplier = max(multiplier, 1.0)
         
         # Ограничиваем максимальный множитель
@@ -131,11 +159,78 @@ class CrashGame:
         
         return round(multiplier, 2)
 
+    def generate_multiplier_rtp_92_v4(self) -> float:
+        """
+        Версия 4: Частые низкие множители для RTP 92%
+        """
+        u = random.random()
+        
+        # 8% - мгновенный крах
+        if u < 0.08:
+            return 1.0
+        
+        # 40% - очень низкие множители (1.01x-1.3x)
+        elif u < 0.48:
+            return round(random.uniform(1.01, 1.3), 2)
+        
+        # 25% - низкие множители (1.3x-2x)
+        elif u < 0.73:
+            return round(random.uniform(1.3, 2.0), 2)
+        
+        # 15% - средние множители (2x-5x)
+        elif u < 0.88:
+            return round(random.uniform(2.0, 5.0), 2)
+        
+        # 8% - высокие множители (5x-20x)
+        elif u < 0.96:
+            return round(random.uniform(5.0, 20.0), 2)
+        
+        # 4% - очень высокие множители (20x-1000x)
+        else:
+            return round(random.uniform(20.0, 1000.0), 2)
+
+    def generate_multiplier_rtp_92_v5(self) -> float:
+        """
+        Версия 5: Ступенчатое распределение для предсказуемого RTP
+        """
+        u = random.random()
+        
+        # 8% - мгновенный крах
+        if u < 0.08:
+            return 1.0
+        
+        # 35% - 1.1x
+        elif u < 0.43:
+            return 1.1
+        
+        # 20% - 1.5x
+        elif u < 0.63:
+            return 1.5
+        
+        # 15% - 2x
+        elif u < 0.78:
+            return 2.0
+        
+        # 10% - 3x
+        elif u < 0.88:
+            return 3.0
+        
+        # 5% - 5x
+        elif u < 0.93:
+            return 5.0
+        
+        # 3% - 10x
+        elif u < 0.96:
+            return 10.0
+        
+        # 2% - 20x-1000x (случайный высокий)
+        else:
+            return round(random.uniform(20.0, 1000.0), 2)
+
     # Оригинальный метод (оставлен для совместимости)
     def generate_multiplier(self) -> float:
         """Генерация случайного множителя (оригинальная версия)"""
         return round(random.uniform(1.1, 10.0), 2)
-
 
 
     async def save_game_results(self, final_multiplier: float):
