@@ -2,20 +2,20 @@
   <header class="header-primary">
     <div class="header-content">
       <div class="logo">
-        <img src="@/assets/images/logo.svg" alt="Play on Stars" />
+        <img src="@/assets/images/logo.svg" />
       </div>
 
       <div class="currency-panel">
         <button class="currency-section flag-section" @click="toggleLanguageSelector">
-          <img :src="currentFlag" :alt="userStore.currentLanguage" class="flag-icon" />
+          <img :src="currentFlag" :alt="languageStore.currentLanguage" class="flag-icon" />
         </button>
 
         <div class="divider" v-if="!showLanguageSelector"></div>
 
         <div class="currency-section wallet-section" v-if="!showLanguageSelector">
-          <img src="@/assets/images/wallet.svg" alt="Кошелек" class="wallet-icon" />
+          <img src="@/assets/images/wallet.svg" class="wallet-icon" />
           <span class="balance-amount">{{ userStore.balance.stars_balance }}</span>
-          <img src="@/assets/images/coin.svg" alt="Валюта" class="coin-icon" />
+          <img src="@/assets/images/coin.svg" class="coin-icon" />
         </div>
 
         <div class="language-selector" v-if="showLanguageSelector">
@@ -23,7 +23,7 @@
             v-for="lang in languages" 
             :key="lang.code"
             class="language-option" 
-            :class="{ selected: lang.code === userStore.currentLanguage }"
+            :class="{ selected: lang.code === languageStore.currentLanguage }"
             @click="selectLanguage(lang.code)"
             :aria-label="lang.name"
           >
@@ -38,8 +38,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/useUserStore'
+import { useLanguageStore } from '@/stores/useLanguageStore' // Импортируем единое хранилище
 
 const userStore = useUserStore()
+const languageStore = useLanguageStore() // Используем единое хранилище
 const showLanguageSelector = ref(false)
 
 import flagRu from '@/assets/images/flag.svg'
@@ -53,14 +55,13 @@ const languages = [
 ]
 
 const currentFlag = computed(() => {
-  const lang = languages.find(l => l.code === userStore.currentLanguage)
+  const lang = languages.find(l => l.code === languageStore.currentLanguage)
   return lang ? lang.flag : flagRu
 })
 
 onMounted(async () => {
-  // Язык уже загружается в fetchUserData, но можно дополнительно загрузить
-  if (!userStore.currentLanguage) {
-    await userStore.loadLanguage()
+  if (!languageStore.currentLanguage) {
+    await languageStore.loadLanguage()
   }
 })
 
@@ -70,8 +71,11 @@ const toggleLanguageSelector = () => {
 
 const selectLanguage = async (lang: string) => {
   try {
-    await userStore.setLanguage(lang)
+    await languageStore.setLanguage(lang) // Используем метод из единого хранилища
     showLanguageSelector.value = false
+    
+    // Принудительно обновляем страницу для применения переводов
+    window.location.reload()
   } catch (error) {
     console.error('Failed to change language:', error)
   }

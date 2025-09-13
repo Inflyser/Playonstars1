@@ -7,7 +7,6 @@ export const useLanguageStore = defineStore('language', () => {
   const currentLanguage = ref('ru')
   const isLoading = ref(false)
 
-  // Загрузка языка из БД
   const loadLanguage = async () => {
     try {
       isLoading.value = true
@@ -22,8 +21,7 @@ export const useLanguageStore = defineStore('language', () => {
     }
   }
 
-  // Сохранение языка в БД
-  const saveLanguage = async (lang: string) => {
+  const setLanguage = async (lang: string) => {
     try {
       isLoading.value = true
       await api.post('/api/user/language', { language: lang })
@@ -40,6 +38,6 @@ export const useLanguageStore = defineStore('language', () => {
     currentLanguage,
     isLoading,
     loadLanguage,
-    saveLanguage
+    setLanguage
   }
 })

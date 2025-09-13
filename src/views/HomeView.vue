@@ -59,6 +59,8 @@
 
 <script setup lang="ts">
 
+
+
 import { useUserStore } from '@/stores/useUserStore'
 import { computed } from 'vue'
 
@@ -85,6 +87,9 @@ const PageCrash = () => {
 const PagePvp = () => {
   router.push('/pvp')
 }
+
+
+
 
 
 </script>
