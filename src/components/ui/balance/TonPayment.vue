@@ -300,7 +300,7 @@ onMounted(() => {
 .wallet-address-confirm {
     word-break: break-all;
     font-family: monospace;
-    background: #f5f5f5;
+    background: rgb(0, 0, 0);
     padding: 10px;
     border-radius: 6px;
     margin: 10px 0;
