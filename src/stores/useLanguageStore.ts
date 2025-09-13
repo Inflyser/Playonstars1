@@ -7,20 +7,24 @@ export const useLanguageStore = defineStore('language', () => {
   const currentLanguage = ref('ru')
   const isLoading = ref(false)
 
-  const loadLanguage = async (): Promise<boolean> => {
+  const loadLanguage = async (): Promise<void> => {
     try {
-      isLoading.value = true
-      const response = await api.get('/api/user/language')
+      isLoading.value = true;
+      const response = await api.get('/api/user/language');
+      
+      // Если ответ успешен и содержит язык, используем его
       if (response.data.language) {
-        currentLanguage.value = response.data.language
-        return true
+        currentLanguage.value = response.data.language;
+      } else {
+        // Если по какой-то причине язык не пришел, используем значение по умолчанию
+        currentLanguage.value = 'ru';
       }
-      return false
     } catch (error) {
-      console.error('Failed to load language:', error)
-      return false
+      // В случае ошибки запроса используем значение по умолчанию
+      console.error('Ошибка при загрузке языка:', error);
+      currentLanguage.value = 'ru';
     } finally {
-      isLoading.value = false
+      isLoading.value = false;
     }
   }
 

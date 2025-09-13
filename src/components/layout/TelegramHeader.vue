@@ -68,10 +68,6 @@ const currentFlag = computed(() => {
   return lang ? lang.flag : flagRu
 })
 
-onMounted(async () => {
-  // Всегда загружаем язык при монтировании, чтобы синхронизироваться с БД
-  await languageStore.loadLanguage()
-})
 
 const toggleLanguageSelector = () => {
   if (!languageStore.isLoading) {
@@ -101,6 +97,13 @@ const selectLanguage = async (lang: string) => {
     showLanguageSelector.value = false
   }
 }
+
+
+onMounted(async () => {
+  console.log("Mounting header, about to load language");
+  await languageStore.loadLanguage();
+  console.log("Current language after load:", languageStore.currentLanguage);
+});
 </script>
 
 <style scoped>
