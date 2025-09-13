@@ -62,6 +62,10 @@ import { useI18n } from 'vue-i18n'
 
 const { t, locale } = useI18n()
 
+const changeLanguage = (lang: string) => {
+  locale.value = lang
+}
+
 
 import { useUserStore } from '@/stores/useUserStore'
 import { computed } from 'vue'

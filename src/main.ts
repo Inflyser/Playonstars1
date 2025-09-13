@@ -9,16 +9,12 @@ import en from './locales/en.json'
 import cn from './locales/cn.json'
 
 // Создаем экземпляр i18n
-const i18n = createI18n({
-  legacy: false, // ✅ Важно для Vue 3
-  locale: 'ru', // язык по умолчанию
-  fallbackLocale: 'en', // фолбэк язык
-  messages: {
-    ru,
-    en, 
-    cn
-  },
-  globalInjection: true // ✅ Для глобального $t в шаблонах
+export const i18n = createI18n({ // ✅ Экспортируем i18n
+  legacy: false,
+  locale: 'ru',
+  fallbackLocale: 'en',
+  messages: { ru, en, cn },
+  globalInjection: true
 })
 
 const app = createApp(App)

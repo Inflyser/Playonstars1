@@ -48,9 +48,8 @@
 import TGButton from '@/components/ui/TGButton.vue'
 import { useUserStore } from '@/stores/useUserStore';
 import { useWalletStore } from '@/stores/useWalletStore';
-import { onMounted, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 
-const debugInfo = ref(true);
 
 const userStore = useUserStore();
 const walletStore = useWalletStore();
@@ -71,33 +70,6 @@ watch(() => walletStore.isConnected, (newVal, oldVal) => {
 });
 
 
-
-const checkWalletReturn = async () => {
-  // Проверяем параметры URL для возврата из кошелька
-  const urlParams = new URLSearchParams(window.location.search);
-  const hash = window.location.hash;
-  
-  if (urlParams.has('tonconnect') || hash.includes('tonconnect') || 
-      urlParams.has('startattach') || hash.includes('startattach')) {
-    
-    console.log('🔍 Обнаружен возврат из кошелька');
-    
-    try {
-      // Даем время TonConnect обработать возврат
-      setTimeout(async () => {
-        await walletStore.init(); // Переинициализируем для обновления статуса
-        await userStore.fetchBalance();
-      }, 1000);
-      
-      // Очищаем URL
-      const cleanUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-      
-    } catch (error) {
-      console.error('Ошибка при обработке возврата:', error);
-    }
-  }
-};
 
 const connectWallet = async () => {
   try {
