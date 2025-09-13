@@ -137,6 +137,7 @@ class CrashGame:
         return round(random.uniform(1.1, 10.0), 2)
 
 
+
     async def save_game_results(self, final_multiplier: float):
         """Сохраняем результаты игры в базу данных"""
         db = SessionLocal()
