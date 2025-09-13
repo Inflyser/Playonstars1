@@ -6,43 +6,28 @@
       </div>
 
       <div class="currency-panel">
-        <!-- Левая часть: только флаг (теперь кнопка) -->
         <button class="currency-section flag-section" @click="toggleLanguageSelector">
-          <img src="@/assets/images/flag.svg" alt="Флаг" class="flag-icon" />
+          <img :src="currentFlag" :alt="userStore.currentLanguage" class="flag-icon" />
         </button>
 
-        <!-- Разделитель -->
         <div class="divider" v-if="!showLanguageSelector"></div>
 
-        <!-- Правая часть: кошелек, баланс, валюта (скрывается при выборе языка) -->
         <div class="currency-section wallet-section" v-if="!showLanguageSelector">
           <img src="@/assets/images/wallet.svg" alt="Кошелек" class="wallet-icon" />
           <span class="balance-amount">{{ userStore.balance.stars_balance }}</span>
           <img src="@/assets/images/coin.svg" alt="Валюта" class="coin-icon" />
         </div>
 
-        <!-- Панель выбора языка (появляется при нажатии на флаг) -->
         <div class="language-selector" v-if="showLanguageSelector">
           <button 
-            class="language-option selected" 
-            @click="selectLanguage('ru')"
-            aria-label="Русский язык"
-          >
-            <img src="@/assets/images/flag.svg" alt="Русский" />
-          </button>
-          <button 
+            v-for="lang in languages" 
+            :key="lang.code"
             class="language-option" 
-            @click="selectLanguage('en')"
-            aria-label="Английский язык"
+            :class="{ selected: lang.code === userStore.currentLanguage }"
+            @click="selectLanguage(lang.code)"
+            :aria-label="lang.name"
           >
-            <img src="@/assets/images/united_kingdom.svg" alt="Английский" />
-          </button>
-          <button 
-            class="language-option" 
-            @click="selectLanguage('cn')"
-            aria-label="Китайский язык"
-          >
-            <img src="@/assets/images/vietnam.svg" alt="Китайский" />
+            <img :src="lang.flag" :alt="lang.name" />
           </button>
         </div>
       </div>
@@ -51,24 +36,42 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useUserStore } from '@/stores/useUserStore';
+import { ref, computed, onMounted } from 'vue'
+import { useUserStore } from '@/stores/useUserStore'
 
-const userStore = useUserStore();
-const showLanguageSelector = ref(false);
-const currentLanguage = ref('ru'); // По умолчанию русский
+const userStore = useUserStore()
+const showLanguageSelector = ref(false)
+
+const languages = [
+  { code: 'ru', name: 'Русский', flag: '/src/assets/images/flag.svg' },
+  { code: 'en', name: 'English', flag: '/src/assets/images/united_kingdom.svg' },
+  { code: 'cn', name: '中文', flag: '/src/assets/images/vietnam.svg' }
+]
+
+const currentFlag = computed(() => {
+  const lang = languages.find(l => l.code === userStore.currentLanguage)
+  return lang ? lang.flag : '/src/assets/images/flag.svg'
+})
+
+onMounted(async () => {
+  // Язык уже загружается в fetchUserData, но можно дополнительно загрузить
+  if (!userStore.currentLanguage) {
+    await userStore.loadLanguage()
+  }
+})
 
 const toggleLanguageSelector = () => {
-  showLanguageSelector.value = !showLanguageSelector.value;
-};
+  showLanguageSelector.value = !showLanguageSelector.value
+}
 
-const selectLanguage = (lang: string) => {
-  currentLanguage.value = lang;
-  // Здесь будет логика смены языка
-  setTimeout(() => {
-    showLanguageSelector.value = false;
-  }, 300); // Небольшая задержка для визуального подтверждения выбора
-};
+const selectLanguage = async (lang: string) => {
+  try {
+    await userStore.setLanguage(lang)
+    showLanguageSelector.value = false
+  } catch (error) {
+    console.error('Failed to change language:', error)
+  }
+}
 </script>
 
 <style scoped>
