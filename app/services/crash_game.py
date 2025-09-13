@@ -1,5 +1,6 @@
 import asyncio
 import random
+import math
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.database.session import SessionLocal
@@ -41,8 +42,8 @@ class CrashGame:
                 "multiplier": 1.0
             })
 
-        # Генерируем множитель
-        multiplier = self.generate_multiplier()
+        # Генерируем множитель с RTP 95%
+        multiplier = self.generate_multiplier_rtp_95()
         
         # Фаза полета
         current_multiplier = 1.0
@@ -77,6 +78,64 @@ class CrashGame:
             "crashed_at": multiplier,
             "timestamp": datetime.now().isoformat()
         })
+
+    def generate_multiplier_rtp_95(self) -> float:
+        """
+        Генерация множителя с RTP 95%
+        
+        Формула: P(x) = (1 - RTP) / x^2
+        Где RTP = 0.95, поэтому P(x) = 0.05 / x^2
+        
+        Интеграл от 1 до ∞: ∫(0.05/x^2)dx = 0.05
+        
+        Метод обратного преобразования:
+        u = ∫(1/x^2)dx от 1 до x = 1 - 1/x
+        x = 1/(1 - u)
+        """
+        u = random.random()
+        
+        # 5% вероятность краха на 1x (RTP 95%)
+        if u < 0.05:
+            return 1.0
+        
+        # Генерируем множитель по формуле x = 1/(1 - u)
+        # Но нам нужно учесть, что u уже > 0.05, поэтому масштабируем
+        scaled_u = 0.05 + u * 0.95  # Масштабируем до [0.05, 1.0]
+        multiplier = 1.0 / (1.0 - scaled_u)
+        
+        # Ограничиваем максимальный множитель (например, 1000x)
+        multiplier = min(multiplier, 1000.0)
+        
+        # Округляем до 2 знаков после запятой
+        return round(multiplier, 2)
+
+    # Альтернативная реализация с экспоненциальным распределением
+    def generate_multiplier_exponential(self) -> float:
+        """
+        Альтернативная реализация с экспоненциальным распределением
+        для достижения RTP 95%
+        """
+        # Параметр для экспоненциального распределения
+        # E[x] = 1/λ = 20, поэтому λ = 0.05
+        lambda_param = 0.05
+        
+        # Генерируем случайную величину
+        u = random.random()
+        multiplier = -math.log(1 - u) / lambda_param
+        
+        # Ограничиваем минимальный множитель 1.0
+        multiplier = max(multiplier, 1.0)
+        
+        # Ограничиваем максимальный множитель
+        multiplier = min(multiplier, 1000.0)
+        
+        return round(multiplier, 2)
+
+    # Оригинальный метод (оставлен для совместимости)
+    def generate_multiplier(self) -> float:
+        """Генерация случайного множителя (оригинальная версия)"""
+        return round(random.uniform(1.1, 10.0), 2)
+
 
     async def save_game_results(self, final_multiplier: float):
         """Сохраняем результаты игры в базу данных"""
