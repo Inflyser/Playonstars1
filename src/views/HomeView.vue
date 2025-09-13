@@ -19,8 +19,8 @@
 
           <!-- Слой 1: Текст -->
           <div class="card-content">
-            <h3>{{ $t('logo_place_bet') }}</h3>
-            <p>{{ $t('place_bet') }}</p>
+            <h3>{{ t('logo_place_bet') }}</h3>
+            <p>{{ t('place_bet') }}</p>
           </div>
         </button>
       
@@ -37,8 +37,8 @@
 
           <!-- Слой 1: Текст -->
           <div class="card-content">
-            <h3>{{ $t('logo_place_bet1') }}</h3>
-            <p>{{ $t('place_bet1') }}</p>
+            <h3>{{ t('logo_place_bet1') }}</h3>
+            <p>{{ t('place_bet1') }}</p>
           </div>
         </button>
       </div>
@@ -58,7 +58,9 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 
+const { t, locale } = useI18n()
 
 
 import { useUserStore } from '@/stores/useUserStore'

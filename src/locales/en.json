@@ -1,0 +1,21 @@
+{
+    "wallet": "Connect wallet",
+
+    "logo_place_bet": "Space Monkey",
+    "place_bet": "Place a bet and battle other players",
+
+    "logo_place_bet1": "Pvp-arena",
+    "place_bet1": "Fight with players and win!",
+
+    "auto_stavka": "Auto bid",
+    "auto_weivod": "Auto withdrawal",
+
+    "button_stavka1": "BID",
+    "button_stavka2": "TAKE",
+
+    "top1": "All",
+    "top2": "TOP-10",
+    "top3": "My",
+
+    "all_stavka": "Total bets"
+}

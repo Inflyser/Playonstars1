@@ -1,0 +1,21 @@
+{
+    "wallet": "连接钱包",
+
+    "logo_place_bet": "太空猴子",
+    "place_bet": "下注并与其他玩家对战",
+
+    "logo_place_bet1": "PVP竞技场",
+    "place_bet1": "与玩家战斗并取得胜利！",
+
+    "auto_stavka": "自动出价",
+    "auto_weivod": "自动提款",
+
+    "button_stavka1": "出价",
+    "button_stavka2": "拿",
+
+    "top1": "全部",
+    "top2": "前十名",
+    "top3": "我的",
+
+    "all_stavka": "总投注"
+}
