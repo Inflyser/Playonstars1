@@ -1,5 +1,5 @@
 from aiogram import Router, types
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, CommandObject
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
@@ -8,6 +8,7 @@ from app.database.crud import get_user_by_telegram_id as get_user, create_user
 from app.bot.bot import webapp_builder
 from aiogram.types import Message
 from app.database import crud
+from aiogram.utils.deep_linking import decode_payload
 
 import json
 
@@ -34,9 +35,50 @@ def get_language_inline_keyboard():
             ]
         ]
     )
+    
+    
+@router.message(CommandStart(deep_link=True))
+async def cmd_start_deep_link(message: Message, command: CommandObject, db: Session):
+    # Извлекаем аргументы из команды /start
+    args = command.args
+    print(f"🎯 Получены аргументы глубокой ссылки: {args}")
+    
+    if args and args.startswith('ref_'):
+        try:
+            referrer_telegram_id = int(args.split('_')[1])
+            print(f"✅ Извлечен реферальный telegram_id: {referrer_telegram_id}")
+            
+            # Далее ваша логика создания пользователя и обработки реферала
+            user = get_user(db, message.from_user.id)
+            if not user:
+                user = create_user(
+                    db=db,
+                    telegram_id=message.from_user.id,
+                    username=message.from_user.username,
+                    first_name=message.from_user.first_name,
+                    last_name=message.from_user.last_name
+                )
+                print(f"✅ Создан новый пользователь: {user.id}")
+
+                # Находим пользователя-реферера в БД по его telegram_id
+                referrer_user = get_user(db, referrer_telegram_id)
+                if referrer_user:
+                    from app.bot.bot import process_referral
+                    success = await process_referral(user.id, referrer_user.id, db)
+                    if success:
+                        print(f"✅ Реферальная связь установлена: {user.id} -> {referrer_user.id}")
+                    else:
+                        print(f"❌ Не удалось обработать реферала для {user.id}")
+                else:
+                    print(f"⚠️ Реферер с telegram_id {referrer_telegram_id} не найден в БД.")
+        except (IndexError, ValueError) as e:
+            print(f"❌ Ошибка обработки реферального параметра: {e}")
+    else:
+        # Обычная команда /start без параметров
+        await cmd_start_regular(message, db)
 
 @router.message(CommandStart())
-async def cmd_start(message: Message, db: Session):
+async def cmd_start_regular(message: Message, db: Session):
     # Извлекаем аргументы из команды /start
     command_args = message.text.split()
     
