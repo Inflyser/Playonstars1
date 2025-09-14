@@ -36,7 +36,59 @@ def get_language_inline_keyboard():
             ]
         ]
     )
+
+
+@router.message(CommandStart())  
+async def cmd_start_regular(message: Message, db: Session):
+    """Обработчик для обычного /start БЕЗ параметров"""
+    print("ℹ️ REGULAR: Обычный /start без параметров")
     
+    # Логика для обычного старта
+    user = get_user_by_telegram_id(db, message.from_user.id)
+    if not user:
+        user = create_user(
+            db=db,
+            telegram_id=message.from_user.id,
+            username=message.from_user.username,
+            first_name=message.from_user.first_name,
+            last_name=message.from_user.last_name
+        )
+        print(f"✅ Создан новый пользователь. ID: {user.id}")
+    
+    if user.language:
+        # Используем сохраненный язык
+        lang = user.language
+        greeting = generate_greeting(user, lang)
+        
+        await message.answer(greeting)
+        await message.answer(
+            get_continue_message(lang),
+            reply_markup=webapp_builder()
+        )
+    else:
+        # Язык не выбран, показываем выбор языка
+        await message.answer("Выберите язык / Choose language / 选择语言:",
+                           reply_markup=get_language_inline_keyboard())
+        
+    if user:
+        update_fields = False
+    
+    if message.from_user.username != user.username:
+        user.username = message.from_user.username
+        update_fields = True
+        
+    if message.from_user.first_name != user.first_name:
+        user.first_name = message.from_user.first_name
+        update_fields = True
+        
+    if message.from_user.last_name != user.last_name:
+        user.last_name = message.from_user.last_name
+        update_fields = True
+        
+    if update_fields:
+        db.commit()
+        print(f"✅ Обновлены данные пользователя {user.id}")
+
 @router.message(CommandStart(deep_link=True))
 async def cmd_start_deep_link(message: Message, command: CommandObject, db: Session):
     """Единственный обработчик для /start с реферальными ссылками"""
@@ -106,15 +158,39 @@ async def cmd_start_deep_link(message: Message, command: CommandObject, db: Sess
         db.commit()
         print(f"💾 Все изменения успешно сохранены в БД")
         
-        # 9. Отправляем сообщение пользователю
         if user.language:
+            # Используем сохраненный язык
             lang = user.language
             greeting = generate_greeting(user, lang)
+
             await message.answer(greeting)
-            await message.answer(get_continue_message(lang), reply_markup=webapp_builder())
+            await message.answer(
+                get_continue_message(lang),
+                reply_markup=webapp_builder()
+            )
         else:
-            await message.answer("Выберите язык / Choose language / 选择语言:", 
+            # Язык не выбран, показываем выбор языка
+            await message.answer("Выберите язык / Choose language / 选择语言:",
                                reply_markup=get_language_inline_keyboard())
+
+        if user:
+            update_fields = False
+
+        if message.from_user.username != user.username:
+            user.username = message.from_user.username
+            update_fields = True
+
+        if message.from_user.first_name != user.first_name:
+            user.first_name = message.from_user.first_name
+            update_fields = True
+
+        if message.from_user.last_name != user.last_name:
+            user.last_name = message.from_user.last_name
+            update_fields = True
+
+        if update_fields:
+            db.commit()
+            print(f"✅ Обновлены данные пользователя {user.id}")
             
     except Exception as e:
         print(f"❌ КРИТИЧЕСКАЯ ОШИБКА в обработчике: {e}")
