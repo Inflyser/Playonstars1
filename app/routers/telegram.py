@@ -325,7 +325,7 @@ async def cmd_buy_stars(message: Message, db: Session = Depends(get_db)):
             return
 
         # ✅ ПРАВИЛЬНЫЙ формат цен для Stars
-        stars_amount = 100  # 100 STARS
+        stars_amount = 10  # 100 STARS
         prices = [LabeledPrice(label=f"{stars_amount} STARS", amount=stars_amount)]
         
         await message.answer_invoice(
