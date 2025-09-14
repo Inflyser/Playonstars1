@@ -291,7 +291,6 @@ async def stars_payment_handler(message: Message):
     await message.answer_invoice(
         title="Пополнение STARS",
         description="Пополнение баланса STARS для игр",
-        provider_token="",  # Для Stars оставляем пустым
         currency="XTR",     # Валюта Stars
         prices=prices,
         payload="stars_deposit",
@@ -331,7 +330,6 @@ async def cmd_buy_stars(message: Message, db: Session = Depends(get_db)):
         await message.answer_invoice(
             title="Пополнение STARS",
             description=f"Пополнение баланса на {stars_amount} STARS",
-            provider_token="",  # ✅ ДЛЯ STARS ОСТАВЛЯЕМ ПУСТЫМ
             currency="XTR",     # ✅ ВАЛЮТА TELEGRAM STARS
             prices=prices,
             payload=json.dumps({  # ✅ ПРОСТОЙ JSON
@@ -513,7 +511,7 @@ async def cmd_buy_stars(message: Message):
         
         if invoice_link:
             await message.answer(
-                f"💫 Пополнение 100 STARS\n\n"
+                f"💫 Пополнение 10 STARS\n\n"
                 f"[Оплатить]({invoice_link})",
                 parse_mode="Markdown"
             )

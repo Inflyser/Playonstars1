@@ -21,8 +21,7 @@ class StarsService:
                 "description": f"Пополнение на {amount} STARS",
                 "payload": f"stars_payment:{user_id}:{amount}",  # Простая строка
                 "currency": "XTR",  # Валюта Stars
-                "prices": [{"label": "STARS", "amount": amount}],  # ✅ Умножаем на 100!
-                "provider_token": ""  # Пусто для Stars
+                "prices": [{"label": "STARS", "amount": amount}]  # ✅ Умножаем на 100!
             }
             
             logger.info(f"Creating invoice with payload: {payload}")
