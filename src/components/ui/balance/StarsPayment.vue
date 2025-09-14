@@ -3,7 +3,7 @@
     <InputPanel
       v-model="amount"
       prefix-text="STARS"
-      placeholder="`${t('balance_sum_star')}`"
+      :placeholder="t('balance_sum_star')"
       max-value="5000"
       icon-type="stars"
     />
@@ -126,6 +126,7 @@ const handlePaymentStatus = (status: 'paid' | 'failed' | 'cancelled' | 'pending'
   }
 }
 </script>
+
 
 <style scoped>
 .stars-payment {

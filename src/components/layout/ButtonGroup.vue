@@ -12,6 +12,9 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t, locale } = useI18n()
 import { ref, watch } from 'vue'
 
 interface Props {
@@ -32,9 +35,9 @@ interface GroupButton {
 }
 
 const buttons: GroupButton[] = [
-  { id: 'ton', label: 'Ton' },
-  { id: 'stars', label: 'Звезды' },
-  { id: 'gifts', label: 'Подарки' }
+  { id: 'ton', label: t('balance_top1') },
+  { id: 'stars', label: t('balance_top2') },
+  { id: 'gifts', label: t('balance_top3') }
 ]
 
 // Используем переданное значение из v-model

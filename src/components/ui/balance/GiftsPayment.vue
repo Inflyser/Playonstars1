@@ -1,23 +1,24 @@
 <template>
-
+  <div>
     <div class="icon-wrapper">
       <div class="circle-icon-container">
         <img src="@/assets/images/gift.svg" alt="Иконка" class="circle-icon" />
       </div>
     </div>
     <h3 style="text-align: center; color: white;">{{ t('gift') }}</h3>
-    <p style="color: #A2A2A2; text-align: center; font-size: 14px; margin: 10px 20px 40px 20px;">
-        {{ t('gift1') }}
-    </p>
+    <p style="color: #A2A2A2; text-align: center; font-size: 14px; margin: 10px 20px 40px 20px;">{{ t('gift1') }}</p>
     
 
     <div class="two-buttons-container">
       <button class="btn primary" @click="$router.back()">{{ t('balance_but1') }}</button>
       <button class="btn secondary">{{ t('balance_but2') }}</button>
     </div>
+  </div>
 </template>
 
 <script setup lang="ts">
+
+
 import { useI18n } from 'vue-i18n'
 
 const { t, locale } = useI18n()

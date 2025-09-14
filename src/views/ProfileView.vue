@@ -133,8 +133,8 @@
         <img src="@/assets/images/smallicon.svg" alt="Иконка" class="circle-icon" />
       </div>
     </div>
-    <div class="icon-text-row"><span class="text-after-icon">{{ t('txt10') }}</span></div>
-    <p style="color: #A2A2A2; text-align: center; font-size: 14px; margin: 0 0 40px 0;">{{ t('txt11') }}</p>
+    <div class="icon-text-row"><span class="text-after-icon">{{ t('txt_10') }}</span></div>
+    <p style="color: #A2A2A2; text-align: center; font-size: 14px; margin: 0 0 40px 0;">{{ t('txt_11') }}</p>
   
 
     <BottomNavigation />
