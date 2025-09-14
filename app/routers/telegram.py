@@ -9,6 +9,7 @@ from app.bot.bot import webapp_builder
 from aiogram.types import Message, Optional
 from app.database import crud
 from aiogram.utils.deep_linking import decode_payload
+from app.database.models import User, ReferralAction
 
 import json
 
@@ -38,93 +39,89 @@ def get_language_inline_keyboard():
     
 @router.message(CommandStart(deep_link=True))
 async def cmd_start_deep_link(message: Message, command: CommandObject, db: Session):
-    """Обработчик для /start с параметрами (реферальные ссылки)"""
-    args = command.args
-    print(f"🎯 DEEP_LINK: Получены аргументы: '{args}'")
-    
-    # Обрабатываем реферальную ссылку
-    await process_start_with_referral(message, args, db)
+    """Единственный обработчик для /start с реферальными ссылками"""
+    try:
+        args = command.args
+        print(f"🎯 DEEP_LINK: Получены аргументы: '{args}'")
+        
+        # 1. Извлекаем telegram_id реферера из ссылки
+        referrer_telegram_id = None
+        if args and args.startswith('ref_'):
+            try:
+                referrer_telegram_id = int(args.split('_')[1])
+                print(f"✅ Извлечен реферальный telegram_id: {referrer_telegram_id}")
+            except (IndexError, ValueError) as e:
+                print(f"❌ Ошибка извлечения telegram_id: {e}")
+                referrer_telegram_id = None
+        else:
+            print("ℹ️ Аргументы не содержат реферальной ссылки")
+            return
 
-@router.message(CommandStart())
-async def cmd_start_regular(message: Message, db: Session):
-    """Обработчик для обычного /start без параметров"""
-    print("ℹ️ REGULAR: Обычный /start без параметров")
-    # Обрабатываем как обычный старт без рефералки
-    await process_start_with_referral(message, None, db)
+        # 2. Ищем текущего пользователя в БД
+        user = db.query(User).filter(User.telegram_id == message.from_user.id).first()
+        
+        if not user:
+            # 3. СОЗДАЕМ НОВОГО ПОЛЬЗОВАТЕЛЯ
+            user = User(
+                telegram_id=message.from_user.id,
+                username=message.from_user.username,
+                first_name=message.from_user.first_name, 
+                last_name=message.from_user.last_name
+            )
+            db.add(user)
+            db.flush()  # Сохраняем, чтобы получить ID
+            print(f"✅ Создан новый пользователь. ID: {user.id}, telegram_id: {user.telegram_id}")
 
-async def process_start_with_referral(message: Message, args: Optional[str], db: Session):
-    """Общая функция обработки команды /start"""
-    referrer_telegram_id = None
-    
-    # Извлекаем telegram_id из аргументов
-    if args and args.startswith('ref_'):
-        try:
-            referrer_telegram_id = int(args.split('_')[1])
-            print(f"✅ Извлечен реферальный telegram_id: {referrer_telegram_id}")
-        except (IndexError, ValueError) as e:
-            print(f"❌ Ошибка извлечения telegram_id: {e}")
-            referrer_telegram_id = None
-
-    user = get_user_by_telegram_id(db, message.from_user.id)
-    if not user:
-        # Создаем нового пользователя
-        user = create_user(
-            db=db,
-            telegram_id=message.from_user.id,
-            username=message.from_user.username,
-            first_name=message.from_user.first_name,
-            last_name=message.from_user.last_name
-        )
-        print(f"✅ Создан новый пользователь. Его ID в БД: {user.id}, telegram_id: {user.telegram_id}")
-
-        # Обрабатываем реферала
-        if referrer_telegram_id:
-            print(f"🔍 Поиск реферера в БД по telegram_id: {referrer_telegram_id}")
-            referrer_user = get_user_by_telegram_id(db, referrer_telegram_id)
-            if referrer_user:
-                print(f"✅ Найден реферер. Его ID в БД: {referrer_user.id}, telegram_id: {referrer_user.telegram_id}")
-                from app.bot.bot import process_referral
-                success = await process_referral(new_user_id=user.id, referrer_id=referrer_user.id, db=db)
-                if success:
-                    print(f"✅ Реферальная связь установлена: новый пользователь (id={user.id}) -> реферер (id={referrer_user.id})")
+            # 4. ОБРАБАТЫВАЕМ РЕФЕРАЛА
+            if referrer_telegram_id:
+                print(f"🔍 Ищем реферера в БД по telegram_id: {referrer_telegram_id}")
+                referrer = db.query(User).filter(User.telegram_id == referrer_telegram_id).first()
+                
+                if referrer:
+                    print(f"✅ Найден реферер. ID: {referrer.id}, telegram_id: {referrer.telegram_id}")
+                    
+                    # 5. ОБНОВЛЯЕМ СТАТИСТИКУ РЕФЕРЕРА
+                    referrer.referrals_count = (referrer.referrals_count or 0) + 1
+                    referrer.active_referrals = (referrer.active_referrals or 0) + 1
+                    
+                    # 6. УСТАНАВЛИВАЕМ СВЯЗЬ
+                    user.referrer_id = referrer.id
+                    
+                    # 7. СОЗДАЕМ ЗАПИСЬ В HISTORy
+                    referral_action = ReferralAction(
+                        referrer_id=referrer.id,
+                        referral_id=user.id,
+                        action_type='registration',
+                        action_amount=0.0,
+                        reward_amount=0.0
+                    )
+                    db.add(referral_action)
+                    
+                    print(f"✅ Реферальная связь установлена: {user.id} -> {referrer.id}")
+                    print(f"📊 Обновлены счетчики: referrals_count={referrer.referrals_count}, active_referrals={referrer.active_referrals}")
                 else:
-                    print(f"❌ Не удалось обработать реферала")
-            else:
-                print(f"⚠️ Реферер с telegram_id={referrer_telegram_id} не найден в БД")
-    else:
-        print(f"ℹ️ Пользователь уже существует. ID: {user.id}")
-    
-    # Обновляем данные пользователя
-    update_fields = False
-    if message.from_user.username != user.username:
-        user.username = message.from_user.username
-        update_fields = True
+                    print(f"⚠️ Реферер с telegram_id {referrer_telegram_id} не найден в БД")
         
-    if message.from_user.first_name != user.first_name:
-        user.first_name = message.from_user.first_name
-        update_fields = True
-        
-    if message.from_user.last_name != user.last_name:
-        user.last_name = message.from_user.last_name
-        update_fields = True
-        
-    if update_fields:
+        # 8. КОММИТИМ ВСЕ ИЗМЕНЕНИЯ
         db.commit()
-        print(f"✅ Обновлены данные пользователя {user.id}")
-
-    # Логика с языком
-    if user.language:
-        lang = user.language
-        greeting = generate_greeting(user, lang)
+        print(f"💾 Все изменения успешно сохранены в БД")
         
-        await message.answer(greeting)
-        await message.answer(
-            get_continue_message(lang),
-            reply_markup=webapp_builder()
-        )
-    else:
-        await message.answer("Выберите язык / Choose language / 选择语言:",
-                           reply_markup=get_language_inline_keyboard())
+        # 9. Отправляем сообщение пользователю
+        if user.language:
+            lang = user.language
+            greeting = generate_greeting(user, lang)
+            await message.answer(greeting)
+            await message.answer(get_continue_message(lang), reply_markup=webapp_builder())
+        else:
+            await message.answer("Выберите язык / Choose language / 选择语言:", 
+                               reply_markup=get_language_inline_keyboard())
+            
+    except Exception as e:
+        print(f"❌ КРИТИЧЕСКАЯ ОШИБКА в обработчике: {e}")
+        import traceback
+        traceback.print_exc()
+        db.rollback()
+        
     
 @router.callback_query(lambda c: c.data.startswith('lang_'))
 async def process_language_callback(callback: CallbackQuery, db: Session):
