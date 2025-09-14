@@ -891,6 +891,45 @@ async def withdraw_referral_earnings(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     
+    
+    
+@app.get("/api/user/my-referrals")
+async def get_my_referrals(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Получаем список рефералов текущего пользователя"""
+    try:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        # Находим всех рефералов текущего пользователя
+        referrals = db.query(User).filter(
+            User.referrer_id == user_id
+        ).order_by(
+            User.stars_balance.desc()  # Сортируем по балансу
+        ).all()
+        
+        return {
+            "referrals": [
+                {
+                    "id": ref.id,
+                    "telegram_id": ref.telegram_id,
+                    "username": ref.username,
+                    "first_name": ref.first_name,
+                    "last_name": ref.last_name,
+                    "photo_url": ref.photo_url,
+                    "stars_balance": ref.stars_balance,
+                    "created_at": ref.created_at.isoformat() if ref.created_at else None
+                }
+                for ref in referrals
+            ]
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 
 @app.get("/api/user/language")
 async def get_user_language_api(
