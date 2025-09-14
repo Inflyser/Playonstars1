@@ -5,7 +5,6 @@ from app.database.models import User, DepositHistory, CrashBetHistory, Wallet, T
 from typing import Optional
 
 def get_user_by_telegram_id(db: Session, telegram_id: int) -> Optional[User]:
-    """Получаем пользователя по telegram_id"""
     return db.query(User).filter(User.telegram_id == telegram_id).first()
 
 
