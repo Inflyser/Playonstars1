@@ -32,6 +32,11 @@ from app.services.websocket_manager import websocket_manager
 import websockets
 from app.routers import stars
 
+from datetime import datetime, timedelta
+import jwt
+from fastapi import HTTPException, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
 from app.database.crud import (
     get_user_by_telegram_id, 
     create_user, 
@@ -86,7 +91,39 @@ app.include_router(stars.router, prefix="/api/stars")
 app.include_router(websocket.router)
 
 # ----------------------------- ЗАПУСК -------------------------------------
+SECRET_KEY = os.getenv("JWT_SECRET", "your-super-secret-jwt-key")
+ALGORITHM = "HS256"
+security = HTTPBearer()
 
+def create_jwt_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(hours=24)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db)
+):
+    """Получаем пользователя из JWT токена"""
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        telegram_id: str = payload.get("sub")
+        if telegram_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        
+        user = crud.get_user_by_telegram_id(db, int(telegram_id))
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
 
 
 @app.on_event("startup")
@@ -298,10 +335,9 @@ def verify_telegram_webapp_simple(init_data: str) -> bool:
 @app.post("/api/auth/telegram")
 async def auth_telegram(request: Request, db: Session = Depends(get_db)):
     try:
-        print("🔐 Auth endpoint called")
         data = await request.json()
-        
         init_data = data.get("initData")
+        
         if not init_data:
             raise HTTPException(status_code=400, detail="No initData provided")
         
@@ -314,65 +350,25 @@ async def auth_telegram(request: Request, db: Session = Depends(get_db)):
         if not telegram_id:
             raise HTTPException(status_code=400, detail="No user data in initData")
         
-        # ✅ Логируем что приходит от Telegram
-        print(f"📸 Telegram photo_url: {user_data.get('photo_url')}")
-        print(f"👤 Telegram first_name: {user_data.get('first_name')}")
-        print(f"👤 Telegram last_name: {user_data.get('last_name')}")
-        
-        # Проверяем/создаем пользователя в БД
+        # Проверяем/создаем пользователя
         user = get_user_by_telegram_id(db, telegram_id)
         if not user:
-            # ✅ СОЗДАЕМ с photo_url
             user = create_user(
                 db=db,
                 telegram_id=telegram_id,
                 username=user_data.get("username"),
                 first_name=user_data.get("first_name"),
                 last_name=user_data.get("last_name"),
-                photo_url=user_data.get("photo_url")  # ✅ ВАЖНО!
+                photo_url=user_data.get("photo_url")
             )
-            print(f"Created new user: {user.id}")
-        else:
-            print(f"Found existing user: {user.id}")
-            
-            # ✅ ОБНОВЛЯЕМ отсутствующие данные
-            update_fields = False
-            
-            if not user.first_name and user_data.get("first_name"):
-                user.first_name = user_data.get("first_name")
-                update_fields = True
-                
-            if not user.last_name and user_data.get("last_name"):
-                user.last_name = user_data.get("last_name")
-                update_fields = True
-                
-            if not user.photo_url and user_data.get("photo_url"):
-                user.photo_url = user_data.get("photo_url")
-                update_fields = True
-            
-            if update_fields:
-                db.commit()
-                db.refresh(user)
-                print(f"✅ Updated user data in DB")
         
-        # ✅ Логируем что сохранилось в БД
-        print(f"💾 DB photo_url: {user.photo_url}")
-        print(f"💾 DB first_name: {user.first_name}")
-        print(f"💾 DB last_name: {user.last_name}")
-        
-        # Сохраняем в сессию
-        request.session["user_id"] = user.id
-        request.session["telegram_id"] = user.telegram_id
-        request.session["telegram_user"] = {
-            "id": user.telegram_id,
-            "username": user.username,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "photo_url": user.photo_url  # ✅ Добавляем в сессию
-        }
+        # СОЗДАЕМ JWT ТОКЕН вместо сессии
+        access_token = create_jwt_token(data={"sub": str(user.telegram_id)})
         
         return {
             "status": "success",
+            "access_token": access_token,
+            "token_type": "bearer",
             "user": {
                 "id": user.id,
                 "telegram_id": user.telegram_id,
@@ -381,12 +377,11 @@ async def auth_telegram(request: Request, db: Session = Depends(get_db)):
                 "last_name": user.last_name,
                 "ton_balance": user.ton_balance,
                 "stars_balance": user.stars_balance,
-                "photo_url": user.photo_url  # ✅ Берем из БД
+                "photo_url": user.photo_url
             }
         }
         
     except Exception as e:
-        print(f"Auth error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -701,19 +696,14 @@ async def get_user_data(request: Request, db: Session = Depends(get_db)):
     
     
 @app.get("/api/user/balance")
-async def get_balance(request: Request, db: Session = Depends(get_db)):
-    """Получаем баланс пользователя"""
-    telegram_id = request.session.get("telegram_id")
-    if not telegram_id:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    user = get_user_by_telegram_id(db, telegram_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
+async def get_balance(
+    current_user: User = Depends(get_current_user),  # Используем JWT аутентификацию
+    db: Session = Depends(get_db)
+):
+    """Получаем баланс пользователя через JWT"""
     return {
-        "ton_balance": user.ton_balance,
-        "stars_balance": user.stars_balance
+        "ton_balance": current_user.ton_balance,
+        "stars_balance": current_user.stars_balance
     }
 
 @app.post("/api/user/deposit")
