@@ -37,27 +37,29 @@ def get_language_inline_keyboard():
 
 @router.message(CommandStart())
 async def cmd_start(message: Message, db: Session):
-    args = message.text.split()
-    referrer_telegram_id = None  # Переименуем для ясности
-
-    # Извлекаем реферальный ID (telegram_id) из ссылки
-    if len(args) > 1 and args[1].startswith('ref_'):
-        try:
-            referrer_telegram_id = int(args[1].split('_')[1])
-            print(f"🎯 Обнаружен реферальный код: {referrer_telegram_id}")
-            
-            # Проверка: пользователь не может быть рефералом самого себя
-            if message.from_user.id == referrer_telegram_id:
-                print("⚠️ Пользователь пытается использовать собственную реферальную ссылку.")
+    # Извлекаем аргументы из команды /start
+    command_args = message.text.split()
+    
+    referrer_telegram_id = None
+    
+    # Если есть аргументы (второй элемент в списке после /start)
+    if len(command_args) > 1:
+        ref_param = command_args[1]  # Это будет "ref_123456789"
+        print(f"📨 Получен параметр команды: {ref_param}")
+        
+        if ref_param.startswith('ref_'):
+            try:
+                referrer_telegram_id = int(ref_param.split('_')[1])
+                print(f"🎯 Извлечен реферальный telegram_id: {referrer_telegram_id}")
+            except (IndexError, ValueError) as e:
+                print(f"❌ Ошибка обработки реферального параметра: {e}")
                 referrer_telegram_id = None
-                
-        except (IndexError, ValueError) as e:
-            print(f"❌ Ошибка обработки реферального кода: {e}")
-            referrer_telegram_id = None
+    else:
+        print("ℹ️ Команда /start вызвана без параметров")
 
+    # Далее ваша логика создания пользователя и обработки реферала
     user = get_user(db, message.from_user.id)
     if not user:
-        # Создаем нового пользователя
         user = create_user(
             db=db,
             telegram_id=message.from_user.id,
@@ -69,9 +71,9 @@ async def cmd_start(message: Message, db: Session):
 
         # Обрабатываем реферала, если ссылка была и реферер найден
         if referrer_telegram_id:
-            referrer_user = get_user(db, referrer_telegram_id) # Ищем реферера по telegram_id
+            # НАЙТИ пользователя-реферера в БД по его telegram_id
+            referrer_user = get_user(db, referrer_telegram_id)
             if referrer_user:
-                # Передаем ID из БД
                 from app.bot.bot import process_referral
                 success = await process_referral(user.id, referrer_user.id, db)
                 if success:
@@ -80,7 +82,6 @@ async def cmd_start(message: Message, db: Session):
                     print(f"❌ Не удалось обработать реферала для {user.id}")
             else:
                 print(f"⚠️ Реферер с telegram_id {referrer_telegram_id} не найден в БД.")
-
 
     if user.language:
         # Используем сохраненный язык
