@@ -1,7 +1,7 @@
 <template>
   <div class="top-all-container">
     <div class="history-header">
-      <h4 style="color: #F0F0F080;">Последние ставки: {{ recentBets.length }}</h4>
+      <h4 style="color: #F0F0F080;">{{ t('all_stavka') }}: {{ recentBets.length }}</h4>
       <button @click="refreshHistory" class="refresh-btn">
         <img src="@/assets/images/reload.svg" alt="Refresh">
       </button>
@@ -46,6 +46,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t, locale } = useI18n()
+
 import { ref, onMounted, nextTick, computed } from 'vue'
 import { useUserStore } from '@/stores/useUserStore'
 import { useBetHistory } from '@/composables/useBetHistory'

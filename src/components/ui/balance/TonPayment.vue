@@ -4,16 +4,16 @@
         <div v-if="!isConnected" class="connect-section">
             <div class="connect-header">
                 <img src="@/assets/images/ton.svg" alt="TON" class="ton-logo" />
-                <h3>Подключите TON кошелек</h3>
+                <h3 style="color: azure;">{{ t('wallet_con') }}</h3>
             </div>
-            <p>Для пополнения баланса подключите ваш TON кошелек</p>
+            <p style="color: azure;">{{ t('wallet_con1') }}</p>
             <button 
                 @click="walletStore.connect()" 
                 :disabled="isLoading"
                 class="btn connect-btn"
             >
-                <span v-if="isLoading">Подключение...</span>
-                <span v-else>Подключить кошелек</span>
+                <span v-if="isLoading">isLoading...</span>
+                <span v-else>{{ t('wallet_con2') }}</span>
             </button>
         </div>
 
@@ -23,42 +23,42 @@
             <InputPanel
                 v-model="amount"
                 :prefix-text="'TON'"
-                :placeholder="'Введите сумму в TON'"
+                :placeholder="`${t('balance_sum_ton')}`"
                 :max-value="maxAmount"
                 :icon-type="'ton'"
             />
             
             <p style="color: #6A717B; font-size: 13px; margin: -10px 10px 15px 20px;">
-                Минимальная сумма: 00.1 TON
+                {{ t('balance_sum1_ton') }}
             </p>
 
             <div class="two-buttons-container">
-                <button class="btn primary" @click="$router.back()">Отмена</button>
+                <button class="btn primary" @click="$router.back()">{{ t('balance_but1') }}</button>
                 <button 
                     class="btn secondary" 
                     @click="deposit"
                     :disabled="!isValidAmount || isProcessing"
                 >
                     <span v-if="isProcessing">Обработка...</span>
-                    <span v-else>Пополнить</span>
+                    <span v-else>{{ t('balance_but2') }}</span>
                 </button>
             </div>
 
             <!-- Кнопка отключения кошелька -->
             <button class="disconnect-btn" @click="walletStore.disconnect()">
-                Отключить кошелек
+                {{ t('balance_but3') }}
             </button>
         </div>
 
         <!-- Модальное окно подтверждения -->
         <div v-if="showConfirmation" class="modal-overlay">
             <div class="confirmation-modal">
-                <h3>Подтверждение перевода</h3>
-                <p>Вы собираетесь перевести {{ amount }} TON на адрес:</p>
+                <h3>{{ t('con') }}</h3>
+                <p>{{ t('con1') }} {{ amount }} TON {{ t('con2') }}:</p>
                 <p class="wallet-address-confirm">{{ appWalletAddress }}</p>
                 <div class="modal-buttons">
-                    <button @click="showConfirmation = false" class="btn cancel">Отмена</button>
-                    <button @click="confirmDeposit" class="btn confirm">Подтвердить</button>
+                    <button @click="showConfirmation = false" class="btn cancel">{{ t('balance_but1') }}</button>
+                    <button @click="confirmDeposit" class="btn confirm">{{ t('con3') }}</button>
                 </div>
             </div>
         </div>
@@ -74,6 +74,9 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t, locale } = useI18n()
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'

@@ -31,6 +31,7 @@
 </template>
 
 <script setup lang="ts">
+
 import { onMounted } from 'vue';
 import { useTopStore } from '@/stores/useTopStore';
 import { useUserStore } from '@/stores/useUserStore';

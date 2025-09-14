@@ -5,24 +5,23 @@
         <img src="@/assets/images/gift.svg" alt="Иконка" class="circle-icon" />
       </div>
     </div>
-    <h3 style="text-align: center; color: white;">Пополнение подарками</h3>
+    <h3 style="text-align: center; color: white;">{{ t('gift') }}</h3>
     <p style="color: #A2A2A2; text-align: center; font-size: 14px; margin: 10px 20px 40px 20px;">
-        Для пополнения баланса подарком отправьте
-        подарок нашему боту @playstars
-        После отправки подарок автоматически зачислится в ваш инвентарь по текущей рыночной цене
-        Вы сможете продать подарок для открытия кейсов или вывести его обратно, если цена вас не устроила
+        {{ t('gift1') }}
     </p>
     
 
     <div class="two-buttons-container">
-      <button class="btn primary" @click="$router.back()">Отмена</button>
-      <button class="btn secondary">Пополнить</button>
+      <button class="btn primary" @click="$router.back()">{{ t('balance_but1') }}</button>
+      <button class="btn secondary">{{ t('balance_but2') }}</button>
     </div>
 </template>
 
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 
-
-
+const { t, locale } = useI18n()
+</script>
 
 <style scoped>
 .icon-wrapper {

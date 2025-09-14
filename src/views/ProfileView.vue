@@ -29,11 +29,11 @@
       <!-- Нижняя кнопка на всю ширину -->
       <button class="bottom-button" @click="navigateToBalance">
         <img src="@/assets/images/depicon.svg" alt="Кошелек" class="button-icon" />
-        <span>Пополнить</span>
+        <span>{{ t('profile_button') }}</span>
       </button>
     </div>
 
-    <h2 style="color: white; margin: 15px;">Рефералы</h2>
+    <h2 style="color: white; margin: 15px;">{{ t('profile_h1') }}</h2>
 
     <InfoPanel
       :title="referralInfo.title"
@@ -43,34 +43,31 @@
       :progress="referralInfo.progress"
     />
 
-    <h3 style="color: white; margin: 15px; text-align: center; font-weight: 400;">Уровни реферальной системы</h3>
+    <h3 style="color: white; margin: 15px; text-align: center; font-weight: 400;">{{ t('text2') }}</h3>
 
     <div class="icons-row">
       <div class="icon-block">
         <img src="@/assets/images/icon1.svg" alt="Icon 1" class="icon">
         <p class="icon-title">{{ referralData.referrals_count || 0 }}</p>
-        <p class="icon-subtext">Всего</p>
-        <p class="icon-subtext">рефералов</p>
+        <p class="icon-subtext">{{ t('text3') }}</p>
       </div>
       <div class="icon-block">
         <img src="@/assets/images/icon2.svg" alt="Icon 2" class="icon">
         <p class="icon-title">{{ referralData.active_referrals || 0 }}</p>
-        <p class="icon-subtext">Активных</p>
+        <p class="icon-subtext">{{ t('text4') }}</p>
       </div>
       <div class="icon-block">
         <img src="@/assets/images/icon3.svg" alt="Icon 3" class="icon">
         <p class="icon-title">{{ formatAmount(referralData.referral_earnings_usd || 0) }}</p>
-        <p class="icon-subtext">Всего</p>
-        <p class="icon-subtext">заработано</p>
+        <p class="icon-subtext">{{ t('text5') }}</p>
       </div>
     </div>
 
     <p style="color: #6A717B; font-size: 14px; margin: 15px;">
-      Приглашайте друзей и получайте процент с чистого дохода от их игры! Чем больше
-      активных рефералов, тем выше ваш уровень и процент.
+      {{ t('text6') }}
     </p>
 
-    <h2 style="color: white; margin: 30px 15px 15px 15px;">Реферальная ссылка</h2>
+    <h2 style="color: white; margin: 30px 15px 15px 15px;">{{ t('profile_h2') }}</h2>
 
     <div class="panel">
       <span class="panel-text">{{ referralLink }}</span>
@@ -83,7 +80,7 @@
       <div class="column">
         <div class="text-icon-row">
           <div class="texts">
-            <div class="main-text">Доступный баланс</div>
+            <div class="main-text">{{ t('text7') }}</div>
             <div class="value-with-icon">
               <span class="icon-title">{{ formatAmount(referralData.stars_earned_from_refs || 0) }}</span>
               <img src="@/assets/images/coin.svg" alt="Иконка 1" class="icon1">
@@ -95,7 +92,7 @@
       <div class="column">
         <div class="text-icon-row">
           <div class="texts">
-            <div class="main-text">Всего потрачено</div>
+            <div class="main-text">{{ t('text8') }}</div>
             <div class="value-with-icon">
               <span class="icon-title">{{ formatAmount(referralData.stars_spent_by_refs || 0) }}</span>
               <img src="@/assets/images/coin.svg" alt="Иконка 2" class="icon1">
@@ -107,7 +104,7 @@
       <div class="column">
         <div class="text-icon-row">
           <div class="texts">
-            <div class="main-text">Всего заработано</div>
+            <div class="main-text">{{ t('text9') }}</div>
             <div class="value-with-icon">
               <span class="icon-title">{{ formatAmount(referralData.total_refs_balance || 0) }}</span>
               <img src="@/assets/images/coin.svg" alt="Иконка 3" class="icon1">
@@ -124,20 +121,20 @@
 
     <div class="icon-text-row" v-else>
       <img src="@/assets/images/depicon.svg" alt="Иконка" class="icon-before" />
-      <span class="text-after-icon">Нет доступного баланса</span>
+      <span class="text-after-icon">{{ t('balance_state') }}</span>
     </div>
 
-    <p style="color: #A2A2A2; text-align: center; font-size: 14px;">Зарабатывай, приглашая друзей!</p>
+    <p style="color: #A2A2A2; text-align: center; font-size: 14px;">{{ t('balance_state1') }}</p>
 
-    <h2 style="color: white; margin: 30px 15px 15px 15px;">История транзакций</h2>
+    <h2 style="color: white; margin: 30px 15px 15px 15px;">{{ t('profile_h3') }}</h2>
 
     <div class="icon-wrapper">
       <div class="circle-icon-container">
         <img src="@/assets/images/smallicon.svg" alt="Иконка" class="circle-icon" />
       </div>
     </div>
-    <div class="icon-text-row"><span class="text-after-icon">Нет транзакций</span></div>
-    <p style="color: #A2A2A2; text-align: center; font-size: 14px; margin: 0 0 40px 0;">Ваши транзакции появятся здесь</p>
+    <div class="icon-text-row"><span class="text-after-icon">{{ t('txt10') }}</span></div>
+    <p style="color: #A2A2A2; text-align: center; font-size: 14px; margin: 0 0 40px 0;">{{ t('txt11') }}</p>
   
 
     <BottomNavigation />
@@ -145,6 +142,11 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t, locale } = useI18n()
+
+
 import { ref, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/useUserStore'
 import { api } from '@/services/api'
@@ -173,30 +175,31 @@ const referralInfo = computed(() => {
   const refCount = referralData.value.referrals_count || 0
   const activeRefs = referralData.value.active_referrals || 0
   
-  let level = 'Новичок'
+  let level = t('status1')
   let percent = '5%'
   let progress = 0
-  let title = 'Начинающий'
-  let iconText = '5% от чистого дохода'
+  let title = t('status')
+  let iconText = `5% ${t('text1')}`
+  
 
   if (refCount >= 10 && activeRefs >= 5) {
     level = 'Эксперт'
     percent = '15%'
     progress = 100
     title = 'Эксперт'
-    iconText = '15% от чистого дохода'
+    iconText = `15% ${t('text1')}`
   } else if (refCount >= 5 && activeRefs >= 3) {
     level = 'Профи'
     percent = '10%'
     progress = 66
     title = 'Профи'
-    iconText = '10% от чистого дохода'
+    iconText = `10% ${t('text1')}`
   } else if (refCount >= 3 && activeRefs >= 1) {
     level = 'Любитель'
     percent = '7%'
     progress = 33
     title = 'Любитель'
-    iconText = '7% от чистого дохода'
+    iconText = `7% ${t('text1')}`
   } else {
     progress = Math.min((refCount / 3) * 33, 33)
   }

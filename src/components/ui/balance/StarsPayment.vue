@@ -3,24 +3,24 @@
     <InputPanel
       v-model="amount"
       prefix-text="STARS"
-      placeholder="Введите сумму в STARS"
+      placeholder="`${t('balance_sum_star')}`"
       max-value="5000"
       icon-type="stars"
     />
 
     <p style="color: #6A717B; font-size: 13px; margin: -10px 10px 15px 20px;">
-      Минимальная сумма: 10 STARS
+      {{ t('balance_sum_star1') }}
     </p>
     
     <div class="two-buttons-container">
-      <button class="btn primary" @click="$router.back()">Отмена</button>
+      <button class="btn primary" @click="$router.back()">{{ t('balance_but1') }}</button>
       <button 
         class="btn secondary" 
         @click="initiateTelegramPayment"
         :disabled="!isValidAmount || isProcessing"
       >
         <span v-if="isProcessing">Обработка...</span>
-        <span v-else>Оплатить через Telegram</span>
+        <span v-else>{{ t('balance_sum_star2') }}</span>
       </button>
     </div>
 
@@ -35,6 +35,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t, locale } = useI18n()
+
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import InputPanel from '@/components/layout/InputPanel.vue'

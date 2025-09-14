@@ -13,6 +13,8 @@
 </template>
 
 <script setup lang="ts">
+
+
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -26,29 +28,33 @@ import profileIcon from '@/assets/icons/nav-profile.svg'
 const router = useRouter()
 const currentRoute = ref(router.currentRoute.value.path)
 
+import { useI18n } from 'vue-i18n'
+
+const { t, locale } = useI18n()
+
 const navItems = [
   { 
-    name: 'Главная', 
+    name: t('nav_panel1'), 
     route: '/', 
     image: homeIcon  // Используем импортированное изображение
   },
   { 
-    name: 'Краш', 
+    name: t('nav_panel2'), 
     route: '/crash', 
     image: crashIcon
   },
   { 
-    name: 'Pvp', 
+    name: t('nav_panel3'), 
     route: '/pvp', 
     image: casesIcon
   },
   { 
-    name: 'Топ', 
+    name: t('nav_panel4'), 
     route: '/top', 
     image: topIcon
   },
   { 
-    name: 'Профиль', 
+    name: t('nav_panel5'), 
     route: '/profile', 
     image: profileIcon
   }

@@ -4,18 +4,73 @@
     "logo_place_bet": "Space Monkey",
     "place_bet": "Place a bet and battle other players",
 
-    "logo_place_bet1": "Pvp-arena",
+    "logo_place_bet1": "Pvp arena",
     "place_bet1": "Fight with players and win!",
 
-    "auto_stavka": "Auto bid",
+    "auto_stavka": "Auto bet",
     "auto_weivod": "Auto withdrawal",
 
-    "button_stavka1": "BID",
-    "button_stavka2": "TAKE",
+    "button_stavka1": "BET",
+    "button_stavka2": "CLAIM",
 
     "top1": "All",
-    "top2": "TOP-10",
+    "top2": "TOP-10", 
     "top3": "My",
 
-    "all_stavka": "Total bets"
+    "all_stavka": "Total bets",
+
+    "nav_panel1": "Home",
+    "nav_panel2": "Crash",
+    "nav_panel3": "Pvp",
+    "nav_panel4": "Top",
+    "nav_panel5": "Profile",
+
+    "profile_button": "Deposit",
+    "profile_h1": "Referrals",
+    "status": "Beginner",
+    "text1": "from net income",
+    "status1": "Newbie",
+    "text2": "Referral system levels",
+    "text3": "Total<br>referrals",
+    "text4": "Active",
+    "text5": "Total<br>earned",
+    "text6": "Invite friends and get a percentage of their net gaming income! The more active referrals, the higher your level and percentage.",
+    "profile_h2": "Referral link",
+    "text7": "Available balance",
+    "text8": "Total spent",
+    "text9": "Total earned",
+    "balance_state": "No available balance",
+    "balance_state1": "Earn by inviting friends!",
+    "profile_h3": "Transaction history",
+    "txt_10": "No transactions",
+    "txt_11": "Your transactions will appear here",
+
+    "balance_top1": "Ton",
+    "balance_top2": "Stars",
+    "balance_top3": "Gifts",
+
+    "max": "Max",
+
+    "balance_sum_ton": "Enter amount in TON",
+    "balance_sum1_ton": "Minimum amount: 0.1 TON",
+    "balance_but1": "Cancel",
+    "balance_but2": "Deposit",
+    "balance_but3": "Disconnect wallet",
+
+    "wallet_con": "Connect TON wallet",
+    "wallet_con1": "To deposit funds, connect your TON wallet",
+    "wallet_con2": "Connect wallet",
+
+    "balance_sum_star": "Enter amount in STARS",
+    "balance_sum_star1": "Minimum amount: 100 STARS",
+
+    "balance_sum_star2": "Pay via Telegram",
+
+    "gift": "Deposit with gifts",
+    "gift1": "To deposit with a gift, send a gift to our bot @playstars After sending, the gift will be automatically added to your inventory at the current market price You can sell the gift to open cases or withdraw it back if the price doesn't suit you",
+
+    "con": "Transfer confirmation",
+    "con1": "You are about to transfer",
+    "con2": "to address",
+    "con3": "Confirm"
 }

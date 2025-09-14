@@ -4,18 +4,73 @@
     "logo_place_bet": "太空猴子",
     "place_bet": "下注并与其他玩家对战",
 
-    "logo_place_bet1": "PVP竞技场",
-    "place_bet1": "与玩家战斗并取得胜利！",
+    "logo_place_bet1": "PVP竞技场", 
+    "place_bet1": "与玩家战斗并获胜！",
 
-    "auto_stavka": "自动出价",
+    "auto_stavka": "自动投注",
     "auto_weivod": "自动提款",
 
-    "button_stavka1": "出价",
-    "button_stavka2": "拿",
+    "button_stavka1": "投注",
+    "button_stavka2": "领取",
 
     "top1": "全部",
     "top2": "前十名",
     "top3": "我的",
 
-    "all_stavka": "总投注"
+    "all_stavka": "总投注额",
+
+    "nav_panel1": "首页",
+    "nav_panel2": " Crash游戏",
+    "nav_panel3": "PVP",
+    "nav_panel4": "排行榜",
+    "nav_panel5": "个人资料",
+
+    "profile_button": "充值",
+    "profile_h1": "推荐好友",
+    "status": "新手",
+    "text1": "来自净收入",
+    "status1": "初学者",
+    "text2": "推荐系统等级",
+    "text3": "总推荐人数",
+    "text4": "活跃",
+    "text5": "总收入",
+    "text6": "邀请好友并从他们的游戏净收入中获得百分比！活跃推荐越多，您的等级和百分比就越高。",
+    "profile_h2": "推荐链接",
+    "text7": "可用余额",
+    "text8": "总支出",
+    "text9": "总收入",
+    "balance_state": "无可用余额",
+    "balance_state1": "通过邀请好友赚取！",
+    "profile_h3": "交易记录",
+    "txt_10": "无交易记录",
+    "txt_11": "您的交易将显示在这里",
+
+    "balance_top1": "Ton币",
+    "balance_top2": "Stars币",
+    "balance_top3": "礼物",
+
+    "max": "最大",
+
+    "balance_sum_ton": "输入TON金额",
+    "balance_sum1_ton": "最低金额：0.1 TON",
+    "balance_but1": "取消",
+    "balance_but2": "充值",
+    "balance_but3": "断开钱包",
+
+    "wallet_con": "连接TON钱包",
+    "wallet_con1": "要充值资金，请连接您的TON钱包",
+    "wallet_con2": "连接钱包",
+
+    "balance_sum_star": "输入STARS金额",
+    "balance_sum_star1": "最低金额：100 STARS",
+
+    "balance_sum_star2": "通过Telegram支付",
+
+    "gift": "用礼物充值",
+    "gift1": "要用礼物充值，请向我们的机器人@playstars发送礼物。发送后，礼物将按当前市场价格自动添加到您的库存中。您可以出售礼物来开箱，或者如果价格不合适可以将其退回。",
+
+    "con": "转账确认",
+    "con1": "您即将转账",
+    "con2": "到地址",
+    "con3": "确认"
 }
