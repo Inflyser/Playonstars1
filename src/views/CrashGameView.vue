@@ -19,16 +19,48 @@
               {{ game.multiplier.toFixed(2) }}x
             </div>
           </div>
-
-          <!-- Фиксированная панелька справа -->
-          <div class="history-scroll-indicator">
+        
+          <!-- Фиксированная панелька справа - теперь кнопка -->
+          <div class="history-scroll-indicator" @click="showHistoryModal = true">
             <div class="indicator-icon">
               <img src="@/assets/images/clock.svg" alt="scroll">
             </div>
             <div class="indicator-shadow"></div>
           </div>
         </div>
+      
+        <!-- ... остальной код ... -->
+      
+        <!-- Модальное окно истории коэффициентов -->
+        <div v-if="showHistoryModal" class="history-modal-overlay" @click.self="showHistoryModal = false">
+          <div class="history-modal">
+            <div class="modal-header">
+              <h2>История коэффициентов</h2>
+              <button class="close-button" @click="showHistoryModal = false">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
 
+            <div class="modal-content">
+              <div class="full-history-list">
+                <div
+                  v-for="(game, index) in gameState.history"
+                  :key="index"
+                  class="full-history-item"
+                  :class="{
+                    'multiplier-low': game.multiplier < 2.9,
+                    'multiplier-medium': game.multiplier >= 2.9 && game.multiplier < 7,
+                    'multiplier-high': game.multiplier >= 7
+                  }"
+                >
+                  <span class="multiplier-value">{{ game.multiplier.toFixed(2) }}x</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
 
 
@@ -505,7 +537,11 @@ onMounted(async () => {
 // Перерисовываем график при изменении множителя
 watch(currentMultiplier, () => {
   drawGraph()
+
+
 })
+
+const showHistoryModal = ref(false)
 
 
 </script>
@@ -1027,6 +1063,138 @@ watch(currentMultiplier, () => {
 .no-bet .result-icon {
   font-size: 2.5em;
   margin: 10px;
+}
+
+
+
+
+/* Стили для модального окна */
+.history-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.history-modal {
+  background: linear-gradient(to bottom, #1B152F, #180A24);
+  border-radius: 16px;
+  border: 1px solid #4479D98A;
+  width: 100%;
+  max-width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #25213C;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: white;
+  font-size: 1.2em;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.full-history-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+  padding: 10px;
+}
+
+.full-history-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  min-height: 70px;
+}
+
+.full-history-item.multiplier-low {
+  border: 1px solid #4B7ED0;
+  background: #355391;
+}
+
+.full-history-item.multiplier-medium {
+  border: 1px solid #764BD0;
+  background: #5A3A9E;
+}
+
+.full-history-item.multiplier-high {
+  border: 1px solid #83CE38;
+  background: #67A32B;
+}
+
+.multiplier-value {
+  font-size: 1.2em;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: white;
+}
+
+.game-time {
+  font-size: 0.8em;
+  opacity: 0.8;
+  color: white;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 480px) {
+  .full-history-list {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+  }
+  
+  .full-history-item {
+    padding: 8px;
+    min-height: 60px;
+  }
+  
+  .multiplier-value {
+    font-size: 1em;
+  }
+  
+  .game-time {
+    font-size: 0.7em;
+  }
 }
 
 </style>
