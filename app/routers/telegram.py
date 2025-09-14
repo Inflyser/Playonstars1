@@ -60,11 +60,17 @@ async def cmd_start(message: Message, db: Session):
             last_name=message.from_user.last_name     # ✅ Сохраняем фамилию
         )
         
+        
         # ✅ Если это новый пользователь и есть реферальный код
-        if referrer_id:
-            from app.bot.bot import process_referral
-            await process_referral(message.from_user.id, referrer_id, db)
-    
+        if referrer_id:  # referrer_id это telegram_id из ссылки
+            # Находим пользователя-реферера в БД по его telegram_id
+            referrer_user = get_user(db, referrer_id)  # Ищем по telegram_id
+            if referrer_user:
+                # Теперь передаем ID из базы данных (referrer_user.id), а не telegram_id
+                from app.bot.bot import process_referral
+                await process_referral(user.id, referrer_user.id, db)  # user.id - ID нового пользователя в БД
+            else:
+                print(f"⚠️ Пользователь с telegram_id {referrer_id} не найден в БД. Реферальная ссылка не обработана.")
     # ✅ Проверяем, есть ли уже выбранный язык
     if user.language:
         # Используем сохраненный язык

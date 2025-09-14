@@ -8,6 +8,7 @@ def get_user_by_telegram_id(db: Session, telegram_id: int) -> Optional[User]:
     """Получаем пользователя по telegram_id"""
     return db.query(User).filter(User.telegram_id == telegram_id).first()
 
+
 def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
     """Получаем пользователя по ID"""
     return db.query(User).filter(User.id == user_id).first()
