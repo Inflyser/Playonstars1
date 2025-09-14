@@ -1124,23 +1124,23 @@ async def get_crash_bet_history(
 
 # ----------------------------- ОСТАЛЬНЫЕ -------------------------------------
 
-@app.post("/api/webhook/stars")
-async def handle_stars_webhook(request: Request, db: Session = Depends(get_db)):
-    """Обработчик вебхука от Telegram Stars"""
-    try:
-        payload = await request.json()
-        print(f"📨 Received Stars webhook: {payload}")
+# @app.post("/api/webhook/stars")
+# async def handle_stars_webhook(request: Request, db: Session = Depends(get_db)):
+#     """Обработчик вебхука от Telegram Stars"""
+#     try:
+#         payload = await request.json()
+#         print(f"📨 Received Stars webhook: {payload}")
         
-        # Обрабатываем разные типы вебхуков
-        if payload.get('type') == 'payment_success':
-            # Обработка успешного платежа
-            await handle_stars_payment(payload, db)
+#         # Обрабатываем разные типы вебхуков
+#         if payload.get('type') == 'payment_success':
+#             # Обработка успешного платежа
+#             await handle_stars_payment(payload, db)
         
-        return {"status": "ok"}
+#         return {"status": "ok"}
         
-    except Exception as e:
-        print(f"Error in Stars webhook: {e}")
-        return {"status": "error", "message": str(e)}
+#     except Exception as e:
+#         print(f"Error in Stars webhook: {e}")
+#         return {"status": "error", "message": str(e)}
 
 async def handle_stars_payment(payload: dict, db: Session):
     """Обработка успешного платежа Stars"""

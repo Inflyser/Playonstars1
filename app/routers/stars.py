@@ -6,6 +6,7 @@ import json
 import logging
 from app.database.session import get_db
 from app.database import crud
+from app.services import stars_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -18,59 +19,26 @@ async def create_stars_invoice(
 ):
     """Создание инвойса для оплаты Stars"""
     try:
-        # Получаем telegram_id из сессии или запроса
         telegram_id = request.session.get("telegram_id") or invoice_data.get("telegram_id")
-        if not telegram_id:
-            raise HTTPException(status_code=400, detail="Telegram ID required")
-        
         amount = invoice_data.get("amount")
-        if not amount:
-            raise HTTPException(status_code=400, detail="Amount required")
+        
+        if not telegram_id or not amount:
+            raise HTTPException(status_code=400, detail="Telegram ID and amount required")
         
         amount = int(amount)
         if amount < 1:
             raise HTTPException(status_code=400, detail="Minimum amount is 1 STAR")
         
-        # Проверяем пользователя
-        user = crud.get_user_by_telegram_id(db, telegram_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        # Используем сервис для создания инвойса
+        invoice_link = await stars_service.create_invoice(telegram_id, amount)
         
-        bot_token = os.getenv("BOT_TOKEN")
-        if not bot_token:
-            raise HTTPException(status_code=500, detail="BOT_TOKEN not configured")
+        if not invoice_link:
+            raise HTTPException(status_code=500, detail="Failed to create invoice")
         
-        url = f"https://api.telegram.org/bot{bot_token}/createInvoiceLink"
-        
-        # ✅ ПРАВИЛЬНЫЙ формат для Stars
-        payload = {
-            "title": "PlayOnStars - Пополнение баланса",
-            "description": f"Пополнение игрового баланса на {amount} STARS",
-            "payload": json.dumps({
-                "type": "stars_payment",
-                "user_id": telegram_id,
-                "amount": amount
-            }),
-            "provider_token": "",  # ✅ ДЛЯ STARS ОСТАВЛЯЕМ ПУСТЫМ
-            "currency": "XTR",     # ✅ ВАЛЮТА TELEGRAM STARS
-            "prices": [{
-                "label": f"{amount} STARS",
-                "amount": amount
-            }]
+        return {
+            "status": "success",
+            "invoice_link": invoice_link
         }
-        
-        response = requests.post(url, json=payload)
-        response_data = response.json()
-        
-        if response.status_code == 200 and response_data.get("ok"):
-            return {
-                "status": "success",
-                "invoice_link": response_data["result"]
-            }
-        else:
-            error_desc = response_data.get('description', 'Unknown error')
-            logger.error(f"Telegram API error: {error_desc}")
-            raise HTTPException(status_code=500, detail=f"Invoice creation error: {error_desc}")
             
     except Exception as e:
         logger.error(f"Error creating invoice: {e}")
