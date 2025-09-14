@@ -491,7 +491,7 @@ async def cmd_buy_stars(message: Message):
     """Команда для покупки Stars"""
     try:
         # Простое создание инвойса на 100 STARS
-        invoice_link = await stars_service.create_invoice(message.from_user.id, 100)
+        invoice_link = await stars_service.create_invoice(message.from_user.id, 10)
         
         if invoice_link:
             await message.answer(
