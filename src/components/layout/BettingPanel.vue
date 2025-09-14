@@ -178,7 +178,7 @@ const addToBet = (amount: number) => {
 
 import { useI18n } from 'vue-i18n'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 
 
