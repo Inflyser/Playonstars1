@@ -77,7 +77,7 @@
             </div>
 
             <div class="no-bet" v-else>
-              <div class="result-icon" style="margin: 10px;">👀</div>
+              <div class="result-icon" style="margin: -10px;">👀</div>
               <p style="margin: -10px;">Вы не делали ставку в этой игре</p>
             </div>
           </div>
