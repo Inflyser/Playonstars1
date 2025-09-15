@@ -484,7 +484,7 @@ const updateRocketPosition = (endX: number, endY: number) => {
 onMounted(async () => {
   try {
     await connectToCrashGame()
-    await gameStore.loadGameHistory(10)
+    await gameStore.loadGameHistory(49)
     
     // Инициализация графика
     initGraph()
