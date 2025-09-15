@@ -86,16 +86,7 @@
     </div>
 
     <!-- Статус авто-функций -->
-    <div class="auto-status" v-if="autoBetEnabled || autoCashoutEnabled">
-      <div v-if="autoBetEnabled" class="status-item">
-        <span class="status-icon">🔄</span>
-        Автоставка: {{ localBetAmount }} stars
-      </div>
-      <div v-if="autoCashoutEnabled" class="status-item">
-        <span class="status-icon">🎯</span>
-        Автовывод: x{{ autoCashoutCoefficient }}
-      </div>
-    </div>
+ 
   </div>
 </template>
 
