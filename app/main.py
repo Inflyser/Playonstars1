@@ -1378,3 +1378,5 @@ async def create_deposit_endpoint(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+# В роутере добавьте эндпоинт для проверки

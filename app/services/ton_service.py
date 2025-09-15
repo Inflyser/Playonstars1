@@ -6,6 +6,11 @@ from fastapi import Request, HTTPException
 from sqlalchemy.orm import Session
 from app.database.session import SessionLocal
 from app.database import crud
+import logging
+import aiohttp
+
+
+logger = logging.getLogger(__name__)
 
 class TonService:
     def __init__(self):
@@ -262,5 +267,23 @@ class TonService:
             print(f"Error handling transaction event: {e}")
             if 'db' in locals():
                 db.close()
+                
+                
+        async def check_transaction_status(self, tx_hash: str):
+            """Проверка статуса транзакции"""
+            try:
+                url = f"https://tonapi.io/v2/blockchain/transactions/{tx_hash}"
+                headers = {"Authorization": f"Bearer {self.api_key}"}
+
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, headers=headers) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            return data.get('status') == 'completed'
+            except Exception as e:
+                logger.error(f"Error checking transaction: {e}")
+                return False
+
+
 
 ton_service = TonService()

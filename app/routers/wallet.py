@@ -15,6 +15,12 @@ load_dotenv()
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+@router.get("/check-transaction/{tx_hash}")
+async def check_transaction(tx_hash: str, db: Session = Depends(get_db)):
+    status = await ton_service.check_transaction_status(tx_hash)
+    return {"status": "completed" if status else "pending"}
+
+
 @router.post("/user/wallet")
 async def save_user_wallet(
     request: Request,
