@@ -84,3 +84,34 @@ async def check_admin_status(
     
     is_admin = crud.is_user_admin(db, telegram_id)
     return {"isAdmin": is_admin}
+
+
+@router.get("/admin/settings")
+async def get_settings(db: Session = Depends(get_db)):
+    """Получаем текущие настройки"""
+    settings = crud.get_game_settings(db)
+    return {
+        "crash_rtp": settings.crash_rtp,
+        "crash_min_multiplier": settings.crash_min_multiplier,
+        "crash_max_multiplier": settings.crash_max_multiplier
+    }
+
+@router.post("/admin/update-settings")
+async def update_settings(settings_data: dict, db: Session = Depends(get_db)):
+    """Обновляем настройки игры"""
+    crash_rtp = settings_data.get("crash_rtp")
+    
+    if crash_rtp is not None and not (0.8 <= crash_rtp <= 0.99):
+        raise HTTPException(status_code=400, detail="RTP должен быть между 0.8 и 0.99")
+    
+    updated = crud.update_game_settings(
+        db=db,
+        crash_rtp=crash_rtp
+    )
+    
+    return {
+        "status": "success",
+        "settings": {
+            "crash_rtp": updated.crash_rtp
+        }
+    }
