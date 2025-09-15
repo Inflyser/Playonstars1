@@ -326,3 +326,17 @@ async def cmd_admin(message: Message, db: Session = Depends(get_db)):
         )
     else:
         await message.answer("❌ Неверный секретный код")
+        
+        
+        
+@router.pre_checkout_query()
+async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery):
+    """Подтверждаем возможность принять платеж"""
+    await pre_checkout_query.answer(ok=True)
+
+# ✅ Обработчик успешных платежей (опционально, но рекомендуется)
+@router.message(lambda message: message.successful_payment is not None)
+async def successful_payment_handler(message: Message):
+    """Обрабатываем успешный платеж"""
+    payment = message.successful_payment
+    print(f"Получен платеж: {payment.total_amount} {payment.currency}")

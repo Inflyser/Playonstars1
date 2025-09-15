@@ -31,6 +31,7 @@ from app.services.crash_game import CrashGame
 from app.services.websocket_manager import websocket_manager
 import websockets
 from app.routers import stars, admin
+from aiogram.methods import AnswerPreCheckoutQuery
 
 from app.database.crud import (
     get_user_by_telegram_id, 
@@ -91,6 +92,18 @@ asyncio.create_task(websocket_manager.check_connection_health())
 # ----------------------------- ЗАПУСК -------------------------------------
 
 # Функция запуска бота
+
+from aiogram.methods import AnswerPreCheckoutQuery
+
+@app.post("/webhook")
+async def webhook_handler(request: Request):
+    update = Update(**await request.json())
+    
+    if update.pre_checkout_query:
+        await bot(AnswerPreCheckoutQuery(
+            pre_checkout_query_id=update.pre_checkout_query.id,
+            ok=True
+        ))
 
 @app.on_event("startup")
 async def startup():
@@ -1163,7 +1176,7 @@ async def get_crash_bet_history(
 #             # Обработка успешного платежа
 #             await handle_stars_payment(payload, db)
         
-#         return {"status": "ok"}
+#   как же я устал...      return {"status": "ok"}
         
 #     except Exception as e:
 #         print(f"Error in Stars webhook: {e}")
