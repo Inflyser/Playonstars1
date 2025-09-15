@@ -6,9 +6,10 @@ import json
 import logging
 from app.database.session import get_db
 from app.database import crud
-from app.services import stars_service
+from app.services.stars_service import StarsService
 
 router = APIRouter()
+stars_service = StarsService()
 logger = logging.getLogger(__name__)
 
 @router.post("/create-invoice")
