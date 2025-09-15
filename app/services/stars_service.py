@@ -10,7 +10,7 @@ class StarsService:
         self.bot_token = os.getenv("BOT_TOKEN")
         if not self.bot_token:
             logger.error("BOT_TOKEN not set!")
-        self.api_url = f"https://api.telegram.org/bot{self.bot_token}"
+        self.api_url = f"https://api.telegram.org/bot/{self.bot_token}"
 
     async def create_invoice(self, user_id: int, amount: int) -> Optional[str]:
         """Создание инвойса для Stars - ПРАВИЛЬНЫЙ формат"""
