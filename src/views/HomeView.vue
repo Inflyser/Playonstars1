@@ -42,7 +42,7 @@
           </div>
         </button>
 
-        <button class="action-card admin-penel-card" @click="goToAdmin">
+        <button v-if="showAdminButton"  class="action-card admin-penel-card" @click="goToAdmin">
           <!-- Слой 4: Цветной фон -->
           <div class="card-color-bg"></div>
 
