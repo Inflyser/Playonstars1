@@ -73,6 +73,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 dp.include_router(telegram_router)
 app.include_router(wallet.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
@@ -88,23 +89,6 @@ asyncio.create_task(websocket_manager.check_connection_health())
 
 # ----------------------------- ЗАПУСК -------------------------------------
 
-
-# Добавьте этот эндпоинт ПЕРЕД запуском
-@app.post("/webhook")
-async def telegram_webhook(request: Request):
-    """Обработчик вебхуков от Telegram"""
-    try:
-        # Получаем update
-        update_data = await request.json()
-        update = Update(**update_data)
-        
-        # Передаем в aiogram
-        await dp.feed_update(bot, update)
-        
-        return {"status": "ok"}
-    except Exception as e:
-        print(f"Webhook error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.on_event("startup")

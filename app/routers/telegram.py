@@ -348,13 +348,19 @@ async def cmd_buy_stars(message: Message, db: Session = Depends(get_db)):
 
 @router.pre_checkout_query()
 async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery):
-    """Всегда подтверждаем pre-checkout для Stars"""
+    """Предварительная проверка платежа"""
     try:
-        logger.info(f"Pre-checkout received: {pre_checkout_query}")
+        logger.info(f"🔄 PreCheckout received: {pre_checkout_query.id}")
+        logger.info(f"Payload: {pre_checkout_query.invoice_payload}")
+        logger.info(f"Amount: {pre_checkout_query.total_amount}")
+        
+        # ✅ Правильный ответ
         await pre_checkout_query.answer(ok=True)
-        logger.info("Pre-checkout approved")
+        logger.info("✅ PreCheckout approved")
+        
     except Exception as e:
-        logger.error(f"Pre-checkout error: {e}")
+        logger.error(f"❌ PreCheckout error: {e}")
+        # ✅ ОБЯЗАТЕЛЬНО ответить даже при ошибке
         await pre_checkout_query.answer(ok=False, error_message="Payment error")
 
 @router.message(F.successful_payment)
