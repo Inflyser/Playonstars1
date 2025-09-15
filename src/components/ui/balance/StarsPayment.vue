@@ -36,16 +36,14 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-
-const { t } = useI18n()
-
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import InputPanel from '@/components/layout/InputPanel.vue'
 import { api } from '@/services/api'
 import { useUserStore } from '@/stores/useUserStore'
-import { isInvoiceSupported, openInvoice } from '@telegram-apps/sdk'
+import { isInvoiceSupported, openInvoice, retrieveLaunchParams } from '@telegram-apps/sdk'
 
+const { t } = useI18n()
 const router = useRouter()
 const userStore = useUserStore()
 
@@ -53,6 +51,19 @@ const amount = ref('')
 const isProcessing = ref(false)
 const error = ref('')
 const successMessage = ref('')
+const telegramUser = ref<any>(null)
+
+// ✅ Получаем данные пользователя Telegram
+onMounted(() => {
+  try {
+    const launchParams = retrieveLaunchParams()
+    telegramUser.value = launchParams.user
+    console.log('Telegram user:', telegramUser.value)
+  } catch (e) {
+    console.error('Failed to get Telegram user:', e)
+    error.value = 'Не удалось получить данные пользователя'
+  }
+})
 
 const isValidAmount = computed(() => {
   const numAmount = parseFloat(amount.value || '0')
@@ -61,7 +72,12 @@ const isValidAmount = computed(() => {
 
 const initiateTelegramPayment = async () => {
   if (!isValidAmount.value) {
-    error.value = 'Неверная сумма. Минимум 100 STARS, максимум 5000 STARS'
+    error.value = 'Неверная сумма. Минимум 10 STARS, максимум 5000 STARS'
+    return
+  }
+
+  if (!telegramUser.value?.id) {
+    error.value = 'Не удалось определить пользователя'
     return
   }
 
@@ -72,22 +88,22 @@ const initiateTelegramPayment = async () => {
   try {
     const starsAmount = parseFloat(amount.value)
     
-    // 1. Создаем инвойс на бекенде
+    // ✅ Правильный запрос с user_id
     const invoiceResponse = await api.post('/api/stars/create-invoice', {
-      amount: starsAmount
+      amount: starsAmount,
+      telegram_id: telegramUser.value.id  // ✅ Добавляем telegram_id
     })
 
     console.log('Invoice response:', invoiceResponse.data)
 
     if (invoiceResponse.data.status === 'success') {
-      // 2. ✅ Используем официальный SDK Telegram
+      // ✅ Проверяем поддержку платежей
       if (isInvoiceSupported()) {
-        // Ожидаем статус оплаты от openInvoice
         const result = await openInvoice(invoiceResponse.data.invoice_link)
         handlePaymentStatus(result.status, starsAmount)
       } else {
-        // Fallback для старых версий Telegram
-        if (window.Telegram?.WebApp && typeof window.Telegram.WebApp.openInvoice === 'function') {
+        // Fallback для WebApp
+        if (window.Telegram?.WebApp?.openInvoice) {
           window.Telegram.WebApp.openInvoice(
             invoiceResponse.data.invoice_link,
             (status: string) => {
@@ -104,25 +120,25 @@ const initiateTelegramPayment = async () => {
 
   } catch (err: any) {
     console.error('Payment error:', err)
-    error.value = err.message || 'Ошибка при создании платежа'
+    error.value = err.response?.data?.detail || err.message || 'Ошибка при создании платежа'
   } finally {
     isProcessing.value = false
   }
 }
 
 const handlePaymentStatus = (status: 'paid' | 'failed' | 'cancelled' | 'pending', starsAmount: number) => {
-  console.log('Payment status:', status);
+  console.log('Payment status:', status)
   
   if (status === 'paid') {
     userStore.fetchBalance().then(() => {
-      successMessage.value = `✅ Успешно пополнено ${starsAmount} STARS!`;
-      setTimeout(() => router.back(), 2000);
-    });
+      successMessage.value = `✅ Успешно пополнено ${starsAmount} STARS!`
+      setTimeout(() => router.back(), 2000)
+    })
   } else if (status === 'failed') {
-    error.value = 'Оплата не удалась. Попробуйте снова.';
+    error.value = 'Оплата не удалась. Попробуйте снова.'
   } else if (status === 'cancelled') {
-    console.log('Пользователь отменил оплату');
-    error.value = 'Оплата отменена.';
+    console.log('Пользователь отменил оплату')
+    error.value = 'Оплата отменена.'
   }
 }
 </script>
