@@ -37,6 +37,17 @@ const routes = [
     name: 'telegram-only',
     component: () => import('@/views/LoginView.vue')
   },
+  {
+    path: '/admin-login',
+    name: 'AdminLogin',
+    component: () => import('../views/AdminLogin.vue')
+  },
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: () => import('../views/AdminView.vue'),
+    meta: { requiresAdmin: true }
+  }
 ]
 
 const router = createRouter({
