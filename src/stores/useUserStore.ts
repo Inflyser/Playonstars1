@@ -77,23 +77,81 @@ export const useUserStore = defineStore('user', () => {
           }
       }
   };
-  
-  const fetchBalance = async () => {
-      try {
-          const { api } = await import('@/services/api');
-          const response = await api.get('/api/user/balance');
-          
-          // Обновляем локальное состояние
-          setBalance(response.data);
-          
-          // Также обновляем у пользователя
-          if (user.value) {
-              user.value.ton_balance = response.data.ton_balance;
-              user.value.stars_balance = response.data.stars_balance;
-          }
-      } catch (err) {
-          console.error('Failed to fetch balance:', err);
+
+
+  const forceRefreshBalance = async (): Promise<UserBalance | null> => {
+    try {
+      const { api } = await import('@/services/api');
+
+      // Добавляем timestamp для избежания кэширования
+      const timestamp = new Date().getTime();
+      const response = await api.get(`/api/user/balance?force=${timestamp}`);
+
+      // Обновляем локальное состояние
+      setBalance(response.data);
+
+      if (user.value) {
+        user.value.ton_balance = response.data.ton_balance;
+        user.value.stars_balance = response.data.stars_balance;
       }
+
+      // Сохраняем в localStorage для fallback
+      localStorage.setItem('user_balance', JSON.stringify(response.data));
+      localStorage.setItem('balance_last_updated', timestamp.toString());
+
+      return response.data;
+    } catch (err) {
+      console.error('Force refresh balance failed:', err);
+
+      // Пытаемся использовать кэшированные данные
+      const cachedBalance = localStorage.getItem('user_balance');
+      if (cachedBalance) {
+        const balanceData = JSON.parse(cachedBalance);
+        setBalance(balanceData);
+        return balanceData;
+      }
+
+      return null;
+    }
+  };
+  
+  const fetchBalance = async (force: boolean = false): Promise<UserBalance | null> => {
+    try {
+      const { api } = await import('@/services/api');
+      
+      let response;
+      if (force) {
+        const timestamp = new Date().getTime();
+        response = await api.get(`/api/user/balance?force=${timestamp}`);
+      } else {
+        response = await api.get('/api/user/balance');
+      }
+      
+      // Обновляем локальное состояние
+      setBalance(response.data);
+      
+      if (user.value) {
+        user.value.ton_balance = response.data.ton_balance;
+        user.value.stars_balance = response.data.stars_balance;
+      }
+      
+      // Сохраняем время последнего обновления
+      localStorage.setItem('balance_last_updated', new Date().getTime().toString());
+      
+      return response.data;
+    } catch (err) {
+      console.error('Failed to fetch balance:', err);
+      
+      // Fallback: используем кэшированные данные
+      const cached = localStorage.getItem('user_balance');
+      if (cached) {
+        const balanceData = JSON.parse(cached);
+        setBalance(balanceData);
+        return balanceData;
+      }
+      
+      return null;
+    }
   };
 
   const syncBalance = async () => {
@@ -189,6 +247,7 @@ export const useUserStore = defineStore('user', () => {
     syncBalance,
     getAvatarUrl,
     getDisplayName,
-    getUsername
+    getUsername,
+    forceRefreshBalance
   };
 });
