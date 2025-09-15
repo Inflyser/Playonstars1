@@ -110,6 +110,10 @@ const props = defineProps({
   currentMultiplier: {
     type: Number,
     default: 1.0
+  },
+  hasActiveBet: { // ← ДОБАВЛЯЕМ НОВЫЙ PROP
+    type: Boolean,
+    default: false
   }
 })
 
@@ -280,8 +284,10 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 
 // Computed свойство для кнопки
+// Computed свойство для кнопки - ОБНОВЛЯЕМ
 const buttonConfig = computed(() => {
-  if (props.gamePhase === 'flying') {
+  // Если игра идет и есть активная ставка - показываем кнопку вывода
+  if (props.gamePhase === 'flying' && props.hasActiveBet) {
     return {
       text: `${t('button_stavka1')} x${props.currentMultiplier.toFixed(2)}`,
       class: 'cashout-btn',
@@ -289,10 +295,11 @@ const buttonConfig = computed(() => {
     }
   }
   
+  // Во всех остальных случаях - кнопка ставки
   return {
     text: t('button_stavka1'),
     class: 'place-bet-btn',
-    disabled: isDisabled.value
+    disabled: isDisabled.value || props.gamePhase !== 'betting'
   }
 })
 </script>
