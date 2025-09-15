@@ -50,6 +50,33 @@
           <button @click="changePassword" class="password-btn">🔄 Сменить пароль</button>
         </div>
       </div>
+
+      <!-- Запросы на вывод -->
+      <div class="withdrawals-section">
+        <h2>💸 Запросы на вывод средств</h2>
+        <div class="withdrawals-list">
+          <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <h3>Пока нет запросов на вывод</h3>
+            <p>Здесь будут отображаться все запросы на вывод средств от пользователей</p>
+          </div>
+          
+          <!-- Пример будущего запроса (закомментирован) -->
+          <!--
+          <div class="withdrawal-item">
+            <div class="withdrawal-info">
+              <span class="user">@username</span>
+              <span class="amount">100 TON</span>
+              <span class="wallet">EQABC...123</span>
+            </div>
+            <div class="withdrawal-actions">
+              <button class="approve-btn">✅ Одобрить</button>
+              <button class="reject-btn">❌ Отклонить</button>
+            </div>
+          </div>
+          -->
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -212,6 +239,7 @@ const logout = () => {
   background: #1a172e;
   padding: 20px;
   border-radius: 12px;
+  margin-bottom: 20px;
 }
 
 .password-input {
@@ -232,5 +260,105 @@ const logout = () => {
   border-radius: 8px;
   cursor: pointer;
   width: 100%;
+}
+
+.withdrawals-section {
+  background: #1a172e;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.withdrawals-section h2 {
+  margin-bottom: 20px;
+  color: #ffffff;
+}
+
+.withdrawals-list {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-state {
+  text-align: center;
+  color: #6a717b;
+}
+
+.empty-icon {
+  font-size: 50px;
+  margin-bottom: 15px;
+}
+
+.empty-state h3 {
+  margin: 10px 0;
+  color: #ffffff;
+  font-size: 18px;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Стили для будущих запросов на вывод */
+.withdrawal-item {
+  background: #2a2642;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.withdrawal-info {
+  flex: 1;
+}
+
+.user {
+  display: block;
+  font-weight: bold;
+  color: #00a6fc;
+}
+
+.amount {
+  display: block;
+  color: #ffffff;
+  font-size: 16px;
+  margin: 5px 0;
+}
+
+.wallet {
+  display: block;
+  color: #6a717b;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.withdrawal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.approve-btn {
+  background: #00a6fc;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.reject-btn {
+  background: #ff4757;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
 }
 </style>
