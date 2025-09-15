@@ -54,7 +54,7 @@
             <div class="multiplier-display" :class="{ growing: isGameActive }">
               x{{ currentMultiplier.toFixed(2) }}
             </div>
-            <div class="result-header">
+            <div class="result-header" style="margin: -10px;">
               <h3>Игра завершена!</h3>
             </div>
 
@@ -77,7 +77,7 @@
             </div>
 
             <div class="no-bet" v-else>
-              <div class="result-icon">👀</div>
+              <div class="result-icon" style="margin: -10px;">👀</div>
               <p style="margin: -10px;">Вы не делали ставку в этой игре</p>
             </div>
           </div>

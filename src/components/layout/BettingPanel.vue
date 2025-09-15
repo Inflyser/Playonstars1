@@ -140,9 +140,9 @@ const quickAmounts = computed(() => {
   // Динамические быстрые суммы на основе макс. суммы
   const max = props.maxAmount
   return [
-    Math.floor(max * 0.1),
-    Math.floor(max * 0.25), 
-    Math.floor(max * 0.5),
+    50,
+    100, 
+    500,
     Math.floor(max * 0.75)
   ].filter(amount => amount > 0)
 })
