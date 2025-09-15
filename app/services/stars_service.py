@@ -10,18 +10,23 @@ class StarsService:
         self.bot_token = os.getenv("BOT_TOKEN")
         if not self.bot_token:
             logger.error("BOT_TOKEN not set!")
-        self.api_url = f"https://api.telegram.org/bot/{self.bot_token}"
+        self.api_url = f"https://api.telegram.org/bot{self.bot_token}"
 
     async def create_invoice(self, user_id: int, amount: int) -> Optional[str]:
-        """Создание инвойса для Stars - ПРАВИЛЬНЫЙ формат"""
+        """Создание инвойса для Stars - ИСПРАВЛЕННАЯ версия"""
         try:
-            # ✅ КОРРЕКТНЫЙ формат для Telegram Stars
+            # ✅ ПРАВИЛЬНЫЙ формат для Telegram API
             payload = {
                 "title": "PlayOnStars - Пополнение баланса",
                 "description": f"Пополнение на {amount} STARS",
-                "payload": f"stars_payment:{user_id}:{amount}",  # Простая строка
-                "currency": "XTR",  # Валюта Stars
-                "prices": [{"label": "STARS", "amount": amount}]  # ✅ Умножаем на 100!
+                "payload": f"stars_payment:{user_id}:{amount}",
+                "currency": "XTR",
+                "prices": [{"label": f"{amount} STARS", "amount": amount}],  # ✅ Умножаем на 100!
+                "provider_token": "",  # ✅ Обязательно для Stars
+                "need_name": False,
+                "need_phone_number": False, 
+                "need_email": False,
+                "need_shipping_address": False
             }
             
             logger.info(f"Creating invoice with payload: {payload}")
