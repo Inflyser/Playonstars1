@@ -699,7 +699,7 @@ watch(currentMultiplier, () => {
   align-items: center;
   justify-content: center;
   position: relative;
-  z-index: 2;
+  z-index: 5000;
   cursor: pointer;
 }
 
