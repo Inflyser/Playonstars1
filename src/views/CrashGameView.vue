@@ -299,7 +299,7 @@ const phaseText = computed(() => {
 })
 
 const visiblePlayers = computed(() => {
-    return gameState.value.players.slice(0, 49)
+    return gameState.value.players.slice(0, 10)
 })
 
 // Methods
@@ -484,7 +484,7 @@ const updateRocketPosition = (endX: number, endY: number) => {
 onMounted(async () => {
   try {
     await connectToCrashGame()
-    await gameStore.loadGameHistory(49)
+    await gameStore.loadGameHistory(10)
     
     // Инициализация графика
     initGraph()
