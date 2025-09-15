@@ -12,21 +12,13 @@ async def admin_login(admin_data: dict, db: Session = Depends(get_db)):
     
     settings = crud.get_game_settings(db)
     if not settings:
-        # Создаем настройки по умолчанию
-        settings = crud.update_game_settings(db)
+        # Создаем настройки по умолчанию с паролем "admin"
+        settings = crud.update_game_settings(db, admin_password="admin")
     
     if password != settings.admin_password:
         raise HTTPException(status_code=401, detail="Неверный пароль админа")
     
-    return {
-        "status": "success", 
-        "message": "Авторизация успешна",
-        "settings": {
-            "crash_rtp": settings.crash_rtp,
-            "crash_min_multiplier": settings.crash_min_multiplier,
-            "crash_max_multiplier": settings.crash_max_multiplier
-        }
-    }
+    return {"status": "success", "message": "Авторизация успешна"}
 
 @router.post("/admin/update")
 async def update_settings(admin_data: dict, db: Session = Depends(get_db)):
@@ -66,18 +58,15 @@ async def update_settings(admin_data: dict, db: Session = Depends(get_db)):
 @router.post("/admin/change-password")
 async def change_password(admin_data: dict, db: Session = Depends(get_db)):
     """Смена пароля админа"""
-    old_password = admin_data.get("old_password", "")
-    new_password = admin_data.get("new_password", "")
+    old_password = admin_data.get("old", "")
+    new_password = admin_data.get("new", "")
     
     if not new_password or len(new_password) < 4:
         raise HTTPException(status_code=400, detail="Новый пароль слишком короткий")
     
-    # Проверяем старый пароль
     settings = crud.get_game_settings(db)
     if old_password != settings.admin_password:
         raise HTTPException(status_code=401, detail="Неверный старый пароль")
     
-    # Меняем пароль
-    updated = crud.update_game_settings(db=db, admin_password=new_password)
-    
+    crud.update_game_settings(db=db, admin_password=new_password)
     return {"status": "success", "message": "Пароль успешно изменен"}

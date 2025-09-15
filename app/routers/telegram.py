@@ -502,6 +502,8 @@ async def cmd_admin(message: Message, db: Session = Depends(get_db)):
         f"Для изменения используйте API запросы"
     )
     
+   
+    
 @router.message(Command("buy_stars"))
 async def cmd_buy_stars(message: Message):
     """Команда для покупки Stars"""
