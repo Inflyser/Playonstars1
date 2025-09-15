@@ -119,7 +119,7 @@
 
 
                 <!-- Модальное окно истории коэффициентов -->
-        <div v-if="showHistoryModal" class="history-modal-overlay" @click.self="showHistoryModal = true">
+        <div v-if="showHistoryModal" class="history-modal-overlay" @click.self="showHistoryModal = false">
           <div class="history-modal">
             <div class="modal-header">
               <h2>История коэффициентов</h2>
