@@ -471,37 +471,7 @@ async def cmd_balance(message: Message, db: Session = Depends(get_db)):
         f"💎 TON: {user.ton_balance}\n\n"
         f"Для пополнения STARS используйте /buy_stars"
     )
-    
-@router.message(Command("admin"))
-async def cmd_admin(message: Message, db: Session = Depends(get_db)):
-    """Команда для доступа к админке"""
-    text = message.text.strip()
-    
-    if len(text.split()) == 1:
-        # Просто /admin - просим пароль
-        await message.answer(
-            "🔐 Введите пароль админа:\n"
-            "Пример: /admin ваш_пароль"
-        )
-        return
-    
-    # Проверяем пароль
-    password = text.split(" ", 1)[1]
-    settings = crud.get_game_settings(db)
-    
-    if not settings or password != settings.admin_password:
-        await message.answer("❌ Неверный пароль админа")
-        return
-    
-    # Показываем текущие настройки
-    await message.answer(
-        f"⚙️ Текущие настройки:\n"
-        f"• RTP: {settings.crash_rtp}\n"
-        f"• Мин. множитель: {settings.crash_min_multiplier}\n"
-        f"• Макс. множитель: {settings.crash_max_multiplier}\n\n"
-        f"Для изменения используйте API запросы"
-    )
-    
+   
    
     
 @router.message(Command("buy_stars"))
@@ -549,7 +519,7 @@ async def cmd_test_payment(message: Message):
 
 @router.message(Command("admin"))
 async def cmd_admin(message: Message, db: Session = Depends(get_db)):
-    """Команда для добавления/проверки админа"""
+    """ЕДИНСТВЕННЫЙ обработчик команды /admin"""
     text = message.text.strip()
     
     # Если просто /admin - проверяем статус
@@ -560,7 +530,6 @@ async def cmd_admin(message: Message, db: Session = Depends(get_db)):
         else:
             await message.answer("❌ Вы не администратор. Для получения прав используйте: /admin секретный_код")
         return
-    
     
     # Проверяем секретный код
     secret_code = text.split(" ", 1)[1].strip()
