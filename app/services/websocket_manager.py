@@ -12,8 +12,8 @@ class WebSocketManager:
     def __init__(self):
         self.active_connections: Dict[str, Set[WebSocket]] = {}
         self.crash_game_connections: Set[WebSocket] = set()
-        self.connection_timestamps: Dict[WebSocket, float] = {}  # ✅ Таймстампы соединений
-        self.crash_game = None  # ✅ Будет установлен извне
+        self.connection_timestamps: Dict[WebSocket, float] = {}
+        self.crash_game = None
 
     def set_crash_game(self, crash_game):
         """Устанавливаем ссылку на crash game"""
@@ -56,22 +56,18 @@ class WebSocketManager:
                     logger.error(f"Error broadcasting to client: {e}")
                     disconnected.add(websocket)
             
-            # Удаляем отключенные соединения
             for websocket in disconnected:
                 self.disconnect(websocket, channel)
 
     # Специальные методы для краш-игры
     async def connect_crash_game(self, websocket: WebSocket):
         await websocket.accept()
-        
-        # ✅ Очищаем мертвые соединения перед добавлением
         await self.clean_dead_connections()
         
         self.crash_game_connections.add(websocket)
         self.connection_timestamps[websocket] = time.time()
         
         logger.info(f"✅ Client connected to crash game. Total: {len(self.crash_game_connections)}")
-        print(f"📊 Active connections: {[id(ws) for ws in self.crash_game_connections]}")
 
     def disconnect_crash_game(self, websocket: WebSocket):
         if websocket in self.crash_game_connections:
@@ -81,12 +77,12 @@ class WebSocketManager:
         
         logger.info(f"🔌 Client disconnected from crash game. Total: {len(self.crash_game_connections)}")
 
-    async def broadcast_crash_game(self, message: dict):
+    async def broadcast_crash_game(self, message: str):
         """Трансляция сообщений для краш-игры"""
         disconnected = set()
         for websocket in self.crash_game_connections:
             try:
-                await websocket.send_json(message)
+                await websocket.send_text(message)
             except Exception as e:
                 logger.error(f"Error broadcasting to crash game client: {e}")
                 disconnected.add(websocket)
@@ -96,24 +92,42 @@ class WebSocketManager:
 
     async def send_crash_update(self, data: dict):
         """Отправляем обновление состояния краш-игры"""
-        await self.broadcast_crash_game({
+        message = {
             "type": "crash_update",
-            "data": data
-        })
+            "data": {
+                "game_id": data["game_id"],
+                "phase": data["phase"],
+                "multiplier": data["multiplier"],
+                "time_remaining": data.get("time_remaining", 0),
+                "speed": data.get("speed", 1.0)  # ← ДОБАВЛЯЕМ СКОРОСТЬ
+            }
+        }
+        
+        await self.broadcast_crash_game(json.dumps(message))
 
     async def send_crash_result(self, data: dict):
         """Отправляем результат краш-игры"""
-        await self.broadcast_crash_game({
+        message = {
             "type": "crash_result", 
-            "data": data
-        })
+            "data": {
+                "game_id": data["game_id"],
+                "final_multiplier": data["final_multiplier"],
+                "crashed_at": data["crashed_at"],
+                "timestamp": data["timestamp"],
+                "max_speed": data.get("max_speed", 1.0)  # ← ДОБАВЛЯЕМ МАКС. СКОРОСТЬ
+            }
+        }
+        
+        await self.broadcast_crash_game(json.dumps(message))
 
     async def send_bet_update(self, bet_data: dict):
         """Отправляем обновление о новой ставке"""
-        await self.broadcast_crash_game({
+        message = {
             "type": "new_bet",
             "data": bet_data
-        })
+        }
+        
+        await self.broadcast_crash_game(json.dumps(message))
 
     async def handle_crash_bet(self, websocket: WebSocket, data: dict):
         """Обработка ставок в краш-игре"""
@@ -124,7 +138,6 @@ class WebSocketManager:
             amount = data.get("amount")
             auto_cashout = data.get("auto_cashout")
             
-            # Обновляем таймстамп активности
             self.connection_timestamps[websocket] = time.time()
             
             if not all([user_id, amount]):
@@ -136,7 +149,6 @@ class WebSocketManager:
                 }, websocket)
                 return
             
-            # ✅ Проверяем, что crash_game установлен
             if not self.crash_game:
                 print("❌ [WebSocket] Crash game not initialized")
                 await self.send_personal_message({
@@ -146,7 +158,6 @@ class WebSocketManager:
                 }, websocket)
                 return
             
-            # ✅ Сохраняем ставку в БД
             print(f"🎯 [WebSocket] Calling place_bet for user {user_id}, amount {amount}")
             success = await self.crash_game.place_bet(int(user_id), float(amount), auto_cashout)
             
@@ -158,7 +169,6 @@ class WebSocketManager:
                     "amount": amount
                 }, websocket)
                 
-                # ✅ Рассылаем обновление о новой ставке всем
                 await self.send_bet_update({
                     "user_id": user_id,
                     "amount": amount,
@@ -186,7 +196,6 @@ class WebSocketManager:
         dead_connections = []
         
         for websocket in list(self.crash_game_connections):
-            # Проверяем соединения, которые неактивны более 60 секунд
             if websocket in self.connection_timestamps:
                 last_active = self.connection_timestamps[websocket]
                 if current_time - last_active > 60:
@@ -194,7 +203,6 @@ class WebSocketManager:
             else:
                 dead_connections.append(websocket)
         
-        # Удаляем мертвые соединения
         for websocket in dead_connections:
             self.disconnect_crash_game(websocket)
             
@@ -204,7 +212,7 @@ class WebSocketManager:
     async def check_connection_health(self):
         """Периодическая проверка здоровья соединений"""
         while True:
-            await asyncio.sleep(30)  # Проверяем каждые 30 секунд
+            await asyncio.sleep(30)
             await self.clean_dead_connections()
 
 # Глобальный экземпляр менеджера

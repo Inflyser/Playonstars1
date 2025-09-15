@@ -15,6 +15,20 @@ class CrashGame:
         self.bets = {}  # user_id -> bet_data
         self.game_history = []
         self.game_id = 0
+        self.current_speed = 1.0  # ← Добавляем переменную скорости
+
+    def calculate_speed(self, multiplier: float) -> float:
+        """Вычисляем скорость на основе текущего множителя"""
+        if multiplier >= 50:
+            return 4.0    # 4x скорость при 50x+
+        elif multiplier >= 10:
+            return 2.0    # 2x скорость при 10x+  
+        elif multiplier >= 5:
+            return 1.5    # 1.5x скорость при 5x+
+        elif multiplier >= 2:
+            return 1.2    # 1.2x скорость при 2x+
+        else:
+            return 1.0    # Базовая скорость
 
     async def run_game_cycle(self):
         """Запуск цикла игры"""
@@ -43,40 +57,44 @@ class CrashGame:
             })
 
         # Генерируем множитель с RTP 92%
-        multiplier = self.generate_multiplier_rtp_92()
+        target_multiplier = self.generate_multiplier_rtp_92_v4()
         
         # Фаза полета
         current_multiplier = 1.0
-        step = 0.01
+        base_step = 0.01  # Базовая скорость увеличения
         
-        while current_multiplier < multiplier and self.is_playing:
-            await asyncio.sleep(0.1)
-            current_multiplier += step
+        while current_multiplier < target_multiplier and self.is_playing:
+            # Вычисляем текущую скорость
+            self.current_speed = self.calculate_speed(current_multiplier)
+            
+            # Увеличиваем множитель с учетом скорости
+            current_multiplier += base_step * self.current_speed
             current_multiplier = round(current_multiplier, 2)
             
-            if current_multiplier > 5:
-                step = 0.05
-            elif current_multiplier > 2:
-                step = 0.02
-            
+            # Отправляем обновление с информацией о скорости
             await self.ws_manager.send_crash_update({
                 "game_id": self.game_id,
                 "phase": "flying",
                 "multiplier": current_multiplier,
-                "time_remaining": 0
+                "time_remaining": 0,
+                "speed": self.current_speed  # ← Отправляем скорость клиентам
             })
+            
+            # Задержка с учетом скорости (чем выше скорость - тем меньше задержка)
+            await asyncio.sleep(0.1 / self.current_speed)
 
         # Крах - игра окончена
         self.is_playing = False
         
-        # ✅ СОХРАНЯЕМ РЕЗУЛЬТАТЫ В БД
-        await self.save_game_results(multiplier)
+        # Сохраняем результаты
+        await self.save_game_results(target_multiplier)
         
         await self.ws_manager.send_crash_result({
             "game_id": self.game_id,
-            "final_multiplier": multiplier,
-            "crashed_at": multiplier,
-            "timestamp": datetime.now().isoformat()
+            "final_multiplier": target_multiplier,
+            "crashed_at": target_multiplier,
+            "timestamp": datetime.now().isoformat(),
+            "max_speed": self.current_speed  # ← Отправляем максимальную скорость
         })
 
     def generate_multiplier_rtp_92(self) -> float:
