@@ -41,7 +41,7 @@ import { useRouter } from 'vue-router'
 import InputPanel from '@/components/layout/InputPanel.vue'
 import { api } from '@/services/api'
 import { useUserStore } from '@/stores/useUserStore'
-import { isInvoiceSupported, openInvoice, retrieveLaunchParams } from '@telegram-apps/sdk'
+import { isInvoiceSupported, openInvoice } from '@telegram-apps/sdk'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -53,17 +53,76 @@ const error = ref('')
 const successMessage = ref('')
 const telegramUser = ref<any>(null)
 
-// ✅ Получаем данные пользователя Telegram
+// ✅ ПРАВИЛЬНОЕ получение данных пользователя
 onMounted(() => {
-  try {
-    const launchParams = retrieveLaunchParams()
-    telegramUser.value = launchParams.user
-    console.log('Telegram user:', telegramUser.value)
-  } catch (e) {
-    console.error('Failed to get Telegram user:', e)
-    error.value = 'Не удалось получить данные пользователя'
+  // Способ 1: Через window.Telegram.WebApp
+  if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+    telegramUser.value = window.Telegram.WebApp.initDataUnsafe.user
+    console.log('User from WebApp:', telegramUser.value)
+  }
+  // Способ 2: Через launch parameters в URL
+  else if (window.Telegram?.WebApp?.initData) {
+    try {
+      const params = new URLSearchParams(window.Telegram.WebApp.initData)
+      const userParam = params.get('user')
+      if (userParam) {
+        telegramUser.value = JSON.parse(userParam)
+        console.log('User from initData:', telegramUser.value)
+      }
+    } catch (e) {
+      console.error('Error parsing initData:', e)
+    }
+  }
+  // Способ 3: Резервный вариант
+  else {
+    console.warn('Telegram user data not available')
+    error.value = 'Данные пользователя недоступны. Откройте приложение через Telegram.'
   }
 })
+
+// ✅ Альтернативная функция получения пользователя
+const getTelegramUser = () => {
+  // Попробуем все возможные способы
+  const sources = [
+    () => window.Telegram?.WebApp?.initDataUnsafe?.user,
+    () => {
+      if (window.Telegram?.WebApp?.initData) {
+        try {
+          const params = new URLSearchParams(window.Telegram.WebApp.initData)
+          const user = params.get('user')
+          return user ? JSON.parse(user) : null
+        } catch (e) {
+          return null
+        }
+      }
+      return null
+    },
+    () => {
+      // Проверим URL параметры
+      const urlParams = new URLSearchParams(window.location.search)
+      const tgWebAppData = urlParams.get('tgWebAppData')
+      if (tgWebAppData) {
+        try {
+          const params = new URLSearchParams(tgWebAppData)
+          const user = params.get('user')
+          return user ? JSON.parse(decodeURIComponent(user)) : null
+        } catch (e) {
+          return null
+        }
+      }
+      return null
+    }
+  ]
+  
+  for (const source of sources) {
+    const user = source()
+    if (user && user.id) {
+      return user
+    }
+  }
+  
+  return null
+}
 
 const isValidAmount = computed(() => {
   const numAmount = parseFloat(amount.value || '0')
@@ -71,13 +130,18 @@ const isValidAmount = computed(() => {
 })
 
 const initiateTelegramPayment = async () => {
-  if (!isValidAmount.value) {
-    error.value = 'Неверная сумма. Минимум 10 STARS, максимум 5000 STARS'
+  // ✅ Перепроверяем пользователя перед оплатой
+  if (!telegramUser.value) {
+    telegramUser.value = getTelegramUser()
+  }
+  
+  if (!telegramUser.value?.id) {
+    error.value = 'Не удалось определить пользователя. Перезагрузите приложение.'
     return
   }
 
-  if (!telegramUser.value?.id) {
-    error.value = 'Не удалось определить пользователя'
+  if (!isValidAmount.value) {
+    error.value = 'Неверная сумма. Минимум 10 STARS, максимум 5000 STARS'
     return
   }
 
@@ -88,21 +152,18 @@ const initiateTelegramPayment = async () => {
   try {
     const starsAmount = parseFloat(amount.value)
     
-    // ✅ Правильный запрос с user_id
     const invoiceResponse = await api.post('/api/stars/create-invoice', {
       amount: starsAmount,
-      telegram_id: telegramUser.value.id  // ✅ Добавляем telegram_id
+      telegram_id: telegramUser.value.id
     })
 
     console.log('Invoice response:', invoiceResponse.data)
 
     if (invoiceResponse.data.status === 'success') {
-      // ✅ Проверяем поддержку платежей
       if (isInvoiceSupported()) {
         const result = await openInvoice(invoiceResponse.data.invoice_link)
         handlePaymentStatus(result.status, starsAmount)
       } else {
-        // Fallback для WebApp
         if (window.Telegram?.WebApp?.openInvoice) {
           window.Telegram.WebApp.openInvoice(
             invoiceResponse.data.invoice_link,
