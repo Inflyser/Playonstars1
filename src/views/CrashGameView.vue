@@ -21,12 +21,12 @@
           </div>
         
           <!-- Фиксированная панелька справа - теперь кнопка -->
-          <button  class="history-scroll-indicator" @click="showHistoryModal = true">
-            <div class="indicator-icon">
+          <div class="history-scroll-indicator">
+            <button class="indicator-icon" @click="showHistoryModal = true">
               <img src="@/assets/images/clock.svg" alt="scroll">
-            </div>
+            </button>
             <div class="indicator-shadow"></div>
-          </button >
+          </div >
         </div>
       
       
@@ -700,6 +700,7 @@ watch(currentMultiplier, () => {
   justify-content: center;
   position: relative;
   z-index: 2;
+  cursor: pointer;
 }
 
 .indicator-icon img {
@@ -1177,24 +1178,6 @@ watch(currentMultiplier, () => {
 }
 
 /* Адаптивность для мобильных устройств */
-@media (max-width: 480px) {
-  .full-history-list {
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 8px;
-  }
-  
-  .full-history-item {
-    padding: 8px;
-    min-height: 60px;
-  }
-  
-  .multiplier-value {
-    font-size: 1em;
-  }
-  
-  .game-time {
-    font-size: 0.7em;
-  }
-}
+
 
 </style>
