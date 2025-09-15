@@ -94,6 +94,16 @@ app.include_router(websocket.router)
 async def startup():
     Base.metadata.create_all(bind=engine)
     
+    db = SessionLocal()
+    try:
+        from app.database import crud
+        crud.init_default_settings(db)
+        print("✅ Настройки игры инициализированы")
+    except Exception as e:
+        print(f"❌ Ошибка инициализации настроек: {e}")
+    finally:
+        db.close()
+    
     # Telegram webhook
     webhook_url_telegram = os.getenv("WEBHOOK_URL_TELEGRAM")
     if webhook_url_telegram:
@@ -104,7 +114,7 @@ async def startup():
     ton_api_key = os.getenv("TON_API_KEY")
     ton_wallet_address = os.getenv("TON_WALLET_ADDRESS")
     webhook_url_ton = os.getenv("WEBHOOK_URL_TON")
-
+    
     if all([ton_api_key, ton_wallet_address, webhook_url_ton]):
         print(f"🔗 Setting up TON webhook...")
         api_accessible = await ton_service.check_ton_api_status()

@@ -94,12 +94,3 @@ async def process_referral(new_user_id: int, referrer_id: int, db: Session):
         return False
     
     
-@bot.message_handler(commands=['admin'])
-def handle_admin_command(message):
-    password = message.text.replace('/admin', '').strip()
-    
-    if password == "KBV4B92clwn8juHJHF45106KBNJHF31cvo2pl5g":  # Замени на реальный пароль
-        bot.reply_to(message, "✅ Доступ разрешен! Админ-панель активирована.")
-        # Здесь можно установить флаг админа пользователю
-    else:
-        bot.reply_to(message, "❌ Неверный пароль админа")

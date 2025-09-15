@@ -328,16 +328,28 @@ def has_stars_payment_id(db: Session, telegram_id: int, payment_id: str) -> bool
 
 def get_game_settings(db: Session):
     """Получаем настройки игры"""
-    return db.query(GameSettings).first()
+    from app.database.models import GameSettings
+    
+    settings = db.query(GameSettings).first()
+    if not settings:
+        # Если настроек нет - создаем по умолчанию
+        return init_default_settings(db)
+    return settings
 
-def update_game_settings(db: Session, admin_password: str = None, 
-                        crash_rtp: float = None, 
-                        crash_min_multiplier: float = None,
-                        crash_max_multiplier: float = None):
+def update_game_settings(
+    db: Session,
+    admin_password: str = None,
+    crash_rtp: float = None,
+    crash_min_multiplier: float = None,
+    crash_max_multiplier: float = None
+):
     """Обновляем настройки игры"""
+    from app.database.models import GameSettings
+    
     settings = db.query(GameSettings).first()
     
     if not settings:
+        # Создаем новые настройки если их нет
         settings = GameSettings()
         db.add(settings)
     
@@ -353,3 +365,25 @@ def update_game_settings(db: Session, admin_password: str = None,
     db.commit()
     db.refresh(settings)
     return settings
+
+
+def init_default_settings(db: Session):
+    """Создает настройки по умолчанию при первом запуске"""
+    from app.database.models import GameSettings
+    
+    # Проверяем есть ли уже настройки
+    existing_settings = db.query(GameSettings).first()
+    if not existing_settings:
+        # Создаем настройки по умолчанию
+        default_settings = GameSettings(
+            admin_password="KBV4B92clwn8juHJHF45106KBNJHF31cvo2pl5g",  # Пароль по умолчанию
+            crash_rtp=0.95,
+            crash_min_multiplier=1.1,
+            crash_max_multiplier=100.0
+        )
+        db.add(default_settings)
+        db.commit()
+        db.refresh(default_settings)
+        print("✅ Настройки по умолчанию созданы")
+        print("🔐 Пароль админа по умолчанию: admin")
+    return existing_settings

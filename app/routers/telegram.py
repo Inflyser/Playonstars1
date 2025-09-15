@@ -544,3 +544,44 @@ async def cmd_test_payment(message: Message):
     except Exception as e:
         logger.error(f"Test payment error: {e}")
         await message.answer("❌ Test payment error")
+        
+        
+
+@router.message(Command("admin"))
+async def cmd_admin(message: Message, db: Session = Depends(get_db)):
+    """Команда для доступа к админке через бота"""
+    text = message.text.strip()
+    
+    # Если просто /admin без пароля
+    if len(text.split()) == 1:
+        await message.answer(
+            "🔐 Введите пароль админа:\n"
+            "Пример: <code>/admin ваш_пароль</code>\n\n"
+            "По умолчанию пароль: <code>admin</code>",
+            parse_mode="HTML"
+        )
+        return
+    
+    # Извлекаем пароль из команды
+    password = text.split(" ", 1)[1].strip()
+    settings = crud.get_game_settings(db)
+    
+    # Если настройки не существуют, создаем с паролем по умолчанию
+    if not settings:
+        settings = crud.update_game_settings(db, admin_password="admin")
+    
+    # Проверяем пароль
+    if password != settings.admin_password:
+        await message.answer("❌ Неверный пароль админа")
+        return
+    
+    # Успешная авторизация
+    await message.answer(
+        "✅ <b>Доступ к админке разрешен!</b>\n\n"
+        "Теперь вы можете:\n"
+        "1. Открыть приложение\n" 
+        "2. Нажать кнопку \"⚙️ Админка\"\n"
+        "3. Управлять настройками\n\n"
+        "Для смены пароля используйте админ-панель в приложении",
+        parse_mode="HTML"
+    )
