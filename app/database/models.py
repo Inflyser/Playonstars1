@@ -184,3 +184,13 @@ class GameSettings(Base):
     crash_max_multiplier = Column(Float, default=100.0)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     
+
+class AdminUser(Base):
+    __tablename__ = "admin_users"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
+    username = Column(String)
+    created_at = Column(DateTime, default=func.now())
+    
+    # Простая проверка - если пользователь есть в этой таблице, он админ

@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import models
-from app.database.models import User, DepositHistory, CrashBetHistory, Wallet, Transaction, CrashGameResult, GameSettings
+from app.database.models import User, DepositHistory, CrashBetHistory, Wallet, Transaction, CrashGameResult, AdminUser
 from typing import Optional
+from typing import List
 
 def get_user_by_telegram_id(db: Session, telegram_id: int) -> Optional[User]:
     return db.query(User).filter(User.telegram_id == telegram_id).first()
@@ -387,3 +388,42 @@ def init_default_settings(db: Session):
         print("✅ Настройки по умолчанию созданы")
         print("🔐 Пароль админа по умолчанию: admin")
     return existing_settings
+
+
+def is_user_admin(db: Session, telegram_id: int) -> bool:
+    """Проверяем является ли пользователь админом"""
+    from app.database.models import AdminUser
+    admin = db.query(AdminUser).filter(AdminUser.telegram_id == telegram_id).first()
+    return admin is not None
+
+def add_admin_user(db: Session, telegram_id: int, username: str = None) -> AdminUser:
+    """Добавляем пользователя в админы"""
+    from app.database.models import AdminUser
+    
+    # Проверяем нет ли уже такого админа
+    existing_admin = db.query(AdminUser).filter(AdminUser.telegram_id == telegram_id).first()
+    if existing_admin:
+        return existing_admin
+    
+    # Создаем нового админа
+    admin = AdminUser(telegram_id=telegram_id, username=username)
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
+    return admin
+
+def remove_admin_user(db: Session, telegram_id: int) -> bool:
+    """Удаляем пользователя из админов"""
+    from app.database.models import AdminUser
+    
+    admin = db.query(AdminUser).filter(AdminUser.telegram_id == telegram_id).first()
+    if admin:
+        db.delete(admin)
+        db.commit()
+        return True
+    return False
+
+def get_all_admins(db: Session) -> List[AdminUser]:
+    """Получаем всех админов"""
+    from app.database.models import AdminUser
+    return db.query(AdminUser).all()

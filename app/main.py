@@ -96,11 +96,12 @@ async def startup():
     
     db = SessionLocal()
     try:
+        # Добавляем первого админа (замени на свой Telegram ID)
         from app.database import crud
-        crud.init_default_settings(db)
-        print("✅ Настройки игры инициализированы")
+        crud.add_admin_user(db, 778471287, "Lidagold88")  # ← ЗАМЕНИ НА СВОЙ ID
+        print("✅ Админ добавлен")
     except Exception as e:
-        print(f"❌ Ошибка инициализации настроек: {e}")
+        print(f"⚠️ Ошибка добавления админа: {e}")
     finally:
         db.close()
     

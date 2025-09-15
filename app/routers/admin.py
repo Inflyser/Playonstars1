@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.database import crud
@@ -70,3 +70,17 @@ async def change_password(admin_data: dict, db: Session = Depends(get_db)):
     
     crud.update_game_settings(db=db, admin_password=new_password)
     return {"status": "success", "message": "Пароль успешно изменен"}
+
+
+@router.get("/admin/check-status")
+async def check_admin_status(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Проверяем является ли пользователь админом"""
+    telegram_id = request.session.get("telegram_id")
+    if not telegram_id:
+        return {"isAdmin": False}
+    
+    is_admin = crud.is_user_admin(db, telegram_id)
+    return {"isAdmin": is_admin}
