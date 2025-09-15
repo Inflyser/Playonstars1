@@ -3,12 +3,6 @@
         <TelegramHeader />
 
 
-        <button class="history-scroll-indicator" @click="showHistoryModal = true">
-            <div class="indicator-icon">
-              <img src="@/assets/images/clock.svg" alt="scroll">
-            </div>
-            <div class="indicator-shadow"></div>
-        </button >
 
         <div class="game-history">
           <div class="history-list">
@@ -25,6 +19,14 @@
               {{ game.multiplier.toFixed(2) }}x
             </div>
           </div>
+        
+          <!-- Фиксированная панелька справа - теперь кнопка -->
+          <button class="history-scroll-indicator" @click="handleOpenModal">
+            <div class="indicator-icon">
+              <img src="@/assets/images/clock.svg" alt="scroll">
+            </div>
+            <div class="indicator-shadow"></div>
+          </button >
         </div>
       
       
@@ -210,6 +212,11 @@ const crashGame = ref<CrashGameState>({
 })
 
 const showHistoryModal = ref(false)
+
+const handleOpenModal = () => {
+    console.log('Кнопка нажата!');
+    showHistoryModal.value = true;
+}
 
 // Computed properties
 const gameState = computed(() => gameStore.crashGame)
@@ -655,15 +662,13 @@ watch(currentMultiplier, () => {
 }
 
 .game-history {
-  position: relative;
-  width: 95%;
-  margin: 8px 0px 15px 2.5%;
-  border-bottom: 1px solid #25213C;
-  overflow-x: auto;
-  white-space: nowrap;
-  padding-bottom: 10px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+    position: relative; /* Важно для абсолютного позиционирования дочерних элементов */
+    width: 95%;
+    margin: 8px 0px 15px 2.5%;
+    border-bottom: 1px solid #25213C;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 10px;
 }
 
 .game-history::-webkit-scrollbar {
@@ -671,21 +676,25 @@ watch(currentMultiplier, () => {
 }
 
 .history-list {
-  display: inline-flex;
-  gap: 4px;
-  padding: 5px 45px 5px 5px; /* Увеличили отступ справа для панельки */
+    display: inline-flex;
+    gap: 4px;
+    padding: 5px 45px 5px 5px; /* Оставляем место для кнопки справа */
+    position: relative;
+    z-index: 10;
 }
 
 .history-scroll-indicator {
-  position: absolute;
-  right: 3.5px;
-  top: 35%;
-  transform: translateY(-50%);
-  width: 30px;
-  height: 30px;
-  z-index: 10;
-  pointer-events: none;
-  cursor: pointer;
+    position: absolute;
+    right: 3.5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 30px;
+    z-index: 20;
+    pointer-events: auto;
+    background: none;
+    border: none;
+    cursor: pointer;
 }
 
 .indicator-icon {
