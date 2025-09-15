@@ -359,7 +359,7 @@ const initGraph = () => {
 
 // Функция отрисовки графика с оптимизацией
 const drawGraph = () => {
-  if (!graphContext.value || !graphCanvas.value || !isGraphVisible.value) {
+  if (!graphContext.value || !graphCanvas.value) {
     return
   }
   
@@ -367,8 +367,13 @@ const drawGraph = () => {
   const width = graphCanvas.value.width
   const height = graphCanvas.value.height
   
-  // Очистка canvas
+  // Всегда очищаем canvas
   ctx.clearRect(0, 0, width, height)
+  
+  // Если игра не активна - рисуем пустой график
+  if (!isGameActive.value) {
+    return
+  }
   
   // Параметры графика
   const freezeMultiplier = 2.5
@@ -425,11 +430,9 @@ const drawGraph = () => {
   // Обновляем позицию ракеты
   updateRocketPosition(endX, endY)
   
-  // Продолжаем анимацию только если игра активна и график виден
-  if (isGameActive.value && isGraphVisible.value) {
+  // ВСЕГДА продолжаем анимацию если игра активна
+  if (isGameActive.value) {
     animationFrame.value = requestAnimationFrame(drawGraph)
-  } else {
-    animationFrame.value = null
   }
 }
 
@@ -474,11 +477,8 @@ const prepareNewGame = () => {
 
 // Обработчик изменения видимости
 const handleVisibilityChange = () => {
-  if (document.hidden) {
-    // Если страница скрыта, останавливаем анимацию
-    stopAnimation()
-  } else if (isGameActive.value) {
-    // Если страница снова видна и игра активна, перезапускаем анимацию
+  // Простая логика - всегда перерисовываем когда страница видна
+  if (!document.hidden && isGameActive.value) {
     drawGraph()
   }
 }
@@ -507,42 +507,36 @@ watch(() => gameState.value.phase, (newPhase) => {
     // Перерисовываем статичный график
     nextTick(() => {
       if (graphContext.value && graphCanvas.value) {
-        graphContext.value.clearRect(0, 0, graphCanvas.value.width, graphCanvas.value.height)
+        drawGraph() // ← ПРОСТО ВЫЗЫВАЕМ drawGraph
       }
     })
-  }
-  
-  if (newPhase === 'betting') {
-    bettingTimer.value = gameState.value.timeRemaining || 5
-
-    const timerInterval = setInterval(() => {
-      if (bettingTimer.value > 0) {
-        bettingTimer.value--
-      } else {
-        clearInterval(timerInterval)
-      }
-    }, 1000)
+  } else if (newPhase === 'flying') {
+    // Запускаем анимацию при начале полета
+    drawGraph()
   }
 })
 
 // Инициализация Intersection Observer для отслеживания видимости
+// УБИРАЕМ IntersectionObserver - он вызывает проблемы
 const initVisibilityObserver = () => {
-  if (!graphCanvas.value) return
-  
-  visibilityObserver.value = new IntersectionObserver((entries) => {
-    isGraphVisible.value = entries[0].isIntersecting
-    
-    if (!isGraphVisible.value) {
-      // Если график не виден, останавливаем анимацию
-      stopAnimation()
-    } else if (isGameActive.value) {
-      // Если график снова виден и игра активна, перезапускаем анимацию
-      drawGraph()
-    }
-  }, { threshold: 0.1 })
-  
-  visibilityObserver.value.observe(graphCanvas.value)
+  // Просто устанавливаем что график видим
+  isGraphVisible.value = true
 }
+
+// Перерисовываем график при изменении размеров окна
+const handleResize = () => {
+  if (graphCanvas.value) {
+    initGraph()
+    drawGraph() // ← НЕМЕДЛЕННАЯ ПЕРЕРИСОВКА
+  }
+}
+
+// Используем debounce чтобы не нагружать систему
+let resizeTimeout: NodeJS.Timeout
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout)
+  resizeTimeout = setTimeout(handleResize, 100)
+})
 
 // Lifecycle
 onMounted(async () => {
@@ -552,10 +546,12 @@ onMounted(async () => {
     
     // Инициализация графика
     initGraph()
-    initVisibilityObserver()
+    initVisibilityObserver() // Теперь это просто установка флага
     
-    // Добавляем обработчик видимости страницы
-    document.addEventListener('visibilitychange', handleVisibilityChange)
+    // Запускаем анимацию если игра уже активна
+    if (isGameActive.value) {
+      drawGraph()
+    }
   } catch (err) {
     console.error('Failed to initialize crash game:', err)
   }
