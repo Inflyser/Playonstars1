@@ -78,9 +78,10 @@ import { useRouter } from 'vue-router'
 const userStore = useUserStore()
 
 const router = useRouter()
+
 const isAdmin = computed(() => {
-  return userStore.user && 'isAdmin' in userStore.user && userStore.user.isAdmin;
-});
+  return localStorage.getItem('admin_token') === 'authenticated'
+})
 
 const goToAdmin = () => {
   router.push('/admin-login')
