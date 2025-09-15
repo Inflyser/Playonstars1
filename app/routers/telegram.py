@@ -2,7 +2,7 @@ from aiogram import Router, types
 from aiogram.filters import CommandStart, CommandObject
 from fastapi import Depends
 from sqlalchemy.orm import Session
-
+from aiogram import Router, F, Bot
 from app.database.session import get_db
 from app.database.crud import get_user_by_telegram_id as get_user, create_user  
 from app.bot.bot import webapp_builder
@@ -307,36 +307,34 @@ async def stars_successful_payment_handler(message: Message):
     await message.answer(f"✅ Успешно пополнено {payment_info.total_amount} STARS!")
     
     
-from aiogram.types import LabeledPrice, PreCheckoutQuery, SuccessfulPayment
+from aiogram.types import LabeledPrice
 from aiogram.filters import Command
-from decimal import Decimal
 import logging
 
 logger = logging.getLogger(__name__)
 
 @router.message(Command("buy_stars"))
 async def cmd_buy_stars(message: Message, db: Session = Depends(get_db)):
-    """Команда для покупки Stars"""
+    """Команда для покупки Stars - ИСПРАВЛЕННАЯ ВЕРСИЯ"""
     try:
-        user = get_user(db, message.from_user.id)
+        user = crud.get_user(db, message.from_user.id)
         if not user:
             await message.answer("❌ Пользователь не найден")
             return
 
-        # ✅ ПРАВИЛЬНЫЙ формат цен для Stars
-        stars_amount = 10  # 100 STARS
-        prices = [LabeledPrice(label=f"{stars_amount} STARS", amount=stars_amount)]
+        # Указываем количество Stars (например, 100)
+        stars_amount = 100
         
+        # ⚠️ ВАЖНО: для Stars amount указывается как есть, без умножения на 100!
+        prices = [LabeledPrice(label="XTR", amount=stars_amount)]
+
         await message.answer_invoice(
             title="Пополнение STARS",
             description=f"Пополнение баланса на {stars_amount} STARS",
-            currency="XTR",     # ✅ ВАЛЮТА TELEGRAM STARS
+            currency="XTR",
             prices=prices,
-            payload=json.dumps({  # ✅ ПРОСТОЙ JSON
-                "type": "stars_payment",
-                "user_id": message.from_user.id,
-                "amount": stars_amount
-            }),
+            provider_token="",  # ⚠️ ОБЯЗАТЕЛЬНО пустая строка для Stars!
+            payload=f"stars:{message.from_user.id}:{stars_amount}",  # Простая строка
             start_parameter="stars_payment",
             need_name=False,
             need_phone_number=False,
@@ -347,6 +345,63 @@ async def cmd_buy_stars(message: Message, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error creating stars invoice: {e}")
         await message.answer("❌ Ошибка при создании платежа")
+
+@router.pre_checkout_query()
+async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery):
+    """Всегда подтверждаем pre-checkout для Stars"""
+    try:
+        logger.info(f"Pre-checkout received: {pre_checkout_query}")
+        await pre_checkout_query.answer(ok=True)
+        logger.info("Pre-checkout approved")
+    except Exception as e:
+        logger.error(f"Pre-checkout error: {e}")
+        await pre_checkout_query.answer(ok=False, error_message="Payment error")
+
+@router.message(F.successful_payment)
+async def successful_payment_handler(message: Message, db: Session = Depends(get_db)):
+    """Обработка успешного платежа Stars"""
+    try:
+        payment = message.successful_payment
+        user_id = message.from_user.id
+        
+        logger.info(f"✅ Successful payment received: {payment}")
+        
+        # Парсим payload (формат: "stars:user_id:amount")
+        payload_parts = payment.invoice_payload.split(':')
+        if len(payload_parts) != 3 or payload_parts[0] != 'stars':
+            raise ValueError("Invalid payload format")
+            
+        target_user_id = int(payload_parts[1])
+        stars_amount = int(payload_parts[2])
+        
+        # Проверяем пользователя
+        if user_id != target_user_id:
+            logger.error(f"User ID mismatch: {user_id} != {target_user_id}")
+            await message.answer("❌ Security error")
+            return
+        
+        user = crud.get_user(db, user_id)
+        if not user:
+            logger.error(f"User {user_id} not found")
+            await message.answer("❌ User not found")
+            return
+        
+        # Зачисляем средства
+        user.stars_balance += stars_amount
+        db.commit()
+        
+        logger.info(f"💰 Added {stars_amount} STARS to user {user_id}. New balance: {user.stars_balance}")
+        
+        await message.answer(
+            f"✅ Payment successful!\n"
+            f"💫 Added: {stars_amount} STARS\n"
+            f"💰 New balance: {user.stars_balance} STARS\n\n"
+            f"Thank you for your purchase! 🎮"
+        )
+        
+    except Exception as e:
+        logger.error(f"Payment processing error: {str(e)}")
+        await message.answer("❌ Payment processing error")
 
 from aiogram.types import PreCheckoutQuery, SuccessfulPayment
 from aiogram.filters import Command
@@ -366,94 +421,44 @@ async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery):
 # ✅ Обработчик успешных платежей
 @router.message(lambda message: message.successful_payment is not None)
 async def successful_payment_handler(message: Message, db: Session = Depends(get_db)):
-    """Обработка успешного платежа Stars"""
+    """Обработка успешного платежа"""
     try:
         payment = message.successful_payment
         user_id = message.from_user.id
         
-        logger.info(f"✅ Successful payment received: {payment.to_python()}")
-        
-        # Проверяем валюту
-        if payment.currency != 'XTR':
-            logger.error(f"Invalid currency: {payment.currency}")
-            await message.answer("❌ Invalid currency")
-            return
+        logger.info(f"✅ Successful payment received: {payment}")
         
         # Парсим payload
-        try:
-            payload_parts = payment.invoice_payload.split(':')
-            if len(payload_parts) != 3:
-                raise ValueError("Invalid payload format")
-                
-            payment_type, target_user_id_str, amount_str = payload_parts
-            
-            if payment_type != 'stars_payment':
-                raise ValueError("Invalid payment type")
-                
-            target_user_id = int(target_user_id_str)
-            stars_amount = int(amount_str) // 100  # Делим на 100, т.к. в платеже amount × 100
-            
-        except (ValueError, IndexError) as e:
-            logger.error(f"Payload parsing error: {e}, payload: {payment.invoice_payload}")
-            await message.answer("❌ Payment processing error")
+        payload_parts = payment.invoice_payload.split(':')
+        if len(payload_parts) != 3 or payload_parts[0] != 'stars':
+            await message.answer("❌ Invalid payment payload")
             return
+            
+        target_user_id = int(payload_parts[1])
+        stars_amount = int(payload_parts[2])
         
         # Проверяем пользователя
         if user_id != target_user_id:
-            logger.error(f"User ID mismatch: {user_id} != {target_user_id}")
             await message.answer("❌ Security error")
             return
         
         user = get_user(db, user_id)
         if not user:
-            logger.error(f"User {user_id} not found")
             await message.answer("❌ User not found")
-            return
-        
-        # Проверяем дубликат платежа
-        payment_id = payment.telegram_payment_charge_id
-        if user.stars_payment_ids and payment_id in user.stars_payment_ids:
-            logger.warning(f"Duplicate payment: {payment_id}")
-            await message.answer("⚠️ Payment already processed")
             return
         
         # Зачисляем средства
         user.stars_balance += stars_amount
-        
-        # Сохраняем ID платежа
-        if user.stars_payment_ids is None:
-            user.stars_payment_ids = []
-        user.stars_payment_ids.append(payment_id)
-        
         db.commit()
         
-        logger.info(f"💰 Added {stars_amount} STARS to user {user_id}. New balance: {user.stars_balance}")
-        
-        # Уведомляем пользователя
         await message.answer(
             f"✅ Payment successful!\n"
-            f"💫 Added: {stars_amount} STARS\n"
-            f"💰 New balance: {user.stars_balance} STARS\n\n"
-            f"Thank you for your purchase! 🎮"
+            f"💫 Added: {stars_amount} Stars\n"
+            f"💰 New balance: {user.stars_balance} Stars"
         )
         
-        # WebSocket уведомление
-        try:
-            from app.services.websocket_manager import websocket_manager
-            await websocket_manager.send_to_user(
-                f"user_{user_id}",
-                {
-                    "type": "balance_update",
-                    "currency": "stars",
-                    "new_balance": user.stars_balance,
-                    "amount_added": stars_amount
-                }
-            )
-        except Exception as ws_error:
-            logger.warning(f"WebSocket error: {ws_error}")
-        
     except Exception as e:
-        logger.error(f"Payment processing error: {str(e)}")
+        logger.error(f"Payment processing error: {e}")
         await message.answer("❌ Payment processing error")
 
 # Добавляем команду для проверки баланса
@@ -473,26 +478,7 @@ async def cmd_balance(message: Message, db: Session = Depends(get_db)):
     )
    
    
-    
-@router.message(Command("buy_stars"))
-async def cmd_buy_stars(message: Message):
-    """Команда для покупки Stars"""
-    try:
-        # Простое создание инвойса на 100 STARS
-        invoice_link = await stars_service.create_invoice(message.from_user.id, 10)
-        
-        if invoice_link:
-            await message.answer(
-                f"💫 Пополнение 10 STARS\n\n"
-                f"[Оплатить]({invoice_link})",
-                parse_mode="Markdown"
-            )
-        else:
-            await message.answer("❌ Ошибка при создании платежа")
-            
-    except Exception as e:
-        logger.error(f"Error in /buy_stars: {e}")
-        await message.answer("❌ Ошибка при создании платежа")
+
         
 @router.message(Command("test_payment"))
 async def cmd_test_payment(message: Message):
