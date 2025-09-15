@@ -482,20 +482,6 @@ const updateRocketPosition = (endX: number, endY: number) => {
 
 
 
-onMounted(async () => {
-  try {
-    await connectToCrashGame()
-    await gameStore.loadGameHistory(100)
-    
-    // Инициализация графика
-    initGraph()
-  } catch (err) {
-    console.error('Failed to initialize crash game:', err)
-  }
-})
-
-
-
 // Следим за изменением множителя
 watch(currentMultiplier, () => {
   if (isGameActive.value && !animationFrame.value) {
