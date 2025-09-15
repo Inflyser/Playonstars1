@@ -299,7 +299,7 @@ const phaseText = computed(() => {
 })
 
 const visiblePlayers = computed(() => {
-    return gameState.value.players.slice(0, 10)
+    return gameState.value.players.slice(0, 49)
 })
 
 // Methods
