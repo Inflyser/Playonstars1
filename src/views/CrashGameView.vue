@@ -5,6 +5,13 @@
 
 
         <div class="game-history">
+          <button class="history-scroll-indicator" @click="showHistoryModal = true">
+            <div class="indicator-icon">
+              <img src="@/assets/images/clock.svg" alt="scroll">
+            </div>
+            <div class="indicator-shadow"></div>
+          </button >
+
           <div class="history-list">
             <div
               v-for="(game, index) in gameState.history" 
@@ -19,14 +26,6 @@
               {{ game.multiplier.toFixed(2) }}x
             </div>
           </div>
-        
-          <!-- Фиксированная панелька справа - теперь кнопка -->
-          <button class="history-scroll-indicator" @click="showHistoryModal = true">
-            <div class="indicator-icon">
-              <img src="@/assets/images/clock.svg" alt="scroll">
-            </div>
-            <div class="indicator-shadow"></div>
-          </button >
         </div>
       
       
