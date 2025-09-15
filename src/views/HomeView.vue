@@ -59,29 +59,49 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { useUserStore } from '@/stores/useUserStore'
+import { computed, ref, onMounted } from 'vue'
+import { api } from '@/services/api'
+
+import BottomNavigation from '@/components/layout/BottomNavigation.vue'
+import TelegramHeader from '@/components/layout/TelegramHeader.vue'
+import TelegramHeader2 from '@/components/layout/TelegramHeader2.vue'
+import { useRouter } from 'vue-router'
 
 const { t, locale } = useI18n()
+const userStore = useUserStore()
+const router = useRouter()
+
+const adminStatus = ref(false)
 
 const changeLanguage = (lang: string) => {
   locale.value = lang
 }
 
-
-import { useUserStore } from '@/stores/useUserStore'
-import { computed } from 'vue'
-
-import BottomNavigation from '@/components/layout/BottomNavigation.vue'
-import TelegramHeader from '@/components/layout/TelegramHeader.vue'
-import TelegramHeader2 from '@/components/layout/TelegramHeader2.vue'
-
-import { useRouter } from 'vue-router'
-const userStore = useUserStore()
-
-const router = useRouter()
-
-const isAdmin = computed(() => {
-  return localStorage.getItem('admin_token') === 'authenticated'
+// Проверяем статус админа при загрузке
+onMounted(async () => {
+  await checkAdminStatus()
 })
+
+// Комбинированная проверка - из localStorage и из API
+const showAdminButton = computed(() => {
+  return localStorage.getItem('admin_token') === 'authenticated' || adminStatus.value
+})
+
+const checkAdminStatus = async () => {
+  try {
+    const response = await api.get('/api/admin/check-status')
+    adminStatus.value = response.data.isAdmin
+    
+    // Если админ - сохраняем в localStorage
+    if (adminStatus.value) {
+      localStorage.setItem('admin_token', 'authenticated')
+    }
+  } catch (error) {
+    console.error('Ошибка проверки админ-статуса:', error)
+    adminStatus.value = false
+  }
+}
 
 const goToAdmin = () => {
   router.push('/admin-login')
@@ -94,11 +114,6 @@ const PageCrash = () => {
 const PagePvp = () => {
   router.push('/pvp')
 }
-
-
-
-
-
 </script>
 
 <style scoped>
