@@ -30,34 +30,7 @@
         </div>
       
       
-        <!-- Модальное окно истории коэффициентов -->
-        <div v-if="showHistoryModal" class="history-modal-overlay" @click.self="showHistoryModal = false">
-          <div class="history-modal">
-            <div class="modal-header">
-              <h2>История коэффициентов</h2>
-              <button class="close-button" @click="showHistoryModal = false">
-                <img src="@/assets/images/close.svg" alt="scroll">
-              </button>
-            </div>
 
-            <div class="modal-content">
-              <div class="full-history-list">
-                <div
-                  v-for="(game, index) in gameState.history"
-                  :key="index"
-                  class="full-history-item"
-                  :class="{
-                    'multiplier-low': game.multiplier < 2.9,
-                    'multiplier-medium': game.multiplier >= 2.9 && game.multiplier < 7,
-                    'multiplier-high': game.multiplier >= 7
-                  }"
-                >
-                  <span class="multiplier-value">{{ game.multiplier.toFixed(2) }}x</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
 
 
@@ -146,6 +119,35 @@
         />
      
 
+
+                <!-- Модальное окно истории коэффициентов -->
+        <div v-if="showHistoryModal" class="history-modal-overlay" @click.self="showHistoryModal = false">
+          <div class="history-modal">
+            <div class="modal-header">
+              <h2>История коэффициентов</h2>
+              <button class="close-button" @click="showHistoryModal = false">
+                <img src="@/assets/images/close.svg" alt="scroll">
+              </button>
+            </div>
+
+            <div class="modal-content">
+              <div class="full-history-list">
+                <div
+                  v-for="(game, index) in gameState.history"
+                  :key="index"
+                  class="full-history-item"
+                  :class="{
+                    'multiplier-low': game.multiplier < 2.9,
+                    'multiplier-medium': game.multiplier >= 2.9 && game.multiplier < 7,
+                    'multiplier-high': game.multiplier >= 7
+                  }"
+                >
+                  <span class="multiplier-value">{{ game.multiplier.toFixed(2) }}x</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div class="divider"></div>
 
@@ -1076,7 +1078,7 @@ watch(currentMultiplier, () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 1050; /* Увеличьте z-index */ 
   padding: 20px;
 }
 
@@ -1090,6 +1092,7 @@ watch(currentMultiplier, () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  z-index: 1060; /* Добавьте更高的 z-index */ 
 }
 
 .modal-header {
