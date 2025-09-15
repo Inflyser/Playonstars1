@@ -41,16 +41,19 @@
             <p>{{ t('place_bet1') }}</p>
           </div>
         </button>
+
+        <button class="action-card admin-penel-card" @click="goToAdmin">
+          <!-- Слой 4: Цветной фон -->
+          <div class="card-color-bg"></div>
+
+          <!-- Слой 1: Текст -->
+          <div class="card-content">
+            <h3>Админ панель ⚙️</h3>
+         
+          </div>
+        </button>
       </div>
     </main>
-
-    <button 
-      v-if="showAdminButton" 
-      @click="goToAdmin"
-      class="admin-btn"
-    >
-      ⚙️ Админка
-    </button>
 
     <!-- Плавающая панель навигации -->
     <BottomNavigation />
@@ -175,6 +178,10 @@ const changeLanguage = (lang: string) => {
 
 .pvp-arena-card .card-color-bg {
   background: #F8A820 /* Красный градиент */
+}
+
+.admin-penel-card .card-color-bg {
+  background: #ff5133 /* Красный градиент */
 }
 
 /* Слой 3: Фоновая картинка */
