@@ -88,6 +88,7 @@
           :maxAmount="userStore.balance.stars_balance"
           :gamePhase="gameState.phase"
           :currentMultiplier="currentMultiplier"
+          :hasActiveBet="hasActiveBet"
           @place-bet="handleFirstBet"
           @cash-out="doFirstCashOut"
         />
@@ -98,6 +99,7 @@
           :maxAmount="userStore.balance.stars_balance"
           :gamePhase="gameState.phase"
           :currentMultiplier="currentMultiplier"
+          :hasActiveBet="hasActiveBet"
           @place-bet="handleSecondBet"
           @cash-out="doSecondCashOut"
         />
@@ -266,6 +268,13 @@ const doSecondCashOut = async () => {
     console.error('Failed to cash out from second panel:', error)
   }
 }
+
+// Computed для проверки активной ставки
+const hasActiveBet = computed(() => {
+  return !!gameStore.userBet && 
+         !gameStore.userBet.cashedOut && 
+         gameState.value.phase === 'flying'
+})
 
 const totalBet = computed(() => {
     return gameState.value.players.reduce((sum: number, player: any) => sum + player.betAmount, 0)
