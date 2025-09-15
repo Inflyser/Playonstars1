@@ -131,25 +131,20 @@
             </div>
           
             <div class="modal-content">
-              <div v-if="isLoadingHistory" class="loading-state">
-                Loading...
-              </div>
-              <template v-else>
-                <div v-if="gameState.history && gameState.history.length" class="full-history-list">
-                  <div
-                    v-for="(game, index) in gameState.history"
-                    :key="index"
-                    class="full-history-item"
-                    :class="{
-                      'multiplier-low': game.multiplier < 2.9,
-                      'multiplier-medium': game.multiplier >= 2.9 && game.multiplier < 7,
-                      'multiplier-high': game.multiplier >= 7
-                    }"
-                  >
-                    <span class="multiplier-value">{{ game.multiplier.toFixed(2) }}x</span>
-                  </div>
+              <div class="full-history-list">
+                <div
+                  v-for="(game, index) in gameState.history"
+                  :key="index"
+                  class="full-history-item"
+                  :class="{
+                    'multiplier-low': game.multiplier < 2.9,
+                    'multiplier-medium': game.multiplier >= 2.9 && game.multiplier < 7,
+                    'multiplier-high': game.multiplier >= 7
+                  }"
+                >
+                  <span class="multiplier-value">{{ game.multiplier.toFixed(2) }}x</span>
                 </div>
-              </template>
+              </div>
             </div>
           </div>
         </div>
@@ -485,16 +480,6 @@ const updateRocketPosition = (endX: number, endY: number) => {
   }
 }
 
-// Загрузка при монтировании
-onMounted(async () => {
-  try {
-    await connectToCrashGame()
-    await gameStore.loadGameHistory(100) // ✅ Этот вызов должен быть
-    initGraph()
-  } catch (err) {
-    console.error('Failed to initialize crash game:', err)
-  }
-})
 
 
 // Следим за изменением множителя
@@ -530,32 +515,13 @@ watch(() => gameState.value.phase, (newPhase) => {
   }
 })
 
-const isLoadingHistory = ref(false)
-
-const handleOpenModal = async () => {
-  console.log('Кнопка нажата!');
-  showHistoryModal.value = true;
-  
-  // Если история пуста, загружаем данные
-  if (!gameState.value.history || gameState.value.history.length === 0) {
-    isLoadingHistory.value = true;
-    try {
-      await gameStore.loadGameHistory(100);
-    } catch (error) {
-      console.error('Failed to load history:', error);
-    } finally {
-      isLoadingHistory.value = false;
-    }
-  }
-}
-
 
 // Lifecycle
 
 onMounted(async () => {
   try {
     await connectToCrashGame()
-    await gameStore.loadGameHistory()
+    await gameStore.loadGameHistory(50)
     
     // Инициализация графика
     initGraph()
