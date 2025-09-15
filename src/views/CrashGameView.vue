@@ -83,13 +83,6 @@
           </div>
         </div>
 
-        <!-- Статус игры -->
-        <div class="game-status">
-            <div class="timer" v-if="gameState.phase === 'betting'">
-              {{ bettingTimer }}s
-            </div>
-        </div>
-
         <BettingPanel 
           v-model:betAmount="firstBetAmount"
           :maxAmount="userStore.balance.stars_balance"
