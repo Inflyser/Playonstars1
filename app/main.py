@@ -989,7 +989,7 @@ async def set_user_language_api(
 
     
 @app.get("/games/crash/history")
-async def get_crash_history(limit: int = 50, db: Session = Depends(get_db)):
+async def get_crash_history(limit: int = 100, db: Session = Depends(get_db)):
     """Получить историю краш-игр из базы данных"""
     try:
         results = crud.get_crash_game_history(db, limit)
