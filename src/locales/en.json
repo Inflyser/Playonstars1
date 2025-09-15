@@ -72,5 +72,7 @@
     "con": "Transfer confirmation",
     "con1": "You are about to transfer",
     "con2": "to address",
-    "con3": "Confirm"
+    "con3": "Confirm",
+
+    "histor": "History of coefficients"
 }

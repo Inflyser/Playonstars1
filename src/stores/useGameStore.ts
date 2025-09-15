@@ -217,7 +217,7 @@ export const useGameStore = defineStore('game', () => {
     }
     
 
-    const loadGameHistory = async (limit: number = 50): Promise<void> => {
+    const loadGameHistory = async (limit: number = 100): Promise<void> => {
       try {
         const response = await api.get('/crash/history', { 
           params: { limit } 

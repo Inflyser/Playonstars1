@@ -124,7 +124,7 @@
         <div v-if="showHistoryModal" class="history-modal-overlay" @click.self="showHistoryModal = false">
           <div class="history-modal">
             <div class="modal-header">
-              <h2>История коэффициентов</h2>
+              <h2>{{ t('histor') }}</h2>
               <button class="close-button" @click="showHistoryModal = false">
                 <img src="@/assets/images/close.svg" alt="close">
               </button>
@@ -167,6 +167,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t, locale } = useI18n()
+
 import { ref, computed, onMounted, watch } from 'vue'
 import { useGameStore } from '@/stores/useGameStore'
 import { useUserStore } from '@/stores/useUserStore'
@@ -484,7 +488,7 @@ const updateRocketPosition = (endX: number, endY: number) => {
 onMounted(async () => {
   try {
     await connectToCrashGame()
-    await gameStore.loadGameHistory(50)
+    await gameStore.loadGameHistory(100)
     
     // Инициализация графика
     initGraph()
@@ -1169,7 +1173,7 @@ watch(currentMultiplier, () => {
   padding: 6px 2px; /* Минимальный padding */
   border-radius: 6px;
   text-align: center;
-  min-height: 45px; /* Компактная высота */
+  min-height: 25px; /* Компактная высота */
   aspect-ratio: 1/1; /* Квадратные элементы */
   transition: transform 0.2s ease;
 }
