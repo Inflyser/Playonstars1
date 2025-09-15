@@ -11,6 +11,7 @@ export interface CrashGameState {
     players: CrashPlayer[]
     history: CrashGameHistory[]
     bets: UserBet[]
+    speed?: number // ← ДОБАВЛЯЕМ СКОРОСТЬ
 }
 
 export interface CrashPlayer {
@@ -85,13 +86,14 @@ export const useGameStore = defineStore('game', () => {
         return userBet.value.amount * crashGame.value.multiplier
     })
 
-    // Методы для краш-игры
+    // И обнови метод setCrashGameState
     const setCrashGameState = (data: any) => {
         crashGame.value = {
             ...crashGame.value,
             ...data,
             players: data.players || [],
-            bets: data.bets || []
+            bets: data.bets || [],
+            speed: data.speed || 1.0 // ← СОХРАНЯЕМ СКОРОСТЬ
         }
     }
 

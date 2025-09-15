@@ -179,6 +179,7 @@ const secondBetAmount = ref(50)
 const showHistoryModal = ref(false)
 const isGraphVisible = ref(true)
 
+
 interface CrashGameHistory {
   id: number
   game_id: number
@@ -220,6 +221,7 @@ const isBetting = computed(() => gameStore.isBetting)
 const currentUserBet = computed(() => gameStore.userBet)
 const currentProfit = computed(() => gameStore.currentProfit)
 const gameError = computed(() => gameStore.error)
+const gameSpeed = computed(() => gameState.value.speed || 1.0) // ← ДОБАВЬ СКОРОСТЬ
 
 const handleFirstBet = (betData: any) => {
   console.log('Ставка с первой панели:', betData)
@@ -379,8 +381,8 @@ const drawGraph = () => {
   const freezeMultiplier = 2.5
   const freezePointX = width * 0.67
   
-  // Вычисляем прогресс
-  let progress = currentMultiplier.value / freezeMultiplier
+  // Вычисляем прогресс С УЧЕТОМ СКОРОСТИ
+  let progress = (currentMultiplier.value / freezeMultiplier) * gameSpeed.value // ← ИЗМЕНИ
   let renderProgress = Math.min(progress, 1)
   
   // Координаты
@@ -475,13 +477,6 @@ const prepareNewGame = () => {
   rocketPosition.value = null
 }
 
-// Обработчик изменения видимости
-const handleVisibilityChange = () => {
-  // Простая логика - всегда перерисовываем когда страница видна
-  if (!document.hidden && isGameActive.value) {
-    drawGraph()
-  }
-}
 
 const bettingTimer = ref(0)
 
@@ -492,7 +487,6 @@ watch(currentMultiplier, () => {
   }
 }, { flush: 'post' })
 
-// Следим за фазой игры
 watch(() => gameState.value.phase, (newPhase) => {
   console.log('Game phase changed to:', newPhase)
   
@@ -507,7 +501,7 @@ watch(() => gameState.value.phase, (newPhase) => {
     // Перерисовываем статичный график
     nextTick(() => {
       if (graphContext.value && graphCanvas.value) {
-        drawGraph() // ← ПРОСТО ВЫЗЫВАЕМ drawGraph
+        drawGraph()
       }
     })
   } else if (newPhase === 'flying') {
@@ -532,10 +526,13 @@ const handleResize = () => {
 }
 
 // Используем debounce чтобы не нагружать систему
-let resizeTimeout: NodeJS.Timeout
+const resizeTimeout = ref<number | null>(null)
+
 window.addEventListener('resize', () => {
-  clearTimeout(resizeTimeout)
-  resizeTimeout = setTimeout(handleResize, 100)
+  if (resizeTimeout.value) {
+    clearTimeout(resizeTimeout.value)
+  }
+  resizeTimeout.value = setTimeout(handleResize, 100) as unknown as number
 })
 
 // Lifecycle
@@ -566,7 +563,6 @@ onBeforeUnmount(() => {
     visibilityObserver.value.disconnect()
   }
   
-  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 
 // Перерисовываем график при изменении размеров окна
@@ -579,6 +575,7 @@ window.addEventListener('resize', () => {
 watch(() => userStore.balance, (newBalance) => {
   console.log('Balance changed:', newBalance)
 }, { deep: true })
+
 </script>
 
 <style scoped>
