@@ -45,7 +45,7 @@
     </main>
 
     <button 
-      v-if="isAdmin" 
+      v-if="showAdminButton" 
       @click="goToAdmin"
       class="admin-btn"
     >
@@ -74,18 +74,14 @@ const router = useRouter()
 
 const adminStatus = ref(false)
 
-const changeLanguage = (lang: string) => {
-  locale.value = lang
-}
+// Комбинированная проверка - из localStorage и из API
+const showAdminButton = computed(() => {
+  return localStorage.getItem('admin_token') === 'authenticated' || adminStatus.value
+})
 
 // Проверяем статус админа при загрузке
 onMounted(async () => {
   await checkAdminStatus()
-})
-
-// Комбинированная проверка - из localStorage и из API
-const showAdminButton = computed(() => {
-  return localStorage.getItem('admin_token') === 'authenticated' || adminStatus.value
 })
 
 const checkAdminStatus = async () => {
@@ -104,7 +100,7 @@ const checkAdminStatus = async () => {
 }
 
 const goToAdmin = () => {
-  router.push('/admin-login')
+  router.push('/admin')
 }
 
 const PageCrash = () => {
@@ -113,6 +109,10 @@ const PageCrash = () => {
 
 const PagePvp = () => {
   router.push('/pvp')
+}
+
+const changeLanguage = (lang: string) => {
+  locale.value = lang
 }
 </script>
 
