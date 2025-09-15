@@ -79,9 +79,9 @@
         @click="placeBet"
         :disabled="buttonConfig.disabled"
       >
-        <span class="shine-effect" :class="{ red: gamePhase === 'flying' }"></span>
+        <span class="shine-effect" :class="{ red: buttonConfig.isRed }"></span>
         {{ buttonConfig.text }}
-        <div class="divider-bet" :class="{ red: gamePhase === 'flying' }"></div>
+        <div class="divider-bet" :class="{ red: buttonConfig.isRed }"></div>
       </button>
     </div>
 
@@ -285,13 +285,15 @@ const { t } = useI18n()
 
 // Computed свойство для кнопки
 // Computed свойство для кнопки - ОБНОВЛЯЕМ
+// Computed свойство для определения текста и стиля кнопки
 const buttonConfig = computed(() => {
   // Если игра идет и есть активная ставка - показываем кнопку вывода
   if (props.gamePhase === 'flying' && props.hasActiveBet) {
     return {
       text: `${t('button_stavka1')} x${props.currentMultiplier.toFixed(2)}`,
       class: 'cashout-btn',
-      disabled: false
+      disabled: false,
+      isRed: true // ← ДОБАВЛЯЕМ ФЛАГ
     }
   }
   
@@ -299,7 +301,8 @@ const buttonConfig = computed(() => {
   return {
     text: t('button_stavka1'),
     class: 'place-bet-btn',
-    disabled: isDisabled.value || props.gamePhase !== 'betting'
+    disabled: isDisabled.value || props.gamePhase !== 'betting',
+    isRed: false // ← ДОБАВЛЯЕМ ФЛАГ
   }
 })
 </script>
