@@ -323,7 +323,7 @@ async def cmd_buy_stars(message: Message, db: Session = Depends(get_db)):
             return
 
         # Указываем количество Stars (например, 100)
-        stars_amount = 100
+        stars_amount = 5
         
         # ⚠️ ВАЖНО: для Stars amount указывается как есть, без умножения на 100!
         prices = [LabeledPrice(label="XTR", amount=stars_amount)]
