@@ -55,49 +55,93 @@
           </template>
 
           <!-- Результаты игры -->
+  <!-- Результаты игры -->
           <div v-else class="game-results">
             <img src="@/assets/images/crashfon.svg" class="graph-background">
             <img src="@/assets/images/kpanel.svg" class="panels-crash">
-            <div class="multiplier-display" :class="{ growing: isGameActive }">
-              x{{ currentMultiplier.toFixed(2) }}
-            </div>
-            <div class="result-header">
-              <h3>Игра завершена!</h3>
-            </div>
 
-            <div class="player-result" v-if="currentUserBet">
-              <div class="result-icon" :class="{ success: (currentUserBet.profit || 0) > 0, failure: (currentUserBet.profit || 0) <= 0 }">
-                {{ (currentUserBet.profit || 0) > 0 ? '🎉' : '💥' }}
+            <div class="result-content">
+              <!-- Заголовок с анимацией -->
+              <div class="result-header">
+                <div class="result-title" :class="{ 'crashed': currentMultiplier < 1 }">
+                  <template v-if="currentMultiplier < 1">
+                    <span class="crash-icon">💥</span>
+                    <h3>Крах!</h3>
+                  </template>
+                  <template v-else>
+                    <span class="success-icon">🎯</span>
+                    <h3>Игра завершена!</h3>
+                  </template>
+                </div>
+                <div class="final-multiplier" :class="{ 
+                  'low': currentMultiplier < 2, 
+                  'medium': currentMultiplier >= 2 && currentMultiplier < 5,
+                  'high': currentMultiplier >= 5
+                }">
+                  x{{ currentMultiplier.toFixed(2) }}
+                </div>
               </div>
-              <div class="result-details">
-                <p>Ваша ставка: <strong>{{ currentUserBet.amount }} stars</strong></p>
-                <p :class="{ profit: (currentUserBet.profit || 0) > 0, loss: (currentUserBet.profit || 0) <= 0 }">
-                  Результат: <strong>{{ (currentUserBet.profit || 0) > 0 ? '+' + (currentUserBet.profit || 0).toFixed(2) : '0' }} stars</strong>
-                </p>
-                <p v-if="currentUserBet.cashoutMultiplier" class="cashout-info">
-                  Вывели на: x{{ currentUserBet.cashoutMultiplier.toFixed(2) }}
-                </p>
-                <p v-else class="cashout-info">
-                  Не успели вывести
-                </p>
-              </div>
-            </div>
+            
+              <!-- Результат пользователя -->
+              <div class="user-result-container">
+                <div class="player-result" v-if="currentUserBet">
+                  <div class="result-badge" :class="{ 
+                    'success': (currentUserBet.profit || 0) > 0, 
+                    'failure': (currentUserBet.profit || 0) <= 0 
+                  }">
+                    <div class="badge-icon">
+                      {{ (currentUserBet.profit || 0) > 0 ? '🎉' : '💥' }}
+                    </div>
+                    <div class="badge-text">
+                      {{ (currentUserBet.profit || 0) > 0 ? 'ПОБЕДА' : 'ПРОИГРЫШ' }}
+                    </div>
+                  </div>
+                
+                  <div class="result-details">
+                    <div class="detail-row">
+                      <span class="label">Ставка:</span>
+                      <span class="value bet-amount">{{ currentUserBet.amount }} stars</span>
+                    </div>
 
-            <div class="no-bet" v-else>
-              <div class="result-icon">👀</div>
-              <p style="margin: -10px;">Вы не делали ставку в этой игре</p>
+                    <div class="detail-row" :class="{ 
+                      'profit': (currentUserBet.profit || 0) > 0, 
+                      'loss': (currentUserBet.profit || 0) <= 0 
+                    }">
+                      <span class="label">Результат:</span>
+                      <span class="value result-amount">
+                        {{ (currentUserBet.profit || 0) > 0 ? '+' + (currentUserBet.profit || 0).toFixed(2) : '0' }} stars
+                      </span>
+                    </div>
+                  
+                    <div class="detail-row cashout-info">
+                      <span class="label">Вывели на:</span>
+                      <span class="value cashout-multiplier" v-if="currentUserBet.cashoutMultiplier">
+                        x{{ currentUserBet.cashoutMultiplier.toFixed(2) }}
+                      </span>
+                      <span class="value not-cashed" v-else>
+                        Не успели вывести
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              
+                <div class="no-bet" v-else>
+                  <div class="no-bet-icon">👀</div>
+                  <div class="no-bet-text">
+                    <p>Вы не делали ставку</p>
+                    <p class="subtext">в этой игре</p>
+                  </div>
+                </div>
+              </div>
+            
+              <!-- Автоматическое обновление через WebSocket -->
+              <div class="auto-update-info">
+                <div class="update-icon">🔄</div>
+                <p class="update-text">Новая игра начнется автоматически</p>
+              </div>
             </div>
           </div>
         </div>
-
-        <!-- Статус игры -->
-        <div class="game-status">
-            <div class="timer" v-if="gameState.phase === 'betting'">
-              {{ bettingTimer }}s
-            </div>
-        </div>
-
-
      
         <BettingPanel 
           v-model:betAmount="firstBetAmount"
@@ -1307,4 +1351,308 @@ watch(currentMultiplier, () => {
   }
 }
 
+.game-results {
+  position: relative;
+  padding: 20px;
+  text-align: center;
+  color: white;
+  height: 35vh;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.result-content {
+  position: relative;
+  z-index: 10;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.result-header {
+  margin-bottom: 15px;
+}
+
+.result-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.result-title h3 {
+  margin: 0;
+  font-size: 1.4em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.crash-icon, .success-icon {
+  font-size: 2em;
+  animation: bounce 0.6s infinite alternate;
+}
+
+@keyframes bounce {
+  from { transform: translateY(0px); }
+  to { transform: translateY(-5px); }
+}
+
+.final-multiplier {
+  font-size: 2.2em;
+  font-weight: 900;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  margin: 8px 0;
+  animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+  from { opacity: 0.8; transform: scale(1); }
+  to { opacity: 1; transform: scale(1.05); }
+}
+
+.final-multiplier.low {
+  color: #ff6b6b;
+  text-shadow: 0 2px 10px rgba(255, 107, 107, 0.3);
+}
+
+.final-multiplier.medium {
+  color: #f59e0b;
+  text-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+}
+
+.final-multiplier.high {
+  color: #00ff88;
+  text-shadow: 0 2px 10px rgba(0, 255, 136, 0.3);
+}
+
+.user-result-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.player-result {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 20px;
+  backdrop-filter: blur(10px);
+  width: 100%;
+  max-width: 300px;
+}
+
+.result-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 25px;
+  margin-bottom: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.result-badge.success {
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 204, 106, 0.3) 100%);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  color: #00ff88;
+}
+
+.result-badge.failure {
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.2) 0%, rgba(238, 90, 82, 0.3) 100%);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+}
+
+.badge-icon {
+  font-size: 1.5em;
+}
+
+.badge-text {
+  font-size: 0.9em;
+}
+
+.result-details {
+  text-align: left;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.label {
+  color: #a0a0b0;
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+.value {
+  font-weight: 700;
+  font-size: 1em;
+}
+
+.bet-amount {
+  color: #ffffff;
+}
+
+.result-amount.profit {
+  color: #00ff88;
+}
+
+.result-amount.loss {
+  color: #ff6b6b;
+}
+
+.cashout-multiplier {
+  color: #f59e0b;
+}
+
+.not-cashed {
+  color: #a0a0b0;
+  font-style: italic;
+  font-size: 0.9em;
+}
+
+.no-bet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  padding: 25px;
+}
+
+.no-bet-icon {
+  font-size: 2.5em;
+  opacity: 0.7;
+}
+
+.no-bet-text {
+  text-align: center;
+}
+
+.no-bet-text p {
+  margin: 0;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.no-bet-text .subtext {
+  font-size: 0.9em;
+  color: #a0a0b0;
+  margin-top: 5px;
+}
+
+.auto-update-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  margin-top: 15px;
+  animation: fadeInOut 2s infinite alternate;
+}
+
+@keyframes fadeInOut {
+  from { opacity: 0.6; }
+  to { opacity: 1; }
+}
+
+.update-icon {
+  font-size: 1.2em;
+}
+
+.update-text {
+  margin: 0;
+  font-size: 0.9em;
+  color: #a0a0b0;
+  font-weight: 500;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .result-title h3 {
+    font-size: 1.2em;
+  }
+  
+  .final-multiplier {
+    font-size: 1.8em;
+  }
+  
+  .player-result {
+    padding: 15px;
+    max-width: 250px;
+  }
+  
+  .result-badge {
+    padding: 10px 15px;
+  }
+  
+  .badge-text {
+    font-size: 0.8em;
+  }
+  
+  .auto-update-info {
+    padding: 10px;
+  }
+  
+  .update-text {
+    font-size: 0.8em;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-results {
+    padding: 15px;
+  }
+  
+  .result-title h3 {
+    font-size: 1.1em;
+  }
+  
+  .final-multiplier {
+    font-size: 1.6em;
+  }
+  
+  .player-result {
+    padding: 12px;
+    max-width: 220px;
+  }
+  
+  .no-bet {
+    padding: 20px;
+  }
+  
+  .no-bet-icon {
+    font-size: 2em;
+  }
+  
+  .auto-update-info {
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px;
+  }
+  
+  .update-text {
+    font-size: 0.75em;
+    text-align: center;
+  }
+}
 </style>
