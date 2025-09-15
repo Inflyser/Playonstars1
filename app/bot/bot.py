@@ -36,7 +36,14 @@ class DBSessionMiddleware:
     async def __call__(self, handler, event, data):
         async with get_db_session() as db:
             data["db"] = db
-            return await handler(event, data)
+            try:
+                # ✅ ВАЖНО: Всегда вызываем handler
+                result = await handler(event, data)
+                return result
+            except Exception as e:
+                print(f"Middleware error: {e}")
+                # ❌ НЕ ПРОПУСКАЙТЕ ВЫЗОВ handler!
+                raise
 
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)

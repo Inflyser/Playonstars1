@@ -73,18 +73,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+dp.include_router(telegram_router)
+app.include_router(wallet.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
+app.include_router(stars.router, prefix="/api/stars") 
+app.include_router(websocket.router)
+
 # Создайте экземпляр игры с передачей websocket_manager
 crash_game = CrashGame(websocket_manager)
 websocket_manager.set_crash_game(crash_game)  # ✅ Устанавливаем ссылку
 
 # Запускаем health check
 asyncio.create_task(websocket_manager.check_connection_health())
-
-dp.include_router(telegram_router)
-app.include_router(wallet.router, prefix="/api")
-app.include_router(admin.router, prefix="/api")
-app.include_router(stars.router, prefix="/api/stars") 
-app.include_router(websocket.router)
 
 # ----------------------------- ЗАПУСК -------------------------------------
 
