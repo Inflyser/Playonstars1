@@ -188,7 +188,7 @@ const betAmountNumber = ref(100) // ✅ Теперь number
 const autoCashout = ref('')
 const selectedPaymentMethod = ref('top')
 const firstBetAmount = ref(100)
-const secondBetAmount = ref(100) // Можно задать разное начальное значение
+const secondBetAmount = ref(50) // Можно задать разное начальное значение
 
 interface CrashGameHistory {
   id: number
@@ -481,7 +481,15 @@ const updateRocketPosition = (endX: number, endY: number) => {
 }
 
 // Загрузка при монтировании
-
+onMounted(async () => {
+  try {
+    await connectToCrashGame()
+    await gameStore.loadGameHistory(100) // ✅ Этот вызов должен быть
+    initGraph()
+  } catch (err) {
+    console.error('Failed to initialize crash game:', err)
+  }
+})
 
 
 // Следим за изменением множителя
@@ -523,7 +531,9 @@ watch(() => gameState.value.phase, (newPhase) => {
 onMounted(async () => {
   try {
     await connectToCrashGame()
-    await gameStore.loadGameHistory(50) // ✅ Этот вызов должен быть
+    await gameStore.loadGameHistory()
+    
+    // Инициализация графика
     initGraph()
   } catch (err) {
     console.error('Failed to initialize crash game:', err)
