@@ -6,37 +6,38 @@
       <div class="setting-item">
         <button 
           class="toggle-btn" 
-          :class="{ active: autoBet }"
-          @click="autoBet = !autoBet"
+          :class="{ active: autoBetEnabled }"
+          @click="toggleAutoBet"
         >
           <span class="checkmark">✓</span>
         </button>
         <span class="setting-label">{{ $t('auto_stavka') }}</span>
       </div>
 
-      <!-- Быстрая ставка -->
+      <!-- Автовывод -->
       <div class="setting-item">
         <button 
           class="toggle-btn" 
-          :class="{ active: quickBet }"
-          @click="quickBet = !quickBet"
+          :class="{ active: autoCashoutEnabled }"
+          @click="toggleAutoCashout"
         >
           <span class="checkmark">✓</span>
         </button>
         <span class="setting-label">{{ $t('auto_weivod') }}</span>
-      </div>
-
-      <!-- Коэффициент -->
-      <div class="coefficient-input">
-        <input
-          v-model="coefficient"
-          type="text"
-          class="coef-input"
-          placeholder="1.00"
-          @input="formatCoefficient"
-          @blur="validateCoefficient"
-        />
-        <span class="coef-label">x</span>
+        
+        <!-- Поле для коэффициента автовывода -->
+        <div class="coefficient-input" v-if="autoCashoutEnabled">
+          <input
+            v-model="autoCashoutCoefficient"
+            type="number"
+            step="0.1"
+            min="1.1"
+            class="coef-input"
+            placeholder="2.0"
+            @blur="validateAutoCashout"
+          />
+          <span class="coef-label">x</span>
+        </div>
       </div>
     </div>
 
@@ -63,7 +64,6 @@
           >
             +{{ quickAmount }}
           </button>
-          <!-- Добавляем кнопку MAX -->
           <button 
             class="quick-btn max-btn"
             @click="setMaxAmount"
@@ -84,11 +84,23 @@
         <div class="divider-bet" :class="{ red: gamePhase === 'flying' }"></div>
       </button>
     </div>
+
+    <!-- Статус авто-функций -->
+    <div class="auto-status" v-if="autoBetEnabled || autoCashoutEnabled">
+      <div v-if="autoBetEnabled" class="status-item">
+        <span class="status-icon">🔄</span>
+        Автоставка: {{ localBetAmount }} stars
+      </div>
+      <div v-if="autoCashoutEnabled" class="status-item">
+        <span class="status-icon">🎯</span>
+        Автовывод: x{{ autoCashoutCoefficient }}
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, defineProps, defineEmits } from 'vue'
+import { ref, computed, watch, defineProps, defineEmits, onUnmounted } from 'vue'
 
 // Props
 const props = defineProps({
@@ -100,26 +112,25 @@ const props = defineProps({
     type: Number,
     default: 1000
   },
-  gamePhase: { // ✅ Добавляем prop для фазы игры
+  gamePhase: {
     type: String as () => 'betting' | 'flying' | 'finished',
     default: 'betting'
   },
-  currentMultiplier: { // ✅ Текущий множитель для режима полета
+  currentMultiplier: {
     type: Number,
     default: 1.0
   }
 })
 
 // Emits
-const emit = defineEmits(['update:betAmount', 'place-bet', 'cash-out'])
+const emit = defineEmits(['update:betAmount', 'place-bet', 'cash-out', 'auto-bet', 'auto-cashout'])
 
-// Состояния для первого блока
-const autoBet = ref(false)
-const quickBet = ref(false)
-const coefficient = ref('1.0')
-
-// Локальная копия betAmount
+// Состояния
 const localBetAmount = ref(props.betAmount)
+const autoBetEnabled = ref(false)
+const autoCashoutEnabled = ref(false)
+const autoCashoutCoefficient = ref('2.0')
+const gameWatchInterval = ref<NodeJS.Timeout | null>(null)
 
 // Следим за изменениями извне
 watch(() => props.betAmount, (newVal) => {
@@ -131,13 +142,17 @@ watch(localBetAmount, (newVal) => {
   emit('update:betAmount', newVal)
 })
 
+// Следим за фазой игры для авто-функций
+watch(() => props.gamePhase, (newPhase) => {
+  handleGamePhaseChange(newPhase)
+})
+
 // Computed свойства
 const isDisabled = computed(() => {
   return localBetAmount.value <= 0 || localBetAmount.value > props.maxAmount
 })
 
 const quickAmounts = computed(() => {
-  // Динамические быстрые суммы на основе макс. суммы
   const max = props.maxAmount
   return [
     50,
@@ -147,7 +162,7 @@ const quickAmounts = computed(() => {
   ].filter(amount => amount > 0)
 })
 
-// Методы
+// Методы для управления суммой
 const setMaxAmount = () => {
   localBetAmount.value = props.maxAmount
 }
@@ -176,100 +191,184 @@ const addToBet = (amount: number) => {
   }
 }
 
-import { useI18n } from 'vue-i18n'
+// Авто-функции
+const toggleAutoBet = () => {
+  autoBetEnabled.value = !autoBetEnabled.value
+  if (autoBetEnabled.value) {
+    startGameWatching()
+  } else {
+    stopGameWatching()
+  }
+}
 
+const toggleAutoCashout = () => {
+  autoCashoutEnabled.value = !autoCashoutEnabled.value
+  if (autoCashoutEnabled.value) {
+    startGameWatching()
+  } else {
+    stopGameWatching()
+  }
+}
+
+const validateAutoCashout = () => {
+  const coeff = parseFloat(autoCashoutCoefficient.value)
+  if (isNaN(coeff) || coeff < 1.1) {
+    autoCashoutCoefficient.value = '1.1'
+  }
+}
+
+// Наблюдение за игрой
+const startGameWatching = () => {
+  if (gameWatchInterval.value) return
+  
+  gameWatchInterval.value = setInterval(() => {
+    if (props.gamePhase === 'betting' && autoBetEnabled.value) {
+      // Автоматически ставим в фазе ставок
+      placeAutoBet()
+    }
+    
+    if (props.gamePhase === 'flying' && autoCashoutEnabled.value) {
+      // Автоматически выводим при достижении коэффициента
+      checkAutoCashout()
+    }
+  }, 1000)
+}
+
+const stopGameWatching = () => {
+  if (gameWatchInterval.value) {
+    clearInterval(gameWatchInterval.value)
+    gameWatchInterval.value = null
+  }
+}
+
+const handleGamePhaseChange = (phase: string) => {
+  if (phase === 'betting' && autoBetEnabled.value) {
+    placeAutoBet()
+  }
+}
+
+const placeAutoBet = () => {
+  if (localBetAmount.value > 0 && localBetAmount.value <= props.maxAmount) {
+    emit('place-bet', {
+      amount: localBetAmount.value,
+      coefficient: autoCashoutEnabled.value ? autoCashoutCoefficient.value : undefined,
+      autoBet: true,
+      quickBet: false
+    })
+  }
+}
+
+const checkAutoCashout = () => {
+  if (autoCashoutEnabled.value && props.currentMultiplier >= parseFloat(autoCashoutCoefficient.value)) {
+    emit('cash-out')
+  }
+}
+
+// Основная кнопка ставки/вывода
+const placeBet = () => {
+  if (props.gamePhase === 'flying') {
+    emit('cash-out')
+  } else {
+    if (!isDisabled.value) {
+      emit('place-bet', {
+        amount: localBetAmount.value,
+        coefficient: autoCashoutEnabled.value ? autoCashoutCoefficient.value : undefined,
+        autoBet: autoBetEnabled.value,
+        quickBet: false
+      })
+    }
+  }
+}
+
+// Очистка при размонтировании
+onUnmounted(() => {
+  stopGameWatching()
+})
+
+import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 
-
-
-
-// Computed свойство для определения текста и стиля кнопки
+// Computed свойство для кнопки
 const buttonConfig = computed(() => {
   if (props.gamePhase === 'flying') {
     return {
       text: `${t('button_stavka1')} x${props.currentMultiplier.toFixed(2)}`,
-      class: 'cashout-btn', // Красный стиль
+      class: 'cashout-btn',
       disabled: false
     }
   }
   
   return {
     text: t('button_stavka1'),
-    class: 'place-bet-btn', // Зеленый стиль
+    class: 'place-bet-btn',
     disabled: isDisabled.value
   }
 })
-
-// Обновляем метод placeBet
-const placeBet = () => {
-  if (props.gamePhase === 'flying') {
-    // Режим "Забрать ставку"
-    emit('cash-out') // ✅ Новое событие для вывода
-  } else {
-    // Режим обычной ставки
-    if (!isDisabled.value) {
-      emit('place-bet', {
-        amount: localBetAmount.value,
-        coefficient: coefficient.value,
-        autoBet: autoBet.value,
-        quickBet: quickBet.value
-      })
-    }
-  }
-}
-
-// Форматирование коэффициента (остается без изменений)
-const formatCoefficient = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  let value = target.value
-  
-  value = value.replace(',', '.')
-  value = value.replace(/[^\d.]/g, '')
-  
-  const parts = value.split('.')
-  if (parts.length > 2) {
-    value = parts[0] + '.' + parts.slice(1).join('')
-  }
-  
-  if (parts.length === 2) {
-    value = parts[0] + '.' + parts[1].slice(0, 2)
-  }
-  
-  target.value = value
-  coefficient.value = value
-}
-
-const validateCoefficient = () => {
-  if (!coefficient.value) {
-    coefficient.value = '1.00'
-    return
-  }
-  
-  let value = coefficient.value
-  
-  if (!value.includes('.')) {
-    value += '.00'
-  }
-  
-  const parts = value.split('.')
-  if (parts.length === 1) {
-    value += '.00'
-  } else if (parts[1].length === 1) {
-    value += '0'
-  } else if (parts[1].length === 0) {
-    value += '00'
-  }
-  
-  const numValue = parseFloat(value)
-  if (numValue < 1.00) {
-    value = '1.00'
-  }
-  
-  coefficient.value = value
-}
 </script>
 
 <style scoped>
+/* Добавляем стили для статуса авто-функций */
+.auto-status {
+  margin-top: 15px;
+  padding: 10px;
+  background: rgba(42, 38, 66, 0.5);
+  border-radius: 8px;
+  border-left: 3px solid #00a6fc;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 5px;
+}
+
+.status-item:last-child {
+  margin-bottom: 0;
+}
+
+.status-icon {
+  font-size: 14px;
+}
+
+/* Адаптивность для поля коэффициента */
+.setting-item {
+  position: relative;
+}
+
+.coefficient-input {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 5px;
+  z-index: 10;
+  background: #1a172e;
+  padding: 5px;
+  border-radius: 6px;
+  border: 1px solid #2a2642;
+}
+
+/* Остальные стили остаются без изменений */
+.betting-container {
+  margin: 20px 0px 20px 2.5%;
+  width: 95%;
+  background: #1D1131;
+  border: 1.5px solid #25213C;
+  border-radius: 16px;
+  padding: 15px;
+}
+
+.bet-settings {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 15px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
 .betting-container {
   margin: 20px 0px 20px 2.5%;
   width: 95%;
