@@ -1221,7 +1221,7 @@ watch(currentMultiplier, () => {
 /* Адаптивность для мобильных устройств */
 @media (max-width: 768px) {
   .full-history-list {
-    grid-template-columns: repeat(4, 1fr); /* 4 в ряд на планшетах */
+    grid-template-columns: repeat(5, 1fr); /* 4 в ряд на планшетах */
     gap: 6px;
   }
   
@@ -1241,7 +1241,7 @@ watch(currentMultiplier, () => {
 
 @media (max-width: 480px) {
   .full-history-list {
-    grid-template-columns: repeat(3, 1fr); /* 3 в ряд на телефонах */
+    grid-template-columns: repeat(5, 1fr); /* 3 в ряд на телефонах */
     gap: 5px;
   }
   
