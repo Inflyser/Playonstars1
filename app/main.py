@@ -74,6 +74,11 @@ app.add_middleware(
 )
 
 
+app = FastAPI()
+
+
+
+
 dp.include_router(telegram_router)
 app.include_router(wallet.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
@@ -89,7 +94,10 @@ asyncio.create_task(websocket_manager.check_connection_health())
 
 # ----------------------------- ЗАПУСК -------------------------------------
 
-
+# Функция запуска бота
+async def start_bot():
+    print("🤖 Bot is running...")
+    await dp.start_polling(bot)
 
 @app.on_event("startup")
 async def startup():
@@ -137,6 +145,7 @@ async def startup():
     
     # ✅ Запускаем фоновую задачу для краш-игры ОДИН РАЗ
     asyncio.create_task(run_crash_game())
+    asyncio.create_task(start_bot())
   
     # Проверяем WebSocket библиотеки
     try:
