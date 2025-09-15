@@ -188,7 +188,7 @@ const betAmountNumber = ref(100) // ✅ Теперь number
 const autoCashout = ref('')
 const selectedPaymentMethod = ref('top')
 const firstBetAmount = ref(100)
-const secondBetAmount = ref(50) // Можно задать разное начальное значение
+const secondBetAmount = ref(100) // Можно задать разное начальное значение
 
 interface CrashGameHistory {
   id: number
@@ -528,17 +528,7 @@ watch(() => gameState.value.phase, (newPhase) => {
 
 // Lifecycle
 
-onMounted(async () => {
-  try {
-    await connectToCrashGame()
-    await gameStore.loadGameHistory()
-    
-    // Инициализация графика
-    initGraph()
-  } catch (err) {
-    console.error('Failed to initialize crash game:', err)
-  }
-})
+
 
 // Перерисовываем график при изменении множителя
 watch(currentMultiplier, () => {
@@ -1077,6 +1067,7 @@ watch(currentMultiplier, () => {
 
 
 /* Стили для модального окна */
+/* Стили для модального окна */
 .history-modal-overlay {
   position: fixed;
   top: 0;
@@ -1148,10 +1139,11 @@ watch(currentMultiplier, () => {
   padding: 15px;
 }
 
+/* ОБНОВЛЕННЫЕ СТИЛИ ДЛЯ 5 ЭЛЕМЕНТОВ В РЯД */
 .full-history-list {
   display: grid;
-  grid-template-columns: repeat(5, 1fr); /* 5 элементов в ряд */
-  gap: 8px; /* Уменьшенный отступ */
+  grid-template-columns: repeat(5, minmax(0, 1fr)); /* Фиксировано 5 в ряд */
+  gap: 6px; /* Минимальный отступ */
   padding: 5px;
 }
 
@@ -1160,10 +1152,11 @@ watch(currentMultiplier, () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 8px 4px; /* Уменьшенный padding */
-  border-radius: 6px; /* Меньший радиус */
+  padding: 6px 2px; /* Минимальный padding */
+  border-radius: 6px;
   text-align: center;
-  min-height: 50px; /* Уменьшенная высота */
+  min-height: 45px; /* Компактная высота */
+  aspect-ratio: 1/1; /* Квадратные элементы */
   transition: transform 0.2s ease;
 }
 
@@ -1187,16 +1180,18 @@ watch(currentMultiplier, () => {
 }
 
 .multiplier-value {
-  font-size: 0.85em; /* Уменьшенный шрифт */
+  font-size: 0.75em; /* Уменьшенный шрифт */
   font-weight: bold;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
   color: white;
+  line-height: 1.1;
 }
 
 .game-time {
-  font-size: 0.65em; /* Уменьшенный шрифт */
+  font-size: 0.55em; /* Очень маленький шрифт */
   opacity: 0.8;
   color: #CCCCCC;
+  line-height: 1;
 }
 
 /* Стили для скролла */
@@ -1218,66 +1213,79 @@ watch(currentMultiplier, () => {
   background: #5A8DE0;
 }
 
-/* Адаптивность для мобильных устройств */
+/* Адаптивность - сохраняем 5 в ряд на всех устройствах */
 @media (max-width: 768px) {
   .full-history-list {
-    grid-template-columns: repeat(5, 1fr); /* 4 в ряд на планшетах */
-    gap: 6px;
+    grid-template-columns: repeat(5, minmax(0, 1fr)); /* Все равно 5 в ряд */
+    gap: 4px; /* Еще меньше отступ */
   }
   
   .full-history-item {
-    padding: 6px 3px;
-    min-height: 45px;
-  }
-  
-  .multiplier-value {
-    font-size: 0.8em;
-  }
-  
-  .game-time {
-    font-size: 0.6em;
-  }
-}
-
-@media (max-width: 480px) {
-  .full-history-list {
-    grid-template-columns: repeat(5, 1fr); /* 3 в ряд на телефонах */
-    gap: 5px;
-  }
-  
-  .history-modal {
-    max-width: 100%;
-    max-height: 90vh;
-    border-radius: 12px;
-  }
-  
-  .modal-header {
-    padding: 12px 15px;
-  }
-  
-  .modal-header h2 {
-    font-size: 1em;
-  }
-  
-  .full-history-item {
-    padding: 5px 2px;
+    padding: 4px 1px;
     min-height: 40px;
     border-radius: 4px;
   }
   
   .multiplier-value {
-    font-size: 0.75em;
+    font-size: 0.7em;
   }
   
   .game-time {
-    font-size: 0.55em;
+    font-size: 0.5em;
+  }
+  
+  .history-modal {
+    max-width: 100%;
+    max-height: 90vh;
   }
 }
 
-/* Для очень маленьких экранов */
+@media (max-width: 480px) {
+  .full-history-list {
+    grid-template-columns: repeat(5, minmax(0, 1fr)); /* Все равно 5 в ряд */
+    gap: 3px;
+  }
+  
+  .full-history-item {
+    padding: 3px 1px;
+    min-height: 35px;
+    border-radius: 3px;
+  }
+  
+  .multiplier-value {
+    font-size: 0.65em;
+  }
+  
+  .game-time {
+    font-size: 0.45em;
+  }
+  
+  .modal-header {
+    padding: 10px 15px;
+  }
+  
+  .modal-header h2 {
+    font-size: 0.95em;
+  }
+}
+
+/* Для очень маленьких экранов - уменьшаем еще больше */
 @media (max-width: 320px) {
   .full-history-list {
-    grid-template-columns: repeat(2, 1fr); /* 2 в ряд */
+    gap: 2px;
+  }
+  
+  .full-history-item {
+    min-height: 30px;
+    padding: 2px 0;
+  }
+  
+  .multiplier-value {
+    font-size: 0.6em;
+  }
+  
+  .game-time {
+    font-size: 0.4em;
   }
 }
 
