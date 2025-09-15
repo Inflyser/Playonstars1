@@ -48,7 +48,7 @@
         <div class="amount-main">
           <div class="amount-display">
             <button class="amount-btn minus" @click="decreaseAmount">-</button>
-            <div class="amount-value">{{ betAmount }}</div>
+            <div class="amount-value">{{ localBetAmount }}</div>
             <button class="amount-btn plus" @click="increaseAmount">+</button>
           </div>
         </div>
