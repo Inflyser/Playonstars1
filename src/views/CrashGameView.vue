@@ -481,15 +481,7 @@ const updateRocketPosition = (endX: number, endY: number) => {
 }
 
 // Загрузка при монтировании
-onMounted(async () => {
-  try {
-    await connectToCrashGame()
-    await gameStore.loadGameHistory(100) // ✅ Этот вызов должен быть
-    initGraph()
-  } catch (err) {
-    console.error('Failed to initialize crash game:', err)
-  }
-})
+
 
 
 // Следим за изменением множителя
@@ -528,7 +520,15 @@ watch(() => gameState.value.phase, (newPhase) => {
 
 // Lifecycle
 
-
+onMounted(async () => {
+  try {
+    await connectToCrashGame()
+    await gameStore.loadGameHistory(50) // ✅ Этот вызов должен быть
+    initGraph()
+  } catch (err) {
+    console.error('Failed to initialize crash game:', err)
+  }
+})
 
 // Перерисовываем график при изменении множителя
 watch(currentMultiplier, () => {
