@@ -1059,7 +1059,7 @@ async def make_crash_bet(request: Request, bet_data: dict, db: Session = Depends
 # Пример FastAPI endpoint
 @app.get("/crash/history")
 async def get_crash_history(
-    limit: int = Query(5, ge=1, le=50),
+    limit: int = Query(5, ge=1, le=100),
     db: Session = Depends(get_db)  # ← ДОБАВЬТЕ ЭТУ СТРОЧКУ
 ):
     history = db.query(CrashGameResult)\
