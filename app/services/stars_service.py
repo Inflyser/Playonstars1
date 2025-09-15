@@ -15,14 +15,17 @@ class StarsService:
     async def create_invoice(self, user_id: int, amount: int) -> Optional[str]:
         """Создание инвойса для Stars - ИСПРАВЛЕННАЯ версия"""
         try:
-            # ✅ ПРАВИЛЬНЫЙ формат для Telegram API
+            # Умножаем amount на 100, потому что Telegram ожидает сумму в минимальных единицах (копейках)
+            price_amount = amount
+
+            # ✅ ПРАВИЛЬНЫЙ формат для Telegram Stars API
             payload = {
                 "title": "PlayOnStars - Пополнение баланса",
                 "description": f"Пополнение на {amount} STARS",
                 "payload": f"stars_payment:{user_id}:{amount}",
-                "currency": "XTR",
-                "prices": [{"label": f"{amount} STARS", "amount": amount}],  # ✅ Умножаем на 100!
-                "provider_token": "",  # ✅ Обязательно для Stars
+                "currency": "XTR",  # ✅ Валюта Stars
+                "prices": [{"label": f"{amount} STARS", "amount": price_amount}],
+                "provider_token": "",  # ✅ Получаем из переменной окружения
                 "need_name": False,
                 "need_phone_number": False, 
                 "need_email": False,

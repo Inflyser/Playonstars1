@@ -1276,35 +1276,40 @@ def generate_avatar_url(user: User) -> str:
 
 @app.post("/api/webhook/telegram")
 async def handle_telegram_webhook(request: Request, db: Session = Depends(get_db)):
-    """Обработка вебхуков от Telegram"""
+    """Обработка вебхуков от Telegram для платежей Stars"""
     try:
         payload = await request.json()
         
         # Обработка успешного платежа
         if 'message' in payload and 'successful_payment' in payload['message']:
             payment_data = payload['message']['successful_payment']
-            invoice_payload = json.loads(payment_data.get('invoice_payload', '{}'))
+            invoice_payload = payment_data.get('invoice_payload', '')
             
-            user_id = invoice_payload.get('user_id')
-            amount = invoice_payload.get('amount')
-            
-            if user_id and amount:
-                # Обновляем баланс пользователя
-                user = crud.get_user_by_telegram_id(db, user_id)
-                if user:
-                    user.stars_balance += amount
-                    db.commit()
+            # ✅ Парсим invoice_payload в формате "stars_payment:{user_id}:{amount}"
+            if invoice_payload.startswith('stars_payment:'):
+                try:
+                    parts = invoice_payload.split(':')
+                    user_id = int(parts[1])
+                    amount = float(parts[2])
                     
-                    # Отправляем уведомление через WebSocket
-                    await websocket_manager.send_to_user(
-                        f"user_{user_id}",
-                        {
-                            "type": "balance_update",
-                            "currency": "stars",
-                            "new_balance": user.stars_balance,
-                            "amount_added": amount
-                        }
-                    )
+                    # Обновляем баланс пользователя
+                    user = crud.get_user_by_telegram_id(db, user_id)
+                    if user:
+                        user.stars_balance += amount
+                        db.commit()
+                        
+                        # ✅ Отправляем уведомление через WebSocket
+                        await websocket_manager.send_to_user(
+                            f"user_{user_id}",
+                            {
+                                "type": "balance_update",
+                                "currency": "stars",
+                                "new_balance": user.stars_balance,
+                                "amount_added": amount
+                            }
+                        )
+                except (IndexError, ValueError) as e:
+                    print(f"Error parsing invoice_payload: {e}")
         
         return {"status": "ok"}
         

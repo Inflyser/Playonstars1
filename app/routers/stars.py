@@ -19,15 +19,24 @@ async def create_stars_invoice(
 ):
     """Создание инвойса для оплаты Stars"""
     try:
-        telegram_id = request.session.get("telegram_id") or invoice_data.get("telegram_id")
+        # ✅ Пытаемся получить telegram_id из сессии или из данных запроса
+        telegram_id = request.session.get("telegram_id")
+        if not telegram_id:
+            telegram_id = invoice_data.get("telegram_id")
+        
         amount = invoice_data.get("amount")
         
         if not telegram_id or not amount:
             raise HTTPException(status_code=400, detail="Telegram ID and amount required")
         
         amount = int(amount)
-        if amount < 1:
-            raise HTTPException(status_code=400, detail="Minimum amount is 1 STAR")
+        if amount < 10 or amount > 5000:  # ✅ Проверяем лимиты
+            raise HTTPException(status_code=400, detail="Amount must be between 10 and 5000 STARS")
+        
+        # ✅ Проверяем существование пользователя
+        user = crud.get_user_by_telegram_id(db, telegram_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
         
         # Используем сервис для создания инвойса
         invoice_link = await stars_service.create_invoice(telegram_id, amount)
@@ -40,6 +49,8 @@ async def create_stars_invoice(
             "invoice_link": invoice_link
         }
             
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid amount format")
     except Exception as e:
         logger.error(f"Error creating invoice: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
