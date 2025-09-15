@@ -126,10 +126,10 @@
             <div class="modal-header">
               <h2>История коэффициентов</h2>
               <button class="close-button" @click="showHistoryModal = false">
-                <img src="@/assets/images/close.svg" alt="scroll">
+                <img src="@/assets/images/close.svg" alt="close">
               </button>
             </div>
-
+          
             <div class="modal-content">
               <div class="full-history-list">
                 <div
@@ -484,7 +484,7 @@ const updateRocketPosition = (endX: number, endY: number) => {
 onMounted(async () => {
   try {
     await connectToCrashGame()
-    await gameStore.loadGameHistory(10) // ✅ Этот вызов должен быть
+    await gameStore.loadGameHistory(100) // ✅ Этот вызов должен быть
     initGraph()
   } catch (err) {
     console.error('Failed to initialize crash game:', err)
@@ -1083,67 +1083,76 @@ watch(currentMultiplier, () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: rgba(0, 0, 0, 0.9);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1050; /* Увеличьте z-index */ 
-  padding: 20px;
+  z-index: 9999;
+  padding: 15px;
 }
 
 .history-modal {
-  background: linear-gradient(to bottom, #1B152F, #180A24);
+  background: linear-gradient(135deg, #1B152F 0%, #180A24 100%);
   border-radius: 16px;
-  border: 1px solid #4479D98A;
+  border: 2px solid #4479D9;
   width: 100%;
-  max-width: 500px;
-  max-height: 80vh;
+  max-width: 95%;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  z-index: 1060; /* Добавьте更高的 z-index */ 
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #25213C;
+  padding: 15px 20px;
+  border-bottom: 1px solid #2D2A40;
+  background: rgba(36, 29, 73, 0.8);
 }
 
 .modal-header h2 {
   margin: 0;
   color: white;
-  font-size: 1.2em;
+  font-size: 1.1em;
+  font-weight: 600;
 }
 
 .close-button {
-  background: none;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
-  cursor: pointer;
-  padding: 5px;
   border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 0.2s ease;
 }
 
 .close-button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.close-button img {
+  width: 14px;
+  height: 14px;
 }
 
 .modal-content {
   flex: 1;
   overflow-y: auto;
-  padding: 10px;
+  padding: 15px;
 }
 
 .full-history-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 10px;
-  padding: 10px;
+  grid-template-columns: repeat(5, 1fr); /* 5 элементов в ряд */
+  gap: 8px; /* Уменьшенный отступ */
+  padding: 5px;
 }
 
 .full-history-item {
@@ -1151,41 +1160,125 @@ watch(currentMultiplier, () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 12px;
-  border-radius: 8px;
+  padding: 8px 4px; /* Уменьшенный padding */
+  border-radius: 6px; /* Меньший радиус */
   text-align: center;
-  min-height: 70px;
+  min-height: 50px; /* Уменьшенная высота */
+  transition: transform 0.2s ease;
+}
+
+.full-history-item:hover {
+  transform: scale(1.05);
 }
 
 .full-history-item.multiplier-low {
   border: 1px solid #4B7ED0;
-  background: #355391;
+  background: linear-gradient(135deg, #355391 0%, #2A4175 100%);
 }
 
 .full-history-item.multiplier-medium {
   border: 1px solid #764BD0;
-  background: #5A3A9E;
+  background: linear-gradient(135deg, #5A3A9E 0%, #462C7A 100%);
 }
 
 .full-history-item.multiplier-high {
   border: 1px solid #83CE38;
-  background: #67A32B;
+  background: linear-gradient(135deg, #67A32B 0%, #4F7E21 100%);
 }
 
 .multiplier-value {
-  font-size: 1.2em;
+  font-size: 0.85em; /* Уменьшенный шрифт */
   font-weight: bold;
-  margin-bottom: 5px;
+  margin-bottom: 3px;
   color: white;
 }
 
 .game-time {
-  font-size: 0.8em;
+  font-size: 0.65em; /* Уменьшенный шрифт */
   opacity: 0.8;
-  color: white;
+  color: #CCCCCC;
+}
+
+/* Стили для скролла */
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #4B7ED0;
+  border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: #5A8DE0;
 }
 
 /* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+  .full-history-list {
+    grid-template-columns: repeat(4, 1fr); /* 4 в ряд на планшетах */
+    gap: 6px;
+  }
+  
+  .full-history-item {
+    padding: 6px 3px;
+    min-height: 45px;
+  }
+  
+  .multiplier-value {
+    font-size: 0.8em;
+  }
+  
+  .game-time {
+    font-size: 0.6em;
+  }
+}
 
+@media (max-width: 480px) {
+  .full-history-list {
+    grid-template-columns: repeat(3, 1fr); /* 3 в ряд на телефонах */
+    gap: 5px;
+  }
+  
+  .history-modal {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 12px;
+  }
+  
+  .modal-header {
+    padding: 12px 15px;
+  }
+  
+  .modal-header h2 {
+    font-size: 1em;
+  }
+  
+  .full-history-item {
+    padding: 5px 2px;
+    min-height: 40px;
+    border-radius: 4px;
+  }
+  
+  .multiplier-value {
+    font-size: 0.75em;
+  }
+  
+  .game-time {
+    font-size: 0.55em;
+  }
+}
+
+/* Для очень маленьких экранов */
+@media (max-width: 320px) {
+  .full-history-list {
+    grid-template-columns: repeat(2, 1fr); /* 2 в ряд */
+  }
+}
 
 </style>
