@@ -2,8 +2,6 @@
     <div class="home">
         <TelegramHeader />
 
-
-
         <div class="game-history">
           <div class="history-list">
             <div
@@ -29,11 +27,6 @@
           </button >
         </div>
       
-      
-
-
-
-
         <!-- График игры -->
         <div class="game-graph">
           <template v-if="gameState.phase !== 'finished'">
@@ -55,94 +48,48 @@
           </template>
 
           <!-- Результаты игры -->
-  <!-- Результаты игры -->
           <div v-else class="game-results">
             <img src="@/assets/images/crashfon.svg" class="graph-background">
             <img src="@/assets/images/kpanel.svg" class="panels-crash">
+            <div class="multiplier-display" :class="{ growing: isGameActive }">
+              x{{ currentMultiplier.toFixed(2) }}
+            </div>
+            <div class="result-header">
+              <h3>Игра завершена!</h3>
+            </div>
 
-            <div class="result-content">
-              <!-- Заголовок с анимацией -->
-              <div class="result-header">
-                <div class="result-title" :class="{ 'crashed': currentMultiplier < 1 }">
-                  <template v-if="currentMultiplier < 1">
-                    <span class="crash-icon">💥</span>
-                    <h3>Крах!</h3>
-                  </template>
-                  <template v-else>
-                    <span class="success-icon">🎯</span>
-                    <h3>Игра завершена!</h3>
-                  </template>
-                </div>
-                <div class="final-multiplier" :class="{ 
-                  'low': currentMultiplier < 2, 
-                  'medium': currentMultiplier >= 2 && currentMultiplier < 5,
-                  'high': currentMultiplier >= 5
-                }">
-                  x{{ currentMultiplier.toFixed(2) }}
-                </div>
+            <div class="player-result" v-if="currentUserBet">
+              <div class="result-icon" :class="{ success: (currentUserBet.profit || 0) > 0, failure: (currentUserBet.profit || 0) <= 0 }">
+                {{ (currentUserBet.profit || 0) > 0 ? '🎉' : '💥' }}
               </div>
-            
-              <!-- Результат пользователя -->
-              <div class="user-result-container">
-                <div class="player-result" v-if="currentUserBet">
-                  <div class="result-badge" :class="{ 
-                    'success': (currentUserBet.profit || 0) > 0, 
-                    'failure': (currentUserBet.profit || 0) <= 0 
-                  }">
-                    <div class="badge-icon">
-                      {{ (currentUserBet.profit || 0) > 0 ? '🎉' : '💥' }}
-                    </div>
-                    <div class="badge-text">
-                      {{ (currentUserBet.profit || 0) > 0 ? 'ПОБЕДА' : 'ПРОИГРЫШ' }}
-                    </div>
-                  </div>
-                
-                  <div class="result-details">
-                    <div class="detail-row">
-                      <span class="label">Ставка:</span>
-                      <span class="value bet-amount">{{ currentUserBet.amount }} stars</span>
-                    </div>
+              <div class="result-details">
+                <p>Ваша ставка: <strong>{{ currentUserBet.amount }} stars</strong></p>
+                <p :class="{ profit: (currentUserBet.profit || 0) > 0, loss: (currentUserBet.profit || 0) <= 0 }">
+                  Результат: <strong>{{ (currentUserBet.profit || 0) > 0 ? '+' + (currentUserBet.profit || 0).toFixed(2) : '0' }} stars</strong>
+                </p>
+                <p v-if="currentUserBet.cashoutMultiplier" class="cashout-info">
+                  Вывели на: x{{ currentUserBet.cashoutMultiplier.toFixed(2) }}
+                </p>
+                <p v-else class="cashout-info">
+                  Не успели вывести
+                </p>
+              </div>
+            </div>
 
-                    <div class="detail-row" :class="{ 
-                      'profit': (currentUserBet.profit || 0) > 0, 
-                      'loss': (currentUserBet.profit || 0) <= 0 
-                    }">
-                      <span class="label">Результат:</span>
-                      <span class="value result-amount">
-                        {{ (currentUserBet.profit || 0) > 0 ? '+' + (currentUserBet.profit || 0).toFixed(2) : '0' }} stars
-                      </span>
-                    </div>
-                  
-                    <div class="detail-row cashout-info">
-                      <span class="label">Вывели на:</span>
-                      <span class="value cashout-multiplier" v-if="currentUserBet.cashoutMultiplier">
-                        x{{ currentUserBet.cashoutMultiplier.toFixed(2) }}
-                      </span>
-                      <span class="value not-cashed" v-else>
-                        Не успели вывести
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              
-                <div class="no-bet" v-else>
-                  <div class="no-bet-icon">👀</div>
-                  <div class="no-bet-text">
-                    <p>Вы не делали ставку</p>
-                    <p class="subtext">в этой игре</p>
-                  </div>
-                </div>
-              </div>
-            
-              <!-- Автоматическое обновление через WebSocket -->
-              <div class="auto-update-info">
-                <div class="update-icon">🔄</div>
-                <p class="update-text">Новая игра начнется автоматически</p>
-              </div>
+            <div class="no-bet" v-else>
+              <div class="result-icon">👀</div>
+              <p style="margin: -10px;">Вы не делали ставку в этой игре</p>
             </div>
           </div>
         </div>
-     
+
+        <!-- Статус игры -->
+        <div class="game-status">
+            <div class="timer" v-if="gameState.phase === 'betting'">
+              {{ bettingTimer }}s
+            </div>
+        </div>
+
         <BettingPanel 
           v-model:betAmount="firstBetAmount"
           :maxAmount="userStore.balance.stars_balance"
@@ -161,10 +108,8 @@
           @place-bet="handleSecondBet"
           @cash-out="doSecondCashOut"
         />
-     
 
-
-                <!-- Модальное окно истории коэффициентов -->
+        <!-- Модальное окно истории коэффициентов -->
         <div v-if="showHistoryModal" class="history-modal-overlay" @click.self="showHistoryModal = false">
           <div class="history-modal">
             <div class="modal-header">
@@ -212,10 +157,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-
-const { t, locale } = useI18n()
-
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onBeforeUnmount, nextTick } from 'vue'
 import { useGameStore } from '@/stores/useGameStore'
 import { useUserStore } from '@/stores/useUserStore'
 import { useWebSocket } from '@/composables/useWebSocket'
@@ -226,17 +168,21 @@ import Top10 from '@/components/ui/topCrash/Top10.vue'
 import TopAll from '@/components/ui/topCrash/TopAll.vue'
 import TopMy from '@/components/ui/topCrash/TopMy.vue'
 import BettingPanel from '@/components/layout/BettingPanel.vue' 
+import rocketImageSrc from '@/assets/images/space-monkey-character.svg'
 
+const { t, locale } = useI18n()
 
 const gameStore = useGameStore()
 const userStore = useUserStore()
 const { connectToCrashGame, placeCrashBet, cashOut } = useWebSocket()
 
-const betAmountNumber = ref(100) // ✅ Теперь number
+const betAmountNumber = ref(100)
 const autoCashout = ref('')
 const selectedPaymentMethod = ref('top')
 const firstBetAmount = ref(100)
-const secondBetAmount = ref(50) // Можно задать разное начальное значение
+const secondBetAmount = ref(50)
+const showHistoryModal = ref(false)
+const isGraphVisible = ref(true)
 
 interface CrashGameHistory {
   id: number
@@ -250,20 +196,23 @@ interface CrashGameHistory {
 }
 
 interface CrashGameState {
-  // ... другие поля ...
   history: CrashGameHistory[]
 }
 
 const crashGame = ref<CrashGameState>({
-  // ... другие поля ...
   history: []
 })
 
-const showHistoryModal = ref(false)
+// Переменные для графика
+const graphCanvas = ref<HTMLCanvasElement | null>(null)
+const graphContext = ref<CanvasRenderingContext2D | null>(null)
+const rocketPosition = ref<{x: number; y: number} | null>(null)
+const animationFrame = ref<number | null>(null)
+const visibilityObserver = ref<IntersectionObserver | null>(null)
 
 const handleOpenModal = () => {
-    console.log('Кнопка нажата!');
-    showHistoryModal.value = true;
+    console.log('Кнопка нажата!')
+    showHistoryModal.value = true
 }
 
 // Computed properties
@@ -277,10 +226,8 @@ const currentUserBet = computed(() => gameStore.userBet)
 const currentProfit = computed(() => gameStore.currentProfit)
 const gameError = computed(() => gameStore.error)
 
-
 const handleFirstBet = (betData: any) => {
   console.log('Ставка с первой панели:', betData)
-  // Ваша логика обработки ставки
   const amount = betData.amount
   const cashoutValue = betData.coefficient ? parseFloat(betData.coefficient) : undefined
   
@@ -296,7 +243,6 @@ const handleFirstBet = (betData: any) => {
 
 const handleSecondBet = (betData: any) => {
   console.log('Ставка со второй панели:', betData)
-  // Можно добавить разную логику для второй панели
   const amount = betData.amount
   const cashoutValue = betData.coefficient ? parseFloat(betData.coefficient) : undefined
   
@@ -312,24 +258,21 @@ const handleSecondBet = (betData: any) => {
 
 const doFirstCashOut = async () => {
   try {
-    await gameStore.cashOut();
-    cashOut();
-    // Дополнительная логика для первой панели
+    await gameStore.cashOut()
+    cashOut()
   } catch (error) {
-    console.error('Failed to cash out from first panel:', error);
+    console.error('Failed to cash out from first panel:', error)
   }
-};
+}
 
 const doSecondCashOut = async () => {
   try {
-    await gameStore.cashOut();
-    cashOut();
-    // Дополнительная логика для второй панели
+    await gameStore.cashOut()
+    cashOut()
   } catch (error) {
-    console.error('Failed to cash out from second panel:', error);
+    console.error('Failed to cash out from second panel:', error)
   }
-};
-
+}
 
 const totalBet = computed(() => {
     return gameState.value.players.reduce((sum: number, player: any) => sum + player.betAmount, 0)
@@ -350,13 +293,11 @@ const visiblePlayers = computed(() => {
     return gameState.value.players.slice(0, 10)
 })
 
-// Methods
 const setBetAmount = (amount: number) => {
-    betAmountNumber.value = amount // ✅ Просто присваиваем number
+    betAmountNumber.value = amount
 }
 
 const placeBet = async (betData?: any) => {
-    // ✅ Теперь betAmountNumber уже number, не нужно парсить
     const amount = betData?.amount || betAmountNumber.value
     const cashoutValue = betData?.coefficient || (autoCashout.value ? parseFloat(autoCashout.value) : undefined)
 
@@ -370,7 +311,6 @@ const placeBet = async (betData?: any) => {
     }
 }
 
-// Новый метод для обработки ставки
 const handlePlaceBet = (betData: any) => {
     const amount = betData.amount
     const cashoutValue = betData.coefficient ? parseFloat(betData.coefficient) : undefined
@@ -387,49 +327,22 @@ const handlePlaceBet = (betData: any) => {
 
 const doCashOut = async () => {
     try {
-        await gameStore.cashOut();
-        cashOut();
+        await gameStore.cashOut()
+        cashOut()
         
-        
-        // ✅ ДВОЙНАЯ ПРОВЕРКА СИНХРОНИЗАЦИИ
         setTimeout(async () => {
-            const syncedBalance = await userStore.syncBalance();
+            const syncedBalance = await userStore.syncBalance()
             if (syncedBalance) {
-                console.log('Balance synced successfully:', syncedBalance);
+                console.log('Balance synced successfully:', syncedBalance)
             }
-        }, 1000);
+        }, 1000)
         
     } catch (error) {
-        console.error('Failed to cash out:', error);
+        console.error('Failed to cash out:', error)
     }
-};
-
-// Добавляем watch для отслеживания изменений баланса
-watch(() => userStore.balance, (newBalance) => {
-    console.log('Balance changed:', newBalance);
-}, { deep: true });
-
-
-const prepareNewGame = () => {
-  gameStore.resetBet()
-  betAmountNumber.value = 10
-  autoCashout.value = ''
-  // Останавливаем анимацию графика если она идет
-  if (animationFrame.value) {
-    cancelAnimationFrame(animationFrame.value)
-    animationFrame.value = null
-  }
 }
 
-// ГРАФИК
-
-import rocketImageSrc from '@/assets/images/space-monkey-character.svg'
-
-// Переменные
-const graphCanvas = ref<HTMLCanvasElement | null>(null)
-const graphContext = ref<CanvasRenderingContext2D | null>(null)
-const rocketPosition = ref<{x: number; y: number} | null>(null)
-const animationFrame = ref<number | null>(null)
+// ГРАФИК - ОПТИМИЗИРОВАННЫЕ ФУНКЦИИ
 
 // Инициализация графика
 const initGraph = () => {
@@ -442,9 +355,11 @@ const initGraph = () => {
   drawGraph()
 }
 
-// Функция отрисовки графика
+// Функция отрисовки графика с оптимизацией
 const drawGraph = () => {
-  if (!graphContext.value || !graphCanvas.value) return
+  if (!graphContext.value || !graphCanvas.value || !isGraphVisible.value) {
+    return
+  }
   
   const ctx = graphContext.value
   const width = graphCanvas.value.width
@@ -508,9 +423,11 @@ const drawGraph = () => {
   // Обновляем позицию ракеты
   updateRocketPosition(endX, endY)
   
-  // Продолжаем анимацию если игра активна
-  if (isGameActive.value) {
+  // Продолжаем анимацию только если игра активна и график виден
+  if (isGameActive.value && isGraphVisible.value) {
     animationFrame.value = requestAnimationFrame(drawGraph)
+  } else {
+    animationFrame.value = null
   }
 }
 
@@ -520,7 +437,7 @@ const updateRocketPosition = (endX: number, endY: number) => {
   
   const canvasRect = graphCanvas.value.getBoundingClientRect()
   const scrollX = window.scrollX || window.pageXOffset
-  const scrollY = window.scrollY-160 || window.pageYOffset
+  const scrollY = window.scrollY - 160 || window.pageYOffset
   
   rocketPosition.value = {
     x: canvasRect.left + endX + scrollX,
@@ -528,40 +445,71 @@ const updateRocketPosition = (endX: number, endY: number) => {
   }
 }
 
-
-onMounted(async () => {
-  try {
-    await connectToCrashGame()
-    await gameStore.loadGameHistory(100)
-    
-    // Инициализация графика
-    initGraph()
-  } catch (err) {
-    console.error('Failed to initialize crash game:', err)
+// Остановка анимации
+const stopAnimation = () => {
+  if (animationFrame.value) {
+    cancelAnimationFrame(animationFrame.value)
+    animationFrame.value = null
   }
-})
+}
 
+// Подготовка новой игры с очисткой
+const prepareNewGame = () => {
+  gameStore.resetBet()
+  betAmountNumber.value = 10
+  autoCashout.value = ''
+  
+  // Останавливаем анимацию
+  stopAnimation()
+  
+  // Очищаем canvas
+  if (graphContext.value && graphCanvas.value) {
+    graphContext.value.clearRect(0, 0, graphCanvas.value.width, graphCanvas.value.height)
+  }
+  
+  rocketPosition.value = null
+}
+
+// Обработчик изменения видимости
+const handleVisibilityChange = () => {
+  if (document.hidden) {
+    // Если страница скрыта, останавливаем анимацию
+    stopAnimation()
+  } else if (isGameActive.value) {
+    // Если страница снова видна и игра активна, перезапускаем анимацию
+    drawGraph()
+  }
+}
+
+const bettingTimer = ref(0)
 
 // Следим за изменением множителя
 watch(currentMultiplier, () => {
-  if (isGameActive.value && !animationFrame.value) {
+  if (isGameActive.value && !animationFrame.value && isGraphVisible.value) {
     animationFrame.value = requestAnimationFrame(drawGraph)
   }
-})
+}, { flush: 'post' })
 
-const bettingTimer = ref(0)
 // Следим за фазой игры
 watch(() => gameState.value.phase, (newPhase) => {
+  console.log('Game phase changed to:', newPhase)
+  
   if (newPhase === 'finished') {
-    setTimeout(prepareNewGame, 5000)
+    // Даем небольшую задержку перед подготовкой новой игры
+    setTimeout(prepareNewGame, 3000)
   } else if (newPhase === 'waiting' || newPhase === 'betting') {
-    if (animationFrame.value) {
-      cancelAnimationFrame(animationFrame.value)
-      animationFrame.value = null
-    }
+    // Останавливаем анимацию и сбрасываем состояние
+    stopAnimation()
     rocketPosition.value = null
-    drawGraph()
+    
+    // Перерисовываем статичный график
+    nextTick(() => {
+      if (graphContext.value && graphCanvas.value) {
+        graphContext.value.clearRect(0, 0, graphCanvas.value.width, graphCanvas.value.height)
+      }
+    })
   }
+  
   if (newPhase === 'betting') {
     bettingTimer.value = gameState.value.timeRemaining || 5
 
@@ -575,31 +523,64 @@ watch(() => gameState.value.phase, (newPhase) => {
   }
 })
 
+// Инициализация Intersection Observer для отслеживания видимости
+const initVisibilityObserver = () => {
+  if (!graphCanvas.value) return
+  
+  visibilityObserver.value = new IntersectionObserver((entries) => {
+    isGraphVisible.value = entries[0].isIntersecting
+    
+    if (!isGraphVisible.value) {
+      // Если график не виден, останавливаем анимацию
+      stopAnimation()
+    } else if (isGameActive.value) {
+      // Если график снова виден и игра активна, перезапускаем анимацию
+      drawGraph()
+    }
+  }, { threshold: 0.1 })
+  
+  visibilityObserver.value.observe(graphCanvas.value)
+}
 
 // Lifecycle
-
-
 onMounted(async () => {
   try {
     await connectToCrashGame()
-    await gameStore.loadGameHistory()
+    await gameStore.loadGameHistory(100)
     
     // Инициализация графика
     initGraph()
+    initVisibilityObserver()
+    
+    // Добавляем обработчик видимости страницы
+    document.addEventListener('visibilitychange', handleVisibilityChange)
   } catch (err) {
     console.error('Failed to initialize crash game:', err)
   }
 })
 
-
-// Перерисовываем график при изменении множителя
-watch(currentMultiplier, () => {
-  drawGraph()
-
-
+onBeforeUnmount(() => {
+  // Очистка ресурсов при размонтировании компонента
+  stopAnimation()
+  
+  if (visibilityObserver.value && graphCanvas.value) {
+    visibilityObserver.value.unobserve(graphCanvas.value)
+    visibilityObserver.value.disconnect()
+  }
+  
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 
+// Перерисовываем график при изменении размеров окна
+window.addEventListener('resize', () => {
+  if (graphCanvas.value) {
+    initGraph()
+  }
+})
 
+watch(() => userStore.balance, (newBalance) => {
+  console.log('Balance changed:', newBalance)
+}, { deep: true })
 </script>
 
 <style scoped>
@@ -1351,308 +1332,4 @@ watch(currentMultiplier, () => {
   }
 }
 
-.game-results {
-  position: relative;
-  padding: 20px;
-  text-align: center;
-  color: white;
-  height: 35vh;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.result-content {
-  position: relative;
-  z-index: 10;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.result-header {
-  margin-bottom: 15px;
-}
-
-.result-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.result-title h3 {
-  margin: 0;
-  font-size: 1.4em;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.crash-icon, .success-icon {
-  font-size: 2em;
-  animation: bounce 0.6s infinite alternate;
-}
-
-@keyframes bounce {
-  from { transform: translateY(0px); }
-  to { transform: translateY(-5px); }
-}
-
-.final-multiplier {
-  font-size: 2.2em;
-  font-weight: 900;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-  margin: 8px 0;
-  animation: pulse 1s infinite alternate;
-}
-
-@keyframes pulse {
-  from { opacity: 0.8; transform: scale(1); }
-  to { opacity: 1; transform: scale(1.05); }
-}
-
-.final-multiplier.low {
-  color: #ff6b6b;
-  text-shadow: 0 2px 10px rgba(255, 107, 107, 0.3);
-}
-
-.final-multiplier.medium {
-  color: #f59e0b;
-  text-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
-}
-
-.final-multiplier.high {
-  color: #00ff88;
-  text-shadow: 0 2px 10px rgba(0, 255, 136, 0.3);
-}
-
-.user-result-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  margin: 10px 0;
-}
-
-.player-result {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  padding: 20px;
-  backdrop-filter: blur(10px);
-  width: 100%;
-  max-width: 300px;
-}
-
-.result-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 12px 20px;
-  border-radius: 25px;
-  margin-bottom: 20px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.result-badge.success {
-  background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 204, 106, 0.3) 100%);
-  border: 1px solid rgba(0, 255, 136, 0.3);
-  color: #00ff88;
-}
-
-.result-badge.failure {
-  background: linear-gradient(135deg, rgba(255, 107, 107, 0.2) 0%, rgba(238, 90, 82, 0.3) 100%);
-  border: 1px solid rgba(255, 107, 107, 0.3);
-  color: #ff6b6b;
-}
-
-.badge-icon {
-  font-size: 1.5em;
-}
-
-.badge-text {
-  font-size: 0.9em;
-}
-
-.result-details {
-  text-align: left;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.detail-row:last-child {
-  border-bottom: none;
-}
-
-.label {
-  color: #a0a0b0;
-  font-size: 0.9em;
-  font-weight: 500;
-}
-
-.value {
-  font-weight: 700;
-  font-size: 1em;
-}
-
-.bet-amount {
-  color: #ffffff;
-}
-
-.result-amount.profit {
-  color: #00ff88;
-}
-
-.result-amount.loss {
-  color: #ff6b6b;
-}
-
-.cashout-multiplier {
-  color: #f59e0b;
-}
-
-.not-cashed {
-  color: #a0a0b0;
-  font-style: italic;
-  font-size: 0.9em;
-}
-
-.no-bet {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-  padding: 25px;
-}
-
-.no-bet-icon {
-  font-size: 2.5em;
-  opacity: 0.7;
-}
-
-.no-bet-text {
-  text-align: center;
-}
-
-.no-bet-text p {
-  margin: 0;
-  font-size: 1.1em;
-  font-weight: 600;
-}
-
-.no-bet-text .subtext {
-  font-size: 0.9em;
-  color: #a0a0b0;
-  margin-top: 5px;
-}
-
-.auto-update-info {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 15px;
-  margin-top: 15px;
-  animation: fadeInOut 2s infinite alternate;
-}
-
-@keyframes fadeInOut {
-  from { opacity: 0.6; }
-  to { opacity: 1; }
-}
-
-.update-icon {
-  font-size: 1.2em;
-}
-
-.update-text {
-  margin: 0;
-  font-size: 0.9em;
-  color: #a0a0b0;
-  font-weight: 500;
-}
-
-/* Адаптивность */
-@media (max-width: 768px) {
-  .result-title h3 {
-    font-size: 1.2em;
-  }
-  
-  .final-multiplier {
-    font-size: 1.8em;
-  }
-  
-  .player-result {
-    padding: 15px;
-    max-width: 250px;
-  }
-  
-  .result-badge {
-    padding: 10px 15px;
-  }
-  
-  .badge-text {
-    font-size: 0.8em;
-  }
-  
-  .auto-update-info {
-    padding: 10px;
-  }
-  
-  .update-text {
-    font-size: 0.8em;
-  }
-}
-
-@media (max-width: 480px) {
-  .game-results {
-    padding: 15px;
-  }
-  
-  .result-title h3 {
-    font-size: 1.1em;
-  }
-  
-  .final-multiplier {
-    font-size: 1.6em;
-  }
-  
-  .player-result {
-    padding: 12px;
-    max-width: 220px;
-  }
-  
-  .no-bet {
-    padding: 20px;
-  }
-  
-  .no-bet-icon {
-    font-size: 2em;
-  }
-  
-  .auto-update-info {
-    flex-direction: column;
-    gap: 5px;
-    padding: 8px;
-  }
-  
-  .update-text {
-    font-size: 0.75em;
-    text-align: center;
-  }
-}
 </style>
