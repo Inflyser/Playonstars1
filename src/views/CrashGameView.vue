@@ -121,7 +121,7 @@
 
 
                 <!-- Модальное окно истории коэффициентов -->
-        <div v-if="showHistoryModal" class="history-modal-overlay" @click.self="showHistoryModal = false">
+        <div v-if="showHistoryModal" class="history-modal-overlay" @click.self="showHistoryModal = true">
           <div class="history-modal">
             <div class="modal-header">
               <h2>История коэффициентов</h2>
@@ -687,6 +687,7 @@ watch(currentMultiplier, () => {
   height: 30px;
   z-index: 10;
   pointer-events: none;
+  cursor: pointer;
 }
 
 .indicator-icon {
