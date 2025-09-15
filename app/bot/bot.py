@@ -10,6 +10,7 @@ from app.database.session import SessionLocal
 import os
 from app.database.models import User, ReferralAction
 from app.database import crud  # ✅ Добавляем импорт crud
+from aiogram.types import LabeledPrice, PreCheckoutQuery
 
 def webapp_builder():
     builder = InlineKeyboardBuilder()
@@ -99,5 +100,10 @@ async def process_referral(new_user_id: int, referrer_id: int, db: Session):
         traceback.print_exc()  # Выводим полную трассировку ошибки
         db.rollback()
         return False
+    
+@dp.pre_checkout_query()
+async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery):
+    # ✅ Всегда отвечаем OK на pre_checkout_query
+    await pre_checkout_query.answer(ok=True)
     
     

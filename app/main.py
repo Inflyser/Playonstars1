@@ -164,6 +164,19 @@ async def run_crash_game():
             print(f"Error in crash game: {e}")
             await asyncio.sleep(10)
             
+            
+            
+@app.get("/api/webhook-status")
+async def webhook_status():
+    webhook_info = await bot.get_webhook_info()
+    return {
+        "url": webhook_info.url,
+        "has_custom_certificate": webhook_info.has_custom_certificate,
+        "pending_update_count": webhook_info.pending_update_count,
+        "last_error_date": webhook_info.last_error_date,
+        "last_error_message": webhook_info.last_error_message
+    }
+    
 
 @app.post("/login")
 async def login_from_webapp(request: Request, data: dict, db: Session = Depends(get_db)):
