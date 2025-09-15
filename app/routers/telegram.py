@@ -10,6 +10,7 @@ from aiogram.types import Message, Optional
 from app.database import crud
 from aiogram.utils.deep_linking import decode_payload
 from app.database.models import User, ReferralAction
+from aiogram.types import LabeledPrice, PreCheckoutQuery
 
 import json
 
@@ -22,6 +23,10 @@ from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, C
 from app.database.crud import get_user_by_telegram_id as get_user, create_user, update_user_language  
 from aiogram.exceptions import TelegramBadRequest
 from app.services import stars_service
+from aiogram.filters import Command
+import logging
+
+
 router = Router()
 
 # Создаем клавиатуру с инлайн-кнопками для трех языков
@@ -317,6 +322,7 @@ logger = logging.getLogger(__name__)
 async def cmd_buy_stars(message: Message, db: Session = Depends(get_db)):
     """Команда для покупки Stars - ИСПРАВЛЕННАЯ ВЕРСИЯ"""
     try:
+        logger.info(f"🛒 Buy stars command from user: {message.from_user.id}")
         user = crud.get_user(db, message.from_user.id)
         if not user:
             await message.answer("❌ Пользователь не найден")
@@ -360,9 +366,9 @@ async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery):
         
     except Exception as e:
         logger.error(f"❌ PreCheckout error: {e}")
-        # ✅ ОБЯЗАТЕЛЬНО ответить даже при ошибке
         await pre_checkout_query.answer(ok=False, error_message="Payment error")
 
+# ✅ ПРАВИЛЬНЫЙ SuccessfulPayment обработчик (оставьте только этот)
 @router.message(F.successful_payment)
 async def successful_payment_handler(message: Message, db: Session = Depends(get_db)):
     """Обработка успешного платежа Stars"""
@@ -409,63 +415,7 @@ async def successful_payment_handler(message: Message, db: Session = Depends(get
         logger.error(f"Payment processing error: {str(e)}")
         await message.answer("❌ Payment processing error")
 
-from aiogram.types import PreCheckoutQuery, SuccessfulPayment
-from aiogram.filters import Command
 
-# ✅ ОБЯЗАТЕЛЬНЫЙ обработчик для предварительной проверки
-@router.pre_checkout_query()
-async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery):
-    """ВСЕГДА подтверждаем pre-checkout для Stars"""
-    try:
-        logger.info(f"Pre-checkout received: {pre_checkout_query}")
-        await pre_checkout_query.answer(ok=True)
-        logger.info("Pre-checkout approved")
-    except Exception as e:
-        logger.error(f"Pre-checkout error: {e}")
-        await pre_checkout_query.answer(ok=False, error_message="Payment error")
-
-# ✅ Обработчик успешных платежей
-@router.message(lambda message: message.successful_payment is not None)
-async def successful_payment_handler(message: Message, db: Session = Depends(get_db)):
-    """Обработка успешного платежа"""
-    try:
-        payment = message.successful_payment
-        user_id = message.from_user.id
-        
-        logger.info(f"✅ Successful payment received: {payment}")
-        
-        # Парсим payload
-        payload_parts = payment.invoice_payload.split(':')
-        if len(payload_parts) != 3 or payload_parts[0] != 'stars':
-            await message.answer("❌ Invalid payment payload")
-            return
-            
-        target_user_id = int(payload_parts[1])
-        stars_amount = int(payload_parts[2])
-        
-        # Проверяем пользователя
-        if user_id != target_user_id:
-            await message.answer("❌ Security error")
-            return
-        
-        user = get_user(db, user_id)
-        if not user:
-            await message.answer("❌ User not found")
-            return
-        
-        # Зачисляем средства
-        user.stars_balance += stars_amount
-        db.commit()
-        
-        await message.answer(
-            f"✅ Payment successful!\n"
-            f"💫 Added: {stars_amount} Stars\n"
-            f"💰 New balance: {user.stars_balance} Stars"
-        )
-        
-    except Exception as e:
-        logger.error(f"Payment processing error: {e}")
-        await message.answer("❌ Payment processing error")
 
 # Добавляем команду для проверки баланса
 @router.message(Command("balance"))
