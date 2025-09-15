@@ -3,15 +3,14 @@
         <TelegramHeader />
 
 
-
-        <div class="game-history">
-          <button class="history-scroll-indicator" @click="showHistoryModal = true">
+        <button class="history-scroll-indicator" @click="showHistoryModal = true">
             <div class="indicator-icon">
               <img src="@/assets/images/clock.svg" alt="scroll">
             </div>
             <div class="indicator-shadow"></div>
-          </button >
+        </button >
 
+        <div class="game-history">
           <div class="history-list">
             <div
               v-for="(game, index) in gameState.history" 
