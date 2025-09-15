@@ -21,12 +21,12 @@
           </div>
         
           <!-- Фиксированная панелька справа - теперь кнопка -->
-          <div class="history-scroll-indicator" @click="showHistoryModal = true">
+          <button  class="history-scroll-indicator" @click="showHistoryModal = true">
             <div class="indicator-icon">
               <img src="@/assets/images/clock.svg" alt="scroll">
             </div>
             <div class="indicator-shadow"></div>
-          </div>
+          </button >
         </div>
       
       
