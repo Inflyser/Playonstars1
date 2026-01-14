@@ -7,6 +7,11 @@ Telegramm MiniApp Crash Game
 <img width="322" height="575" alt="image" src="https://github.com/user-attachments/assets/1165f308-b447-42f5-9eb3-5e41e8ec8c83" />
 <img width="1920" height="1280" alt="Frame 3 (5)" src="https://github.com/user-attachments/assets/62b1c0a3-53c4-4b1b-a407-269971e0ce76" />
 
+<img width="1920" height="1280" alt="Frame 1 (10)" src="https://github.com/user-attachments/assets/93597c90-b24c-4980-8914-b57ac5b89319" />
+
+<img width="1920" height="1280" alt="Frame 2 (8)" src="https://github.com/user-attachments/assets/a42024db-8f2c-4519-855a-df3799cca076" />
+
+
 <img width="322" height="576" alt="image" src="https://github.com/user-attachments/assets/bb637659-79c0-4927-ae92-fa46c10de150" />
 
 <img width="321" height="575" alt="image" src="https://github.com/user-attachments/assets/1e50ccf5-101e-4804-901e-aed2b8acffca" />
