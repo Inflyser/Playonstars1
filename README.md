@@ -5,6 +5,7 @@ Telegramm MiniApp Crash Game
 - front
 
 <img width="322" height="575" alt="image" src="https://github.com/user-attachments/assets/1165f308-b447-42f5-9eb3-5e41e8ec8c83" />
+<img width="1920" height="1280" alt="Frame 3 (5)" src="https://github.com/user-attachments/assets/62b1c0a3-53c4-4b1b-a407-269971e0ce76" />
 
 <img width="322" height="576" alt="image" src="https://github.com/user-attachments/assets/bb637659-79c0-4927-ae92-fa46c10de150" />
 
